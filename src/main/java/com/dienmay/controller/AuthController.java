@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dienmay.dto.ApiResponse;
+import com.dienmay.dto.ForgotPasswordRequest;
 import com.dienmay.dto.JwtResponse;
 import com.dienmay.dto.LoginRequest;
 import com.dienmay.dto.RegisterRequest;
+import com.dienmay.dto.ResetPasswordRequest;
 import com.dienmay.dto.VerifyOtpRequest;
 import com.dienmay.service.AuthService;
 
@@ -49,6 +51,20 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest request) {
         ApiResponse<JwtResponse> response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+    
+ // 5. API Yêu cầu gửi OTP Quên mật khẩu
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        ApiResponse<String> response = authService.forgotPassword(request);
+        return ResponseEntity.ok(response);
+    }
+    
+    // 6. API Xác thực OTP và Đặt lại mật khẩu mới
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        ApiResponse<String> response = authService.resetPassword(request);
         return ResponseEntity.ok(response);
     }
 }
