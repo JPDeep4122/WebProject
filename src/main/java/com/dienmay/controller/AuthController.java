@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dienmay.dto.ApiResponse;
+import com.dienmay.dto.JwtResponse;
+import com.dienmay.dto.LoginRequest;
 import com.dienmay.dto.RegisterRequest;
 import com.dienmay.dto.VerifyOtpRequest;
 import com.dienmay.service.AuthService;
@@ -40,6 +42,13 @@ public class AuthController {
     @PostMapping("/resend-otp")
     public ResponseEntity<ApiResponse<String>> resendOtp(@RequestParam String email) {
         ApiResponse<String> response = authService.resendOtp(email);
+        return ResponseEntity.ok(response);
+    }
+    
+    // 4. API Đăng nhập lấy JWT Token
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest request) {
+        ApiResponse<JwtResponse> response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 }
