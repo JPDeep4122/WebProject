@@ -1,0 +1,25 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+
+    container_name: dienmay-shop
+
+    ports:
+      - "8080:8080"
+
+    env_file:
+      - .env
+
+    volumes:
+      - ./src:/app/src
+      - ./pom.xml:/app/pom.xml
+      - maven-repository:/root/.m2
+
+    command: mvn spring-boot:run
+
+volumes:
+  maven-repository:
+  
