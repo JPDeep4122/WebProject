@@ -1,4 +1,4 @@
-package com.dienmay.dienmay_shop;
+package com.dienmay;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
