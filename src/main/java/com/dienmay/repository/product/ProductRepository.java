@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import com.dienmay.entity.product.Product;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product>{
+public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 	
 	//Top sản phẩm nổi bật
 	List<Product> findTop8ByActiveTrueAndFeaturedTrueOrderByCreatedAtDesc();

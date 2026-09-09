@@ -46,7 +46,7 @@ public class Product {
 	private String slug;
 
 	@Column(nullable = false, unique = true, length = 50)
-	private String sku; // Mã sản phẩm: TV-SONY-55X80L
+	private String sku;				 	// Mã sản phẩm: TV-SONY-55X80L
 
 	@Column(columnDefinition = "NVARCHAR(MAX)")
 	private String shortDescription;
@@ -55,13 +55,13 @@ public class Product {
 	private String description;
 
 	@Column(nullable = false, precision = 18, scale = 2)
-	private BigDecimal originalPrice; // Giá gốc niêm yết
+	private BigDecimal originalPrice; 	// Giá gốc niêm yết
 
 	@Column(precision = 18, scale = 2)
-	private BigDecimal discountPrice; // Giá khuyến mãi bán ra
+	private BigDecimal discountPrice; 	// Giá khuyến mãi bán ra
 
 	@Column(length = 500)
-	private String mainImageUrl; // Link ảnh đại diện (Cloudinary / Web)
+	private String mainImageUrl; 		// Link ảnh đại diện (Cloudinary / Web)
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "category_id")
@@ -74,10 +74,7 @@ public class Product {
 	@Builder.Default
 	private boolean active = true;
 	@Builder.Default
-	private boolean featured = false; // Sản phẩm nổi bật trang chủ
-
-	@CreationTimestamp
-	private LocalDateTime createdAt;
+	private boolean featured = false; 	// Sản phẩm nổi bật trang chủ
 
 	@OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
 	@Builder.Default
@@ -86,4 +83,23 @@ public class Product {
 	@OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
 	@Builder.Default
 	private List<BranchProduct> branchProducts = new ArrayList<>();
+	
+	@Column(name = "price", precision = 18, scale = 2)
+    private BigDecimal price; 			// Giá bán hiện tại
+	
+	 @Column(name = "sold_quantity")
+	 @Builder.Default
+	 private Integer soldQuantity = 0; 	// Số lượng đã bán (Tab Bán chạy)
+
+	 @Column(name = "rating")
+	 @Builder.Default
+	 private Double rating = 0.0;		// Điểm đánh giá trung bình từ 1 - 5
+	 
+	 @Column(name = "favorite_count")
+	 @Builder.Default
+	 private Integer favoriteCount = 0; // Lượt yêu thích (Tab Yêu thích)
+	 
+	 @CreationTimestamp
+	 @Column(name = "created_at", updatable = false)
+	 private LocalDateTime createdAt; // Ngày tạo (Tab Mới nhất)
 }

@@ -62,7 +62,31 @@
 			</div>
 		</div>
 
-		<!-- 3. Sắp xếp kết quả -->
+		<!-- 3. Lọc theo Đánh giá sao -->
+		<div class="mb-3">
+			<div class="fw-bold text-dark mb-2 small text-uppercase">
+				<i class="bi bi-star-fill text-warning"></i> Đánh giá:
+			</div>
+			<div class="d-flex flex-wrap gap-2">
+				<button type="button" onclick="filterByRating('')"
+					class="btn btn-sm rounded-pill ${empty filter.minRating ? 'btn-warning text-dark fw-bold' : 'btn-outline-secondary'}">
+					Tất cả đánh giá</button>
+				<button type="button" onclick="filterByRating('5.0')"
+					class="btn btn-sm rounded-pill ${filter.minRating == 5.0 ? 'btn-warning text-dark fw-bold' : 'btn-outline-secondary'}">
+					5 <i class="bi bi-star-fill text-warning"></i>
+				</button>
+				<button type="button" onclick="filterByRating('4.0')"
+					class="btn btn-sm rounded-pill ${filter.minRating == 4.0 ? 'btn-warning text-dark fw-bold' : 'btn-outline-secondary'}">
+					Từ 4 <i class="bi bi-star-fill text-warning"></i> trở lên
+				</button>
+				<button type="button" onclick="filterByRating('3.0')"
+					class="btn btn-sm rounded-pill ${filter.minRating == 3.0 ? 'btn-warning text-dark fw-bold' : 'btn-outline-secondary'}">
+					Từ 3 <i class="bi bi-star-fill text-warning"></i> trở lên
+				</button>
+			</div>
+		</div>
+
+		<!-- 4. Sắp xếp kết quả -->
 		<div
 			class="d-flex justify-content-between align-items-center pt-2 border-top">
 			<div class="small text-muted">
@@ -150,6 +174,14 @@
 										</c:if>
 									</div>
 
+									<!-- Đánh giá sao và Đã bán -->
+									<div class="d-flex align-items-center gap-2 mb-2">
+										<span
+											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
+											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
+										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+									</div>
+
 									<!-- Nút thao tác -->
 									<button
 										class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
@@ -200,6 +232,17 @@
   function filterBySort(sortBy) {
     updateFilterParams(params => {
       if (sortBy) params.set('sortBy', sortBy); else params.delete('sortBy');
+    });
+  }
+  
+  // Lọc theo Đánh giá sao
+  function filterByRating(rating) {
+    updateFilterParams(params => {
+      if (rating) {
+        params.set('minRating', rating);
+      } else {
+        params.delete('minRating');
+      }
     });
   }
 </script>

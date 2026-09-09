@@ -1,25 +1,31 @@
 package com.dienmay.service.product;
 
 import java.util.List;
-
+import com.dienmay.dto.product.ProductFilterRequest;
+import com.dienmay.entity.branch.BranchProduct;
+import com.dienmay.entity.product.Brand;
 import com.dienmay.entity.product.Category;
 import com.dienmay.entity.product.Product;
 
 public interface ProductService {
 
-	List<Category> getAllCategories();
+    List<Category> getAllCategories();
 
-	List<Product> getFeaturedProducts();
+    List<Brand> getAllBrands();
 
-	List<Product> getLatestProducts();
+    List<Product> getFeaturedProducts();
 
-	List<com.dienmay.entity.product.Brand> getAllBrands();
+    List<Product> getLatestProducts();
 
-	List<Product> filterProducts(com.dienmay.dto.product.ProductFilterRequest request);
+    Product getProductBySlug(String slug);
 
-	com.dienmay.entity.product.Product getProductBySlug(String slug);
+    List<BranchProduct> getBranchStock(Long productId);
 
-	List<com.dienmay.entity.branch.BranchProduct> getBranchStock(Long productId);
+    List<Product> getRelatedProducts(Long categoryId, Long currentProductId);
 
-	List<com.dienmay.entity.product.Product> getRelatedProducts(Long categoryId, Long currentProductId);
+    // Lọc sản phẩm theo Specification (Danh mục, Thương hiệu, Giá, Tìm kiếm)
+    List<Product> filterProducts(ProductFilterRequest request);
+
+    // Top 20 sản phẩm theo 4 Tab (newest, bestseller, rating, favorite)
+    List<Product> getTop20ByTab(String tab);
 }
