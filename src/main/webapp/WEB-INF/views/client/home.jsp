@@ -68,79 +68,332 @@
 	</div>
 </section>
 
-<!-- SẢN PHẨM NỔI BẬT (LẤY TỰ ĐỘNG TỪ CSDL QUA JSTL) -->
-<section class="py-4" id="featured-section">
+<!-- TOP 20 SẢN PHẨM: 4 TAB -->
+<section class="py-5 bg-white" id="top20-section">
 	<div class="container-fluid">
-		<div class="d-flex justify-content-between align-items-center mb-4">
-			<h3 class="fw-bold mb-0 text-primary">
-				<i class="bi bi-fire text-danger"></i> Sản Phẩm Nổi Bật
-			</h3>
-			<span class="badge bg-danger px-3 py-2 rounded-pill">Hot nhất
-				tuần</span>
-		</div>
-
+		<!-- TIÊU ĐỀ VÀ TAB NAVIGATION -->
 		<div
-			class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-			<c:forEach items="${featuredProducts}" var="prod">
-				<div class="col">
-					<div
-						class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative">
+			class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 border-bottom pb-3">
+			<div>
+				<h3 class="fw-bold mb-1 text-primary">
+					<i class="bi bi-trophy-fill text-warning me-2"></i>TOP 20 SẢN PHẨM
+					HÀNG ĐẦU
+				</h3>
+				<p class="text-muted small mb-0">Các dòng thiết bị điện máy được
+					quan tâm nhiều nhất</p>
+			</div>
 
-						<!-- Badge Giảm giá -->
-						<c:if
-							test="${prod.discountPrice != null && prod.discountPrice < prod.originalPrice}">
-							<span
-								class="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 m-2 rounded-pill small fw-bold z-1">
-								Giảm giá sốc </span>
-						</c:if>
-
-						<!-- Ảnh sản phẩm -->
-						<div class="text-center p-3" style="height: 220px;">
-							<img src="${prod.mainImageUrl}"
-								class="img-fluid h-100 object-fit-contain rounded-3"
-								alt="${prod.name}">
-						</div>
-
-						<!-- Nội dung sản phẩm -->
-						<div class="card-body d-flex flex-column p-3">
-							<small class="text-muted text-uppercase fw-bold">${prod.brand.name}
-								• ${prod.category.name}</small> <a
-								href="${pageContext.request.contextPath}/products/${prod.slug}"
-								class="text-decoration-none text-dark">
-								<h6 class="card-title fw-bold mt-1 text-truncate-2"
-									style="height: 48px;" title="${prod.name}">${prod.name}</h6>
-							</a>
-
-							<!-- Giá tiền VNĐ -->
-							<div class="mt-auto pt-2">
-								<div class="d-flex align-items-baseline gap-2">
-									<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
-											value="${prod.discountPrice}" type="number"
-											groupingUsed="true" /> ₫
-									</span>
-									<c:if test="${prod.discountPrice < prod.originalPrice}">
-										<span class="text-muted text-decoration-line-through small">
-											<fmt:formatNumber value="${prod.originalPrice}" type="number"
-												groupingUsed="true" /> ₫
-										</span>
-									</c:if>
-								</div>
-
-								<!-- Nút thao tác -->
-								<button
-									class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
-									<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
-								</button>
-							</div>
-
-						</div>
-					</div>
-				</div>
-			</c:forEach>
+			<!-- 4 TAB PILLS -->
+			<ul class="nav nav-pills gap-2" id="top20Tabs" role="tablist">
+				<li class="nav-item" role="presentation">
+					<button class="nav-link active rounded-pill fw-bold"
+						id="newest-tab" data-bs-toggle="pill" data-bs-target="#tab-newest"
+						type="button" role="tab">
+						<i class="bi bi-stars me-1"></i> Mới Nhất
+					</button>
+				</li>
+				<li class="nav-item" role="presentation">
+					<button class="nav-link rounded-pill fw-bold" id="bestseller-tab"
+						data-bs-toggle="pill" data-bs-target="#tab-bestseller"
+						type="button" role="tab">
+						<i class="bi bi-fire text-danger me-1"></i> Bán Chạy
+					</button>
+				</li>
+				<li class="nav-item" role="presentation">
+					<button class="nav-link rounded-pill fw-bold" id="rating-tab"
+						data-bs-toggle="pill" data-bs-target="#tab-rating" type="button"
+						role="tab">
+						<i class="bi bi-star-fill text-warning me-1"></i> Đánh Giá Cao
+					</button>
+				</li>
+				<li class="nav-item" role="presentation">
+					<button class="nav-link rounded-pill fw-bold" id="favorite-tab"
+						data-bs-toggle="pill" data-bs-target="#tab-favorite" type="button"
+						role="tab">
+						<i class="bi bi-heart-fill text-danger me-1"></i> Yêu Thích
+					</button>
+				</li>
+			</ul>
 		</div>
 
+		<!-- NỘI DUNG CÁC TAB -->
+		<div class="tab-content" id="top20TabsContent">
+
+			<!-- TAB 1: MỚI NHẤT -->
+			<div class="tab-pane fade show active" id="tab-newest"
+				role="tabpanel">
+				<div
+					class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+					<c:forEach items="${topNewest}" var="prod" varStatus="loop">
+						<div class="col product-item ${loop.index >= 8 ? 'd-none' : ''}">
+							<!-- CARD SẢN PHẨM -->
+							<div
+								class="card h-100 border shadow-sm rounded-4 overflow-hidden position-relative hover-shadow">
+								<span
+									class="position-absolute top-0 start-0 bg-primary text-white px-2 py-1 m-2 rounded-pill small fw-bold z-1">
+									Mới </span> <a
+									href="${pageContext.request.contextPath}/products/${prod.slug}"
+									class="text-center p-3 d-block" style="height: 220px;"> <img
+									src="${prod.mainImageUrl}"
+									class="img-fluid h-100 object-fit-contain" alt="${prod.name}">
+								</a>
+								<div class="card-body d-flex flex-column p-3">
+									<small class="text-muted text-uppercase fw-bold">${prod.brand.name}
+										• ${prod.category.name}</small> <a
+										href="${pageContext.request.contextPath}/products/${prod.slug}"
+										class="text-decoration-none text-dark">
+										<h6 class="card-title fw-bold mt-1 text-truncate-2"
+											style="height: 48px;" title="${prod.name}">${prod.name}</h6>
+									</a>
+									<div class="d-flex align-items-center gap-2 mb-2">
+										<span
+											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
+											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
+										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+									</div>
+									<div class="mt-auto pt-2">
+										<div class="d-flex align-items-baseline gap-2">
+											<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
+													value="${prod.discountPrice}" type="number"
+													groupingUsed="true" /> ₫
+											</span>
+											<c:if test="${prod.discountPrice < prod.originalPrice}">
+												<span class="text-muted text-decoration-line-through small">
+													<fmt:formatNumber value="${prod.originalPrice}"
+														type="number" groupingUsed="true" /> ₫
+												</span>
+											</c:if>
+										</div>
+										<button
+											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
+											<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</c:forEach>
+				</div>
+				<c:if test="${topNewest.size() > 8}">
+					<div class="text-center mt-4">
+						<button class="btn btn-outline-primary px-4 rounded-pill fw-bold"
+							onclick="loadMore(this)">
+							Xem thêm sản phẩm <i class="bi bi-chevron-down ms-1"></i>
+						</button>
+					</div>
+				</c:if>
+			</div>
+
+			<!-- TAB 2: BÁN CHẠY -->
+			<div class="tab-pane fade" id="tab-bestseller" role="tabpanel">
+				<div
+					class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+					<c:forEach items="${topBestseller}" var="prod" varStatus="loop">
+						<div class="col product-item ${loop.index >= 8 ? 'd-none' : ''}">
+							<div
+								class="card h-100 border shadow-sm rounded-4 overflow-hidden position-relative hover-shadow">
+								<span
+									class="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 m-2 rounded-pill small fw-bold z-1">
+									Hot 🔥 </span> <a
+									href="${pageContext.request.contextPath}/products/${prod.slug}"
+									class="text-center p-3 d-block" style="height: 220px;"> <img
+									src="${prod.mainImageUrl}"
+									class="img-fluid h-100 object-fit-contain" alt="${prod.name}">
+								</a>
+								<div class="card-body d-flex flex-column p-3">
+									<small class="text-muted text-uppercase fw-bold">${prod.brand.name}
+										• ${prod.category.name}</small> <a
+										href="${pageContext.request.contextPath}/products/${prod.slug}"
+										class="text-decoration-none text-dark">
+										<h6 class="card-title fw-bold mt-1 text-truncate-2"
+											style="height: 48px;" title="${prod.name}">${prod.name}</h6>
+									</a>
+									<div class="d-flex align-items-center gap-2 mb-2">
+										<span
+											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
+											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
+										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+									</div>
+									<div class="mt-auto pt-2">
+										<div class="d-flex align-items-baseline gap-2">
+											<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
+													value="${prod.discountPrice}" type="number"
+													groupingUsed="true" /> ₫
+											</span>
+											<c:if test="${prod.discountPrice < prod.originalPrice}">
+												<span class="text-muted text-decoration-line-through small">
+													<fmt:formatNumber value="${prod.originalPrice}"
+														type="number" groupingUsed="true" /> ₫
+												</span>
+											</c:if>
+										</div>
+										<button
+											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
+											<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</c:forEach>
+				</div>
+				<c:if test="${topBestseller.size() > 8}">
+					<div class="text-center mt-4">
+						<button class="btn btn-outline-primary px-4 rounded-pill fw-bold"
+							onclick="loadMore(this)">
+							Xem thêm sản phẩm <i class="bi bi-chevron-down ms-1"></i>
+						</button>
+					</div>
+				</c:if>
+			</div>
+
+			<!-- TAB 3: ĐÁNH GIÁ CAO -->
+			<div class="tab-pane fade" id="tab-rating" role="tabpanel">
+				<div
+					class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+					<c:forEach items="${topRating}" var="prod" varStatus="loop">
+						<div class="col product-item ${loop.index >= 8 ? 'd-none' : ''}">
+							<div
+								class="card h-100 border shadow-sm rounded-4 overflow-hidden position-relative hover-shadow">
+								<span
+									class="position-absolute top-0 start-0 bg-warning text-dark px-2 py-1 m-2 rounded-pill small fw-bold z-1">
+									⭐ ${prod.rating} </span> <a
+									href="${pageContext.request.contextPath}/products/${prod.slug}"
+									class="text-center p-3 d-block" style="height: 220px;"> <img
+									src="${prod.mainImageUrl}"
+									class="img-fluid h-100 object-fit-contain" alt="${prod.name}">
+								</a>
+								<div class="card-body d-flex flex-column p-3">
+									<small class="text-muted text-uppercase fw-bold">${prod.brand.name}
+										• ${prod.category.name}</small> <a
+										href="${pageContext.request.contextPath}/products/${prod.slug}"
+										class="text-decoration-none text-dark">
+										<h6 class="card-title fw-bold mt-1 text-truncate-2"
+											style="height: 48px;" title="${prod.name}">${prod.name}</h6>
+									</a>
+									<div class="d-flex align-items-center gap-2 mb-2">
+										<span
+											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
+											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
+										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+									</div>
+									<div class="mt-auto pt-2">
+										<div class="d-flex align-items-baseline gap-2">
+											<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
+													value="${prod.discountPrice}" type="number"
+													groupingUsed="true" /> ₫
+											</span>
+											<c:if test="${prod.discountPrice < prod.originalPrice}">
+												<span class="text-muted text-decoration-line-through small">
+													<fmt:formatNumber value="${prod.originalPrice}"
+														type="number" groupingUsed="true" /> ₫
+												</span>
+											</c:if>
+										</div>
+										<button
+											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
+											<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</c:forEach>
+				</div>
+				<c:if test="${topRating.size() > 8}">
+					<div class="text-center mt-4">
+						<button class="btn btn-outline-primary px-4 rounded-pill fw-bold"
+							onclick="loadMore(this)">
+							Xem thêm sản phẩm <i class="bi bi-chevron-down ms-1"></i>
+						</button>
+					</div>
+				</c:if>
+			</div>
+
+			<!-- TAB 4: YÊU THÍCH -->
+			<div class="tab-pane fade" id="tab-favorite" role="tabpanel">
+				<div
+					class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
+					<c:forEach items="${topFavorite}" var="prod" varStatus="loop">
+						<div class="col product-item ${loop.index >= 8 ? 'd-none' : ''}">
+							<div
+								class="card h-100 border shadow-sm rounded-4 overflow-hidden position-relative hover-shadow">
+								<span
+									class="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 m-2 rounded-pill small fw-bold z-1">
+									❤️ ${prod.favoriteCount} </span> <a
+									href="${pageContext.request.contextPath}/products/${prod.slug}"
+									class="text-center p-3 d-block" style="height: 220px;"> <img
+									src="${prod.mainImageUrl}"
+									class="img-fluid h-100 object-fit-contain" alt="${prod.name}">
+								</a>
+								<div class="card-body d-flex flex-column p-3">
+									<small class="text-muted text-uppercase fw-bold">${prod.brand.name}
+										• ${prod.category.name}</small> <a
+										href="${pageContext.request.contextPath}/products/${prod.slug}"
+										class="text-decoration-none text-dark">
+										<h6 class="card-title fw-bold mt-1 text-truncate-2"
+											style="height: 48px;" title="${prod.name}">${prod.name}</h6>
+									</a>
+									<div class="d-flex align-items-center gap-2 mb-2">
+										<span
+											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
+											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
+										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+									</div>
+									<div class="mt-auto pt-2">
+										<div class="d-flex align-items-baseline gap-2">
+											<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
+													value="${prod.discountPrice}" type="number"
+													groupingUsed="true" /> ₫
+											</span>
+											<c:if test="${prod.discountPrice < prod.originalPrice}">
+												<span class="text-muted text-decoration-line-through small">
+													<fmt:formatNumber value="${prod.originalPrice}"
+														type="number" groupingUsed="true" /> ₫
+												</span>
+											</c:if>
+										</div>
+										<button
+											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
+											<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</c:forEach>
+				</div>
+				<c:if test="${topFavorite.size() > 8}">
+					<div class="text-center mt-4">
+						<button class="btn btn-outline-primary px-4 rounded-pill fw-bold"
+							onclick="loadMore(this)">
+							Xem thêm sản phẩm <i class="bi bi-chevron-down ms-1"></i>
+						</button>
+					</div>
+				</c:if>
+			</div>
+
+		</div>
 	</div>
 </section>
+
+<!-- SCRIPT XỬ LÝ LAZY LOAD-->
+<script>
+	function loadMore(btn) {
+		const tabPane = btn.closest('.tab-pane');
+		const hiddenItems = tabPane.querySelectorAll('.product-item.d-none');
+
+		// Mở khóa thêm 8 sản phẩm tiếp theo (lazy loading)
+		for (let i = 0; i < Math.min(8, hiddenItems.length); i++) {
+			hiddenItems[i].classList.remove('d-none');
+		}
+
+		// Nếu đã hiển thị hết cả 20 sản phẩm thì ẩn nút Xem thêm
+		if (tabPane.querySelectorAll('.product-item.d-none').length === 0) {
+			btn.parentElement.style.display = 'none';
+		}
+	}
+</script>
 
 <!-- Nhúng Footer -->
 <jsp:include page="fragments/footer.jsp" />
