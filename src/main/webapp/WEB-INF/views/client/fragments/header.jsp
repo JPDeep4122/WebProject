@@ -113,10 +113,11 @@
 						</a></li>
 
 						<!-- Giỏ hàng -->
-						<li><a href="#"
+						<li><a href="${pageContext.request.contextPath}/cart"
 							class="rounded-circle bg-light p-2 mx-1 d-inline-block text-dark position-relative"
-							title="Giỏ hàng"> <svg width="24" height="24">
-									<use xlink:href="#cart"></use></svg> <span
+							title="Xem giỏ hàng"> <svg width="24" height="24">
+									<use xlink:href="#cart"></use></svg> <!-- Gắn id="cartBadge" để JavaScript tự động cập nhật số lượng -->
+								<span id="cartBadge"
 								class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
 						</a></li>
 					</ul>
@@ -317,3 +318,99 @@
 			</div>
 		</div>
 	</div>
+
+	<div class="toast-container position-fixed bottom-0 end-0 p-3"
+		style="z-index: 2000;">
+		<div id="cartToast"
+			class="toast align-items-center text-bg-dark border-0 shadow-lg rounded-4"
+			role="alert" aria-live="assertive" aria-atomic="true">
+			<div class="d-flex p-2">
+				<div class="toast-body d-flex align-items-center gap-3 text-white">
+					<div
+						class="bg-success text-white rounded-circle p-2 d-flex align-items-center justify-content-center"
+						style="width: 38px; height: 38px;">
+						<i class="bi bi-check-lg fs-5"></i>
+					</div>
+					<div>
+						<div class="fw-bold">Đã thêm vào giỏ hàng!</div>
+						<small class="text-white-50">Sản phẩm đã sẵn sàng trong
+							giỏ.</small>
+					</div>
+				</div>
+				<a href="${pageContext.request.contextPath}/cart"
+					class="btn btn-primary btn-sm my-auto me-2 fw-bold rounded-pill px-3">
+					Xem giỏ </a>
+				<button type="button" class="btn-close btn-close-white me-2 m-auto"
+					data-bs-dismiss="toast" aria-label="Close"></button>
+			</div>
+		</div>
+	</div>
+
+	<script>
+  // Tự động tải số lượng giỏ hàng hiển thị lên badge khi mở trang web
+  document.addEventListener("DOMContentLoaded", function() {
+    fetch('${pageContext.request.contextPath}/api/cart/count')
+      .then(res => res.json())
+      .then(res => {
+        if (res.success && document.getElementById('cartBadge')) {
+          document.getElementById('cartBadge').innerText = res.data;
+        }
+      })
+      .catch(() => {});
+  });
+
+  // Hàm thêm vào giỏ hàng AJAX hiện đại dùng chung cho toàn bộ website
+  function addToCart(productId, qty, btnElement) {
+    const quantity = qty || 1;
+    const token = localStorage.getItem('accessToken');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    let originalHtml = '';
+    if (btnElement) {
+      originalHtml = btnElement.innerHTML;
+      btnElement.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+      btnElement.disabled = true;
+    }
+
+    fetch('${pageContext.request.contextPath}/api/cart/add', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ productId: productId, quantity: quantity })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        // Cập nhật số lượng trên icon giỏ hàng ở Header
+        if (document.getElementById('cartBadge')) {
+          document.getElementById('cartBadge').innerText = res.data.totalQuantity;
+        }
+
+        // Hiện thông báo Toast góc dưới mượt mà
+        const toastEl = document.getElementById('cartToast');
+        if (toastEl) {
+          const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+          toast.show();
+        }
+
+        // Đổi hiệu ứng nút bấm thành "Đã thêm" màu xanh
+        if (btnElement) {
+          btnElement.classList.replace('btn-outline-primary', 'btn-success');
+          btnElement.innerHTML = '<i class="bi bi-check-lg me-1"></i> Đã thêm!';
+          setTimeout(() => {
+            btnElement.classList.replace('btn-success', 'btn-outline-primary');
+            btnElement.innerHTML = originalHtml;
+            btnElement.disabled = false;
+          }, 1500);
+        }
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      if (btnElement) {
+        btnElement.innerHTML = originalHtml;
+        btnElement.disabled = false;
+      }
+    });
+  }
+</script>

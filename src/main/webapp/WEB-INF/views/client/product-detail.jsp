@@ -130,7 +130,8 @@
 					</div>
 					<button
 						class="btn btn-outline-primary btn-lg flex-grow-1 rounded-pill fw-bold"
-						type="button" onclick="addToCart(${product.id})">
+						type="button"
+						onclick="addToCart(${product.id}, document.getElementById('buyQty').value, this)">
 						<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ hàng
 					</button>
 					<button
@@ -215,8 +216,6 @@
     input.value = val;
   }
 
-  function addToCart(productId) {
-    const qty = document.getElementById('buyQty').value;
-    alert('Đã thêm sản phẩm ID ' + productId + ' với số lượng: ' + qty + ' vào giỏ hàng! (Sẽ liên kết trực tiếp ở Task 7 - Giỏ hàng)');
-  }
+  
+
 </script>
