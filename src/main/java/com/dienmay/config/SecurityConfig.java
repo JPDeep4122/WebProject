@@ -17,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Autowired
-    private UserDetailsService userDetailsService;
+    private UserDetailsService userDetailsService; // Dùng Interface chuẩn của Spring Security
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -40,7 +40,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/test/**", "/ws/**", "/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/test/**", "/**").permitAll()
                 .anyRequest().authenticated()
             );
 
