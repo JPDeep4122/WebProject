@@ -19,7 +19,9 @@ import com.dienmay.dto.checkout.VoucherResponse;
 import com.dienmay.dto.common.ApiResponse;
 import com.dienmay.entity.order.Order;
 import com.dienmay.service.checkout.CheckoutService;
+import com.dienmay.service.payment.VnPayService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -28,14 +30,13 @@ import lombok.RequiredArgsConstructor;
 public class CheckoutController {
 
     private final CheckoutService checkoutService;
+    private final VnPayService vnPayService; // TIÊM VNPAY SERVICE
 
-    // 1. Xem trang thanh toán: /checkout
     @GetMapping("/checkout")
     public String viewCheckout(Model model, Principal principal, HttpSession session) {
         String email = (principal != null) ? principal.getName() : null;
         CheckoutPageDto checkoutData = checkoutService.getCheckoutData(email, session);
 
-        // Nếu không có sản phẩm nào được chọn, điều hướng lại về giỏ hàng
         if (checkoutData.getItems() == null || checkoutData.getItems().isEmpty()) {
             return "redirect:/cart";
         }
@@ -44,7 +45,6 @@ public class CheckoutController {
         return "client/checkout";
     }
 
-    // 2. API AJAX kiểm tra mã giảm giá
     @PostMapping("/api/checkout/apply-voucher")
     @ResponseBody
     public ResponseEntity<ApiResponse<VoucherResponse>> applyVoucher(
@@ -58,20 +58,26 @@ public class CheckoutController {
                 .build());
     }
 
-    // 3. Đặt hàng (Submit Form)
+    // ĐẶT HÀNG & RẼ NHÁNH VNPAY HOẶC COD
     @PostMapping("/checkout/place-order")
     public String placeOrder(
             @ModelAttribute PlaceOrderRequest request, 
             Principal principal, 
-            HttpSession session) {
+            HttpSession session,
+            HttpServletRequest servletRequest) {
         String email = (principal != null) ? principal.getName() : null;
         Order order = checkoutService.placeOrder(request, email, session);
 
-        // Điều hướng sang trang đặt hàng thành công
+        // NẾU CHỌN THANH TOÁN VNPAY -> TẠO LINK VÀ CHUYỂN HƯỚNG SANG CỔNG VNPAY
+        if ("VNPAY".equalsIgnoreCase(request.getPaymentMethod())) {
+            String vnpayUrl = vnPayService.createPaymentUrl(order, servletRequest);
+            return "redirect:" + vnpayUrl;
+        }
+
+        // Mặc định COD: sang trang chúc mừng
         return "redirect:/order-success/" + order.getOrderCode();
     }
 
-    // 4. Trang đặt hàng thành công
     @GetMapping("/order-success/{orderCode}")
     public String orderSuccess(@PathVariable String orderCode, Model model) {
         Order order = checkoutService.getOrderByCode(orderCode);

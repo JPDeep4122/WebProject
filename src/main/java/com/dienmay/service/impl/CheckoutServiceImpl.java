@@ -263,7 +263,10 @@ public class CheckoutServiceImpl implements CheckoutService {
     @Transactional(readOnly = true)
     public Order getOrderByCode(String orderCode) {
         return orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));
+                .orElseGet(() -> orderRepository.findAll().stream()
+                        .filter(o -> o.getOrderCode() != null && o.getOrderCode().replace("-", "").equalsIgnoreCase(orderCode.replace("-", "")))
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode)));
     }
 
     private Cart getCart(String userEmail, HttpSession session) {
