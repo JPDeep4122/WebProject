@@ -23,7 +23,17 @@ public class HomeController {
         model.addAttribute("topBestseller", productService.getTop20ByTab("bestseller"));
         model.addAttribute("topRating", productService.getTop20ByTab("rating"));
         model.addAttribute("topFavorite", productService.getTop20ByTab("favorite"));
-
+    
         return "client/home";
+    }
+    
+    @GetMapping("/login")
+    public String loginPage() {
+        return "client/login";
+    }
+    
+    @GetMapping("/vouchers")
+    public String vouchersPage() {
+        return "client/vouchers";
     }
 }

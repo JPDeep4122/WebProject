@@ -271,9 +271,10 @@
             </div>
           `;
         } else {
-          container.innerHTML = `
-            <a href="javascript:void(0)" class="rounded-circle bg-light p-2 mx-1 d-inline-block text-dark" data-bs-toggle="modal" data-bs-target="#authModal" title="Tài khoản">
-              <svg width="24" height="24"><use xlink:href="#user"></use></svg>
+          ccontainer.innerHTML = `
+            <a href="${CONTEXT_PATH}/login" class="header-btn">
+              <i class="bi bi-person-circle fs-5"></i>
+              <span class="d-none d-xl-inline">Đăng nhập</span>
             </a>
           `;
         }
