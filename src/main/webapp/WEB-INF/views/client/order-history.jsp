@@ -263,6 +263,20 @@
 								class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
 								<i class="bi bi-eye me-1"></i>Chi tiết
 							</a>
+							
+							<c:if test="${order.status == 'DELIVERED'}">
+								<a
+									href="${pageContext.request.contextPath}/orders/${order.orderCode}"
+									class="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark shadow-sm">
+									<i class="bi bi-star-fill me-1"></i>Đánh giá
+								</a>
+							</c:if>
+
+							<a
+								href="${pageContext.request.contextPath}/orders/${order.orderCode}"
+								class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+								<i class="bi bi-eye me-1"></i>Chi tiết
+							</a>
 
 							<form
 								action="${pageContext.request.contextPath}/orders/${order.orderCode}/reorder"

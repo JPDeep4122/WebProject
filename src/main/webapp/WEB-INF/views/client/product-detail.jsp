@@ -177,6 +177,385 @@
 		</div>
 	</div>
 
+	<!--ĐÁNH GIÁ & BÌNH LUẬN SẢN PHẨM (REVIEWS) -->
+	<div id="reviewsSection"
+		class="bg-white p-4 rounded-4 shadow-sm border mb-5">
+		<div
+			class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 border-bottom pb-3">
+			<div>
+				<h4 class="fw-bold mb-1 text-dark">
+					<i class="bi bi-star-fill text-warning me-2"></i>Đánh Giá & Nhận
+					Xét Từ Khách Hàng
+				</h4>
+				<p class="text-muted small mb-0">Đánh giá thực tế từ khách hàng
+					đã mua sản phẩm tại chuỗi Điện Máy</p>
+			</div>
+
+			<div>
+				<c:choose>
+					<c:when test="${canReview}">
+						<button
+							class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark shadow-sm"
+							data-bs-toggle="modal" data-bs-target="#reviewModal">
+							<i class="bi bi-pencil-square me-1"></i> Viết đánh giá ngay
+						</button>
+					</c:when>
+					<c:otherwise>
+						<span class="badge bg-light text-muted border p-2 small"> <i
+							class="bi bi-info-circle me-1"></i> Cần mua sản phẩm (đơn Đã
+							giao) để đánh giá
+						</span>
+					</c:otherwise>
+				</c:choose>
+			</div>
+		</div>
+
+		<div class="row g-4 align-items-center mb-4 p-3 bg-light rounded-4">
+			<div class="col-md-4 text-center border-end-md">
+				<div class="display-4 fw-bold text-warning mb-1">
+					<fmt:formatNumber
+						value="${product.rating != null ? product.rating : 0.0}"
+						maxFractionDigits="1" minFractionDigits="1" />
+					<span class="fs-4 text-muted fw-normal">/5</span>
+				</div>
+				<div class="text-warning fs-5 mb-2">
+					<c:forEach begin="1" end="5" var="s">
+						<i
+							class="bi ${s <= (product.rating != null ? product.rating : 0) ? 'bi-star-fill' : 'bi-star'}"></i>
+					</c:forEach>
+				</div>
+				<div class="text-muted small fw-semibold">${reviewStats != null ? reviewStats.totalReviews : 0}
+					lượt đánh giá thực tế</div>
+			</div>
+
+			<div class="col-md-8">
+				<div class="px-md-3">
+					<div class="d-flex align-items-center gap-2 mb-1 small">
+						<span class="fw-semibold text-nowrap" style="width: 50px;">5
+							sao <i class="bi bi-star-fill text-warning"></i>
+						</span>
+						<div class="progress flex-grow-1" style="height: 8px;">
+							<div class="progress-bar bg-warning"
+								style="width: ${reviewStats.percent5Star}%;"></div>
+						</div>
+						<span class="text-muted text-end" style="width: 45px;">${reviewStats.count5Star}</span>
+					</div>
+					<div class="d-flex align-items-center gap-2 mb-1 small">
+						<span class="fw-semibold text-nowrap" style="width: 50px;">4
+							sao <i class="bi bi-star-fill text-warning"></i>
+						</span>
+						<div class="progress flex-grow-1" style="height: 8px;">
+							<div class="progress-bar bg-warning"
+								style="width: ${reviewStats.percent4Star}%;"></div>
+						</div>
+						<span class="text-muted text-end" style="width: 45px;">${reviewStats.count4Star}</span>
+					</div>
+					<div class="d-flex align-items-center gap-2 mb-1 small">
+						<span class="fw-semibold text-nowrap" style="width: 50px;">3
+							sao <i class="bi bi-star-fill text-warning"></i>
+						</span>
+						<div class="progress flex-grow-1" style="height: 8px;">
+							<div class="progress-bar bg-warning"
+								style="width: ${reviewStats.percent3Star}%;"></div>
+						</div>
+						<span class="text-muted text-end" style="width: 45px;">${reviewStats.count3Star}</span>
+					</div>
+					<div class="d-flex align-items-center gap-2 mb-1 small">
+						<span class="fw-semibold text-nowrap" style="width: 50px;">2
+							sao <i class="bi bi-star-fill text-warning"></i>
+						</span>
+						<div class="progress flex-grow-1" style="height: 8px;">
+							<div class="progress-bar bg-warning"
+								style="width: ${reviewStats.percent2Star}%;"></div>
+						</div>
+						<span class="text-muted text-end" style="width: 45px;">${reviewStats.count2Star}</span>
+					</div>
+					<div class="d-flex align-items-center gap-2 mb-1 small">
+						<span class="fw-semibold text-nowrap" style="width: 50px;">1
+							sao <i class="bi bi-star-fill text-warning"></i>
+						</span>
+						<div class="progress flex-grow-1" style="height: 8px;">
+							<div class="progress-bar bg-warning"
+								style="width: ${reviewStats.percent1Star}%;"></div>
+						</div>
+						<span class="text-muted text-end" style="width: 45px;">${reviewStats.count1Star}</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="review-list">
+			<c:choose>
+				<c:when test="${empty reviews}">
+					<div class="text-center py-5">
+						<i class="bi bi-chat-heart text-muted opacity-50"
+							style="font-size: 3.5rem;"></i>
+						<h6 class="fw-bold text-dark mt-3 mb-1">Chưa có đánh giá nào
+							cho sản phẩm này</h6>
+						<p class="text-muted small">Hãy mua hàng và trở thành người
+							đầu tiên chia sẻ cảm nhận trải nghiệm nhé!</p>
+					</div>
+				</c:when>
+				<c:otherwise>
+					<c:forEach var="rev" items="${reviews}">
+						<div class="border-bottom py-3">
+							<div
+								class="d-flex justify-content-between align-items-start mb-2">
+								<div class="d-flex align-items-center gap-2">
+									<div
+										class="bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center"
+										style="width: 40px; height: 40px; font-size: 1rem;">
+										${rev.userFullName.substring(0, 1).toUpperCase()}</div>
+									<div>
+										<div class="fw-bold text-dark small">${rev.userFullName}
+											<span class="text-muted fw-normal">(${rev.userEmail})</span>
+										</div>
+										<span
+											class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-0 px-2"
+											style="font-size: 10px;"> <i
+											class="bi bi-patch-check-fill me-1"></i>Đã mua tại Điện Máy
+										</span>
+									</div>
+								</div>
+								<div class="text-muted small" style="font-size: 0.8rem;">
+									${rev.createdAt.toLocalDate()}</div>
+							</div>
+
+							<div class="text-warning mb-2 small">
+								<c:forEach begin="1" end="5" var="st">
+									<i class="bi ${st <= rev.rating ? 'bi-star-fill' : 'bi-star'}"></i>
+								</c:forEach>
+							</div>
+
+							<p class="text-secondary small mb-2" style="line-height: 1.6;">${rev.comment}</p>
+
+							<c:if test="${not empty rev.mediaList}">
+								<div class="d-flex flex-wrap gap-2 mt-2">
+									<c:forEach var="media" items="${rev.mediaList}">
+										<c:choose>
+											<c:when test="${media.mediaType == 'VIDEO'}">
+												<video src="${media.mediaUrl}" controls
+													class="rounded-3 border"
+													style="width: 110px; height: 110px; object-fit: cover;"></video>
+											</c:when>
+											<c:otherwise>
+												<a href="${media.mediaUrl}" target="_blank"> <img
+													src="${media.mediaUrl}"
+													class="rounded-3 border object-fit-cover shadow-sm"
+													style="width: 80px; height: 80px; cursor: pointer;"
+													alt="Review ảnh">
+												</a>
+											</c:otherwise>
+										</c:choose>
+									</c:forEach>
+								</div>
+							</c:if>
+						</div>
+					</c:forEach>
+				</c:otherwise>
+			</c:choose>
+		</div>
+	</div>
+
+	<div class="modal fade" id="reviewModal" tabindex="-1"
+		aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered modal-lg">
+			<div class="modal-content rounded-4 border-0 shadow">
+				<div class="modal-header border-bottom-0 pb-0">
+					<h5 class="modal-title fw-bold text-dark">
+						<i class="bi bi-star-fill text-warning me-2"></i>Đánh giá sản phẩm
+					</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<form id="formReview" enctype="multipart/form-data">
+					<input type="hidden" name="productId" value="${product.id}">
+					<input type="hidden" id="selectedRating" name="rating" value="5">
+
+					<div class="modal-body py-3">
+						<div id="reviewAlert"
+							class="alert d-none rounded-3 small py-2 px-3 mb-3"></div>
+						<div
+							class="d-flex align-items-center gap-3 p-2 bg-light rounded-3 mb-3">
+							<img src="${product.mainImageUrl}" class="rounded-2 border"
+								style="width: 50px; height: 50px; object-fit: contain;">
+							<div class="small fw-bold text-dark text-truncate">${product.name}</div>
+						</div>
+
+						<div class="text-center mb-3">
+							<div class="text-muted small mb-1">Mức độ hài lòng của bạn:</div>
+							<div class="fs-2 text-warning" id="starPicker"
+								style="cursor: pointer;">
+								<i class="bi bi-star-fill star-item" data-val="1"></i> <i
+									class="bi bi-star-fill star-item" data-val="2"></i> <i
+									class="bi bi-star-fill star-item" data-val="3"></i> <i
+									class="bi bi-star-fill star-item" data-val="4"></i> <i
+									class="bi bi-star-fill star-item" data-val="5"></i>
+							</div>
+							<span id="ratingText"
+								class="badge bg-warning-subtle text-dark border fw-bold px-3 py-1 mt-1">5
+								sao - Rất hài lòng</span>
+						</div>
+
+						<div class="mb-3">
+							<label class="form-label fw-bold small text-dark"> Nội
+								dung đánh giá <span class="text-danger">*</span> (Tối thiểu 50
+								ký tự)
+							</label>
+							<textarea class="form-control rounded-3" id="reviewComment"
+								name="comment" rows="4"
+								placeholder="Hãy chia sẻ cảm nhận về độ hoàn thiện, hiệu năng, đóng gói giao hàng... (Tối thiểu 50 ký tự để cộng đồng tham khảo)"
+								required></textarea>
+							<div
+								class="d-flex justify-content-between align-items-center mt-1">
+								<small id="charHelp" class="text-danger"
+									style="font-size: 0.78rem;"> <i
+									class="bi bi-exclamation-circle me-1"></i>Cần nhập thêm ít nhất
+									<b id="remainChars">50</b> ký tự
+								</small> <small class="text-muted" style="font-size: 0.78rem;">
+									<span id="currentChars" class="fw-bold text-dark">0</span>/50
+									ký tự
+								</small>
+							</div>
+						</div>
+
+						<div class="mb-2">
+							<label class="form-label fw-bold small text-dark"> <i
+								class="bi bi-camera-fill me-1 text-primary"></i>Đính kèm hình
+								ảnh hoặc video thực tế (Tùy chọn)
+							</label> <input type="file"
+								class="form-control rounded-3 form-control-sm"
+								id="reviewMediaInput" name="files" accept="image/*,video/*"
+								multiple> <small class="text-muted"
+								style="font-size: 0.75rem;">Hỗ trợ định dạng JPG, PNG,
+								MP4. Tối đa 3 tệp.</small>
+						</div>
+					</div>
+
+					<div class="modal-footer border-top-0 pt-0">
+						<button type="button" class="btn btn-light rounded-pill px-4"
+							data-bs-dismiss="modal">Đóng</button>
+						<button type="submit" id="btnSubmitReview"
+							class="btn btn-warning rounded-pill px-4 fw-bold text-dark shadow-sm"
+							disabled>GỬI ĐÁNH GIÁ</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const stars = document.querySelectorAll('#starPicker .star-item');
+		const ratingInput = document.getElementById('selectedRating');
+		const ratingText = document.getElementById('ratingText');
+		const commentInput = document.getElementById('reviewComment');
+		const currentChars = document.getElementById('currentChars');
+		const remainChars = document.getElementById('remainChars');
+		const charHelp = document.getElementById('charHelp');
+		const btnSubmit = document.getElementById('btnSubmitReview');
+
+		const ratingLabels = {
+			1: '1 sao - Rất tệ',
+			2: '2 sao - Chưa hài lòng',
+			3: '3 sao - Bình thường',
+			4: '4 sao - Hài lòng',
+			5: '5 sao - Rất hài lòng'
+		};
+
+		// A. Xử lý chọn sao
+		stars.forEach(star => {
+			star.addEventListener('click', function() {
+				const val = parseInt(this.getAttribute('data-val'));
+				ratingInput.value = val;
+				ratingText.innerText = ratingLabels[val] || (val + ' sao');
+
+				stars.forEach((s, idx) => {
+					if (idx < val) {
+						s.className = 'bi bi-star-fill star-item';
+					} else {
+						s.className = 'bi bi-star star-item';
+					}
+				});
+			});
+		});
+
+		// B. Xử lý đếm ký tự thời gian thực (Bắt buộc >= 50 ký tự)
+		if (commentInput) {
+			commentInput.addEventListener('input', function() {
+				const len = this.value.trim().length;
+				currentChars.innerText = len;
+
+				if (len < 50) {
+					charHelp.className = 'text-danger';
+					charHelp.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Cần nhập thêm ít nhất <b>' + (50 - len) + '</b> ký tự';
+					btnSubmit.disabled = true;
+				} else {
+					charHelp.className = 'text-success';
+					charHelp.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Đã đạt độ dài hợp lệ!';
+					btnSubmit.disabled = false;
+				}
+			});
+		}
+
+		// C. Xử lý gửi Form Đánh giá qua AJAX
+		const formReview = document.getElementById('formReview');
+		if (formReview) {
+			formReview.addEventListener('submit', async function(e) {
+				e.preventDefault();
+
+				const reviewAlert = document.getElementById('reviewAlert');
+				reviewAlert.className = 'alert d-none'; // reset ẩn thông báo cũ
+
+				const textLen = commentInput.value.trim().length;
+				if (textLen < 50) {
+					reviewAlert.className = 'alert alert-warning rounded-3 small py-2 px-3 mb-3 d-flex align-items-center gap-2';
+					reviewAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i><span>Nội dung đánh giá phải có ít nhất 50 ký tự theo quy định!</span>';
+					return;
+				}
+
+				btnSubmit.disabled = true;
+				btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang tải ảnh lên Cloudinary & lưu đánh giá...';
+
+				const formData = new FormData(this);
+
+				try {
+					const res = await fetch('${pageContext.request.contextPath}/api/reviews', {
+						method: 'POST',
+						body: formData
+					});
+					const data = await res.json();
+
+					if (data.success) {
+						// Thông báo thành công màu xanh lá hiện đại
+						reviewAlert.className = 'alert alert-success rounded-3 small py-2 px-3 mb-3 d-flex align-items-center gap-2 shadow-sm';
+						reviewAlert.innerHTML = '<i class="bi bi-check-circle-fill text-success fs-5"></i><div><strong class="d-block">Gửi đánh giá thành công!</strong><span class="text-muted">Cảm ơn bạn đã đóng góp ý kiến. Đang tải lại trang...</span></div>';
+						
+						btnSubmit.className = 'btn btn-success rounded-pill px-4 fw-bold text-white shadow-sm';
+						btnSubmit.innerHTML = '<i class="bi bi-check-lg me-1"></i>Đã gửi thành công!';
+						
+						// Đóng modal sau 1.2s và reload lại trang
+						setTimeout(() => {
+							const modal = bootstrap.Modal.getInstance(document.getElementById('reviewModal'));
+							if (modal) modal.hide();
+							window.location.reload();
+						}, 1200);
+					} else {
+						reviewAlert.className = 'alert alert-danger rounded-3 small py-2 px-3 mb-3 d-flex align-items-center gap-2';
+						reviewAlert.innerHTML = '<i class="bi bi-exclamation-octagon-fill text-danger fs-5"></i><span>' + (data.message || 'Không thể gửi đánh giá!') + '</span>';
+						btnSubmit.disabled = false;
+						btnSubmit.innerText = 'GỬI ĐÁNH GIÁ';
+					}
+				} catch (err) {
+					reviewAlert.className = 'alert alert-danger rounded-3 small py-2 px-3 mb-3 d-flex align-items-center gap-2';
+					reviewAlert.innerHTML = '<i class="bi bi-wifi-off text-danger fs-5"></i><span>Lỗi kết nối máy chủ! Vui lòng thử lại sau.</span>';
+					btnSubmit.disabled = false;
+					btnSubmit.innerText = 'GỬI ĐÁNH GIÁ';
+				}
+			});
+		}
+	});
+	</script>
+
 	<!-- SẢN PHẨM LIÊN QUAN -->
 	<c:if test="${not empty relatedProducts}">
 		<div class="mb-4">

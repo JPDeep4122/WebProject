@@ -49,14 +49,14 @@ public class OrderController {
             } catch (Exception ignored) {}
         }
 
-        List<Order> orders = orderService.getOrdersByUser(email, orderStatus);
+        List<Order> orders = orderService.getOrdersByUser(userEmail, orderStatus);
 
-        long countAll = orderService.getOrdersByUser(email, null).size();
-        long countPending = orderService.getOrdersByUser(email, OrderStatus.PENDING).size();
-        long countConfirmed = orderService.getOrdersByUser(email, OrderStatus.CONFIRMED).size();
-        long countShipping = orderService.getOrdersByUser(email, OrderStatus.SHIPPING).size();
-        long countDelivered = orderService.getOrdersByUser(email, OrderStatus.DELIVERED).size();
-        long countCancelled = orderService.getOrdersByUser(email, OrderStatus.CANCELLED).size();
+        long countAll = orderService.getOrdersByUser(userEmail, null).size();
+        long countPending = orderService.getOrdersByUser(userEmail, OrderStatus.PENDING).size();
+        long countConfirmed = orderService.getOrdersByUser(userEmail, OrderStatus.CONFIRMED).size();
+        long countShipping = orderService.getOrdersByUser(userEmail, OrderStatus.SHIPPING).size();
+        long countDelivered = orderService.getOrdersByUser(userEmail, OrderStatus.DELIVERED).size();
+        long countCancelled = orderService.getOrdersByUser(userEmail, OrderStatus.CANCELLED).size();
 
         model.addAttribute("orders", orders);
         model.addAttribute("currentStatus", (status != null && !status.isEmpty()) ? status.toUpperCase() : "ALL");
