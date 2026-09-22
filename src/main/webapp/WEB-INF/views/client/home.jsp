@@ -164,8 +164,9 @@
 												</span>
 											</c:if>
 										</div>
-										<button
-											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
+										<button type="button"
+											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm"
+											onclick="addToCart(${prod.id}, 1, this)">
 											<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
 										</button>
 									</div>
@@ -227,8 +228,9 @@
 												</span>
 											</c:if>
 										</div>
-										<button
-											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
+										<button type="button"
+											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm"
+											onclick="addToCart(${prod.id}, 1, this)">
 											<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
 										</button>
 									</div>
@@ -290,8 +292,9 @@
 												</span>
 											</c:if>
 										</div>
-										<button
-											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
+										<button type="button"
+											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm"
+											onclick="addToCart(${prod.id}, 1, this)">
 											<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
 										</button>
 									</div>
@@ -353,8 +356,9 @@
 												</span>
 											</c:if>
 										</div>
-										<button
-											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm">
+										<button type="button"
+											class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm"
+											onclick="addToCart(${prod.id}, 1, this)">
 											<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
 										</button>
 									</div>

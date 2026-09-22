@@ -54,7 +54,7 @@
     }
 </style>
 
-<!-- 2. KHU VỰC CHÍNH CỦA TRANG XÁC THỰC            -->
+<!-- 2. KHU VỰC CHÍNH CỦA TRANG XÁC THỰC -->
 <div class="auth-page-wrapper py-5 d-flex align-items-center">
     <div class="container">
         <div class="row align-items-center justify-content-center g-5">
@@ -70,10 +70,10 @@
             <div class="col-lg-5 col-md-6 d-flex justify-content-center">
                 <div class="auth-card p-4 p-sm-5">
                     
-                    <!-- Hộp thông báo lỗi/thành công -->
-                    <div id="authAlert" class="alert d-none py-2 small rounded-3" role="alert"></div>
+                    <!-- Hộp thông báo lỗi/thành công độc lập trên trang này -->
+                    <div id="pageAuthAlert" class="alert d-none py-2 small rounded-3" role="alert"></div>
 
-                    <!-- Form đăng nhập -->
+                    <!-- 1. Form đăng nhập -->
                     <div id="viewLogin">
                         <h3 class="fw-bold text-center mb-4 text-dark">Đăng nhập</h3>
                         <form id="formLogin">
@@ -83,7 +83,7 @@
                                         <i class="bi bi-envelope"></i>
                                     </span>
                                     <input type="email" class="form-control auth-input-pill border-start-0 rounded-end-pill ps-2" 
-                                           id="loginEmail" placeholder="Nhập email tài khoản" required>
+                                           id="pageLoginEmail" placeholder="Nhập email tài khoản" required>
                                 </div>
                             </div>
                             <div class="mb-3">
@@ -92,7 +92,7 @@
                                         <i class="bi bi-shield-lock"></i>
                                     </span>
                                     <input type="password" class="form-control auth-input-pill border-start-0 rounded-end-pill ps-2" 
-                                           id="loginPassword" placeholder="Nhập mật khẩu" required>
+                                           id="pageLoginPassword" placeholder="Nhập mật khẩu" required>
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-auth-main w-100 mt-2 shadow-sm">TIẾP TỤC</button>
@@ -107,7 +107,7 @@
                         </form>
                     </div>
 
-                    <!-- Form đăng ký -->
+                    <!-- 2. Form đăng ký -->
                     <div id="viewRegister" class="d-none">
                         <h3 class="fw-bold text-center mb-4 text-dark">Tạo tài khoản</h3>
                         <form id="formRegister">
@@ -117,7 +117,7 @@
                                         <i class="bi bi-person"></i>
                                     </span>
                                     <input type="text" class="form-control auth-input-pill border-start-0 rounded-end-pill ps-2" 
-                                           id="regFullName" placeholder="Họ và tên của bạn" required>
+                                           id="pageRegFullName" placeholder="Họ và tên của bạn" required>
                                 </div>
                             </div>
                             <div class="mb-2">
@@ -126,7 +126,7 @@
                                         <i class="bi bi-telephone"></i>
                                     </span>
                                     <input type="tel" class="form-control auth-input-pill border-start-0 rounded-end-pill ps-2" 
-                                           id="regPhone" placeholder="Số điện thoại" required>
+                                           id="pageRegPhone" placeholder="Số điện thoại" required>
                                 </div>
                             </div>
                             <div class="mb-2">
@@ -135,7 +135,7 @@
                                         <i class="bi bi-envelope"></i>
                                     </span>
                                     <input type="email" class="form-control auth-input-pill border-start-0 rounded-end-pill ps-2" 
-                                           id="regEmail" placeholder="Địa chỉ Email" required>
+                                           id="pageRegEmail" placeholder="Địa chỉ Email" required>
                                 </div>
                             </div>
                             <div class="mb-3">
@@ -144,7 +144,7 @@
                                         <i class="bi bi-lock"></i>
                                     </span>
                                     <input type="password" class="form-control auth-input-pill border-start-0 rounded-end-pill ps-2" 
-                                           id="regPassword" placeholder="Mật khẩu (từ 6 ký tự)" minlength="6" required>
+                                           id="pageRegPassword" placeholder="Mật khẩu (từ 6 ký tự)" minlength="6" required>
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-auth-main w-100 mt-2 shadow-sm">ĐĂNG KÝ TÀI KHOẢN</button>
@@ -156,15 +156,15 @@
                         </form>
                     </div>
 
-                    <!-- Form xác thực OTP - kích hoạt        -->
+                    <!-- 3. Form xác thực OTP - kích hoạt -->
                     <div id="viewOtp" class="d-none text-center">
                         <i class="bi bi-shield-lock-fill text-warning fs-1"></i>
                         <h4 class="fw-bold mt-2 text-dark">Nhập mã OTP</h4>
-                        <p class="text-muted small">Mã 6 số đã được gửi tới email: <br><b id="otpTargetEmail" class="text-primary"></b></p>
+                        <p class="text-muted small">Mã 6 số đã được gửi tới email: <br><b id="pageOtpTargetEmail" class="text-primary"></b></p>
                         <form id="formOtp">
                             <div class="mb-3">
                                 <input type="text" class="form-control form-control-lg text-center fw-bold fs-3 rounded-pill letter-spacing-2" 
-                                       id="otpCodeInput" maxlength="6" placeholder="000000" required>
+                                       id="pageOtpCodeInput" maxlength="6" placeholder="000000" required>
                             </div>
                             <button type="submit" class="btn btn-auth-main w-100 shadow-sm">KÍCH HOẠT & TIẾP TỤC</button>
                             <div class="mt-3 small">
@@ -175,7 +175,7 @@
                         </form>
                     </div>
 
-                    <!-- Form forgot password                      -->
+                    <!-- 4. Form quên mật khẩu -->
                     <div id="viewForgot" class="d-none">
                         <h3 class="fw-bold text-center mb-2 text-dark">Khôi phục mật khẩu</h3>
                         <p class="text-muted text-center small mb-4">Nhập email đăng ký của bạn để nhận mã xác nhận</p>
@@ -186,7 +186,7 @@
                                         <i class="bi bi-envelope"></i>
                                     </span>
                                     <input type="email" class="form-control auth-input-pill border-start-0 rounded-end-pill ps-2" 
-                                           id="forgotEmail" placeholder="Nhập email của bạn" required>
+                                           id="pageForgotEmail" placeholder="Nhập email của bạn" required>
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-auth-main w-100 mt-2 shadow-sm">GỬI MÃ XÁC NHẬN</button>
@@ -197,18 +197,18 @@
                         </form>
                     </div>
 
-                    <!-- Form reset password  -->
+                    <!-- 5. Form đặt lại mật khẩu -->
                     <div id="viewReset" class="d-none">
                         <h3 class="fw-bold text-center mb-2 text-dark">Đặt lại mật khẩu</h3>
                         <p class="text-muted text-center small mb-4">Nhập mã OTP từ email và tạo mật khẩu mới</p>
                         <form id="formReset">
                             <div class="mb-3">
                                 <input type="text" class="form-control auth-input-pill text-center fw-bold" 
-                                       id="resetOtpCode" placeholder="Nhập mã OTP 6 số" maxlength="6" required>
+                                       id="pageResetOtpCode" placeholder="Nhập mã OTP 6 số" maxlength="6" required>
                             </div>
                             <div class="mb-3">
                                 <input type="password" class="form-control auth-input-pill" 
-                                       id="resetNewPassword" placeholder="Mật khẩu mới (từ 6 ký tự)" minlength="6" required>
+                                       id="pageResetNewPassword" placeholder="Mật khẩu mới (từ 6 ký tự)" minlength="6" required>
                             </div>
                             <button type="submit" class="btn btn-auth-main w-100 mt-2 shadow-sm">LƯU MẬT KHẨU MỚI</button>
                             <hr class="my-4 text-muted">
@@ -225,20 +225,26 @@
     </div>
 </div>
 
-<!-- JS xử lý chuyển đổi form và gọi API     -->
+<!-- 3. JS xử lý chuyển đổi form và gọi API -->
 <script>
     const CONTEXT_PATH = "${pageContext.request.contextPath}";
     let currentPendingEmail = "";
 
-    // Hàm thông báo
+    // Hàm hiển thị thông báo trực tiếp trên trang này
     function showAlert(type, msg) {
-        const alert = document.getElementById('authAlert');
-        alert.className = "alert alert-" + type + " py-2 small rounded-3";
-        alert.innerText = msg;
-        alert.classList.remove('d-none');
+        const alertBox = document.getElementById('pageAuthAlert');
+        if (alertBox) {
+            alertBox.className = "alert alert-" + type + " py-2 small rounded-3";
+            alertBox.innerText = msg;
+            alertBox.classList.remove('d-none');
+        }
     }
+
     function hideAlert() {
-        document.getElementById('authAlert').classList.add('d-none');
+        const alertBox = document.getElementById('pageAuthAlert');
+        if (alertBox) {
+            alertBox.classList.add('d-none');
+        }
     }
 
     // Hàm chuyển đổi qua lại giữa các Form
@@ -261,8 +267,8 @@
     document.getElementById('formLogin').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideAlert();
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
+        const email = document.getElementById('pageLoginEmail').value.trim();
+        const password = document.getElementById('pageLoginPassword').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
         btn.disabled = true;
@@ -280,9 +286,14 @@
                 localStorage.setItem('jwtToken', data.data.token);
                 localStorage.setItem('accessToken', data.data.token);
                 localStorage.setItem('currentUser', JSON.stringify(data.data));
+                document.cookie = "accessToken=" + data.data.token + "; path=/; max-age=86400";
 
                 showAlert('success', 'Đăng nhập thành công! Đang chuyển hướng...');
-                setTimeout(() => { window.location.href = CONTEXT_PATH + '/'; }, 700);
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirectUrl = urlParams.get('redirect');
+                setTimeout(() => {
+                    window.location.href = redirectUrl ? CONTEXT_PATH + redirectUrl : CONTEXT_PATH + '/';
+                }, 700);
             } else {
                 showAlert('danger', data.message || 'Email hoặc mật khẩu không chính xác!');
                 btn.disabled = false;
@@ -299,14 +310,14 @@
     document.getElementById('formRegister').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideAlert();
-        const fullname = document.getElementById('regFullName').value.trim();
-        const phoneNumber = document.getElementById('regPhone').value.trim();
-        const email = document.getElementById('regEmail').value.trim();
-        const password = document.getElementById('regPassword').value.trim();
+        const fullname = document.getElementById('pageRegFullName').value.trim();
+        const phoneNumber = document.getElementById('pageRegPhone').value.trim();
+        const email = document.getElementById('pageRegEmail').value.trim();
+        const password = document.getElementById('pageRegPassword').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang tạo tài khoản...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang tạo tài khoản & gửi OTP...';
 
         try {
             const res = await fetch(CONTEXT_PATH + '/api/auth/register', {
@@ -318,11 +329,11 @@
 
             if (data.success) {
                 currentPendingEmail = email;
-                document.getElementById('otpTargetEmail').innerText = email;
-                showAlert('success', 'Đăng ký thành công! Vui lòng nhập mã OTP đã gửi tới email.');
+                document.getElementById('pageOtpTargetEmail').innerText = email;
+                showAlert('success', 'Đăng ký thành công! Vui lòng nhập mã OTP đã gửi tới email của bạn.');
                 switchView('otp');
             } else {
-                showAlert('danger', data.message);
+                showAlert('danger', data.message || 'Không thể đăng ký tài khoản!');
                 btn.disabled = false;
                 btn.innerText = 'ĐĂNG KÝ TÀI KHOẢN';
             }
@@ -337,7 +348,7 @@
     document.getElementById('formOtp').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideAlert();
-        const otpCode = document.getElementById('otpCodeInput').value.trim();
+        const otpCode = document.getElementById('pageOtpCodeInput').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
         btn.disabled = true;
@@ -352,10 +363,13 @@
             const data = await res.json();
 
             if (data.success) {
-                showAlert('success', 'Kích hoạt thành công! Đang chuyển về Đăng nhập...');
-                setTimeout(() => { switchView('login'); }, 1200);
+                showAlert('success', 'Kích hoạt thành công! Đang chuyển về màn hình Đăng nhập...');
+                setTimeout(() => { 
+                    switchView('login');
+                    document.getElementById('pageLoginEmail').value = currentPendingEmail;
+                }, 1200);
             } else {
-                showAlert('danger', data.message);
+                showAlert('danger', data.message || 'Mã OTP không chính xác hoặc đã hết hạn!');
                 btn.disabled = false;
                 btn.innerText = 'KÍCH HOẠT & TIẾP TỤC';
             }
@@ -382,7 +396,7 @@
     document.getElementById('formForgot').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideAlert();
-        const email = document.getElementById('forgotEmail').value.trim();
+        const email = document.getElementById('pageForgotEmail').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
         btn.disabled = true;
@@ -416,8 +430,8 @@
     document.getElementById('formReset').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideAlert();
-        const otpCode = document.getElementById('resetOtpCode').value.trim();
-        const newPassword = document.getElementById('resetNewPassword').value.trim();
+        const otpCode = document.getElementById('pageResetOtpCode').value.trim();
+        const newPassword = document.getElementById('pageResetNewPassword').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
         btn.disabled = true;
