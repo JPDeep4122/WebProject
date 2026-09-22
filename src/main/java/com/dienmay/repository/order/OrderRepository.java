@@ -13,13 +13,19 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    Optional<Order> findByOrderCode(String orderCode);
+	Optional<Order> findByOrderCode(String orderCode);
 
-    Page<Order> findByUserId(Long userId, Pageable pageable);
+	Page<Order> findByUserId(Long userId, Pageable pageable);
 
-    Page<Order> findByBranchId(Long branchId, Pageable pageable);
+	Page<Order> findByBranchId(Long branchId, Pageable pageable);
 
-    Page<Order> findByBranchIdAndStatus(Long branchId, OrderStatus status, Pageable pageable);
+	Page<Order> findByBranchIdAndStatus(Long branchId, OrderStatus status, Pageable pageable);
 
-    List<Order> findByStatus(OrderStatus status);
+	List<Order> findByStatus(OrderStatus status);
+
+	List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+	List<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, OrderStatus status);
+
+	Optional<Order> findByOrderCodeAndRecipientPhone(String orderCode, String recipientPhone);
 }
