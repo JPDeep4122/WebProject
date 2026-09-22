@@ -54,6 +54,16 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 			return headerAuth.substring(7); // Cắt bỏ chữ "Bearer " để lấy Token
 		}
 
+		if (request.getCookies() != null) {
+			for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+				if ("accessToken".equals(cookie.getName()) || "jwtToken".equals(cookie.getName())) {
+					if (StringUtils.hasText(cookie.getValue())) {
+						return cookie.getValue();
+					}
+				}
+			}
+		}
+
 		return null;
 	}
 }

@@ -715,11 +715,15 @@ to {
 						</a>
 					</div>
 
-					<a href="${pageContext.request.contextPath}/vouchers"
+					<a href="${pageContext.request.contextPath}/orders"
+						class="header-btn d-none d-lg-flex"> <i
+						class="bi bi-bag-check fs-5"></i> <span class="d-none d-xl-inline">Đơn
+							hàng</span>
+					</a> <a href="${pageContext.request.contextPath}/vouchers"
 						class="header-btn d-none d-lg-flex"> <i
 						class="bi bi-ticket-perforated fs-5"></i> <span
 						class="d-none d-xl-inline">Voucher</span>
-					</a> </a> <a href="${pageContext.request.contextPath}/cart"
+					</a> <a href="${pageContext.request.contextPath}/cart"
 						class="header-btn position-relative"> <i
 						class="bi bi-cart3 fs-5"></i> <span class="d-none d-xl-inline">Giỏ
 							hàng</span> <span id="cartBadge"
@@ -1034,8 +1038,8 @@ to {
 		</div>
 	</div>
 
-<!-- JAVASCRIPT HỆ THỐNG XỬ LÝ HEADER VÀ MEGA MENU -->
-<script>
+	<!-- JAVASCRIPT HỆ THỐNG XỬ LÝ HEADER VÀ MEGA MENU -->
+	<script>
     document.addEventListener('DOMContentLoaded', function () {
         
         // 1. XỬ LÝ MEGA MENU: Rê chuột chuyển tab + Giữ menu không bị tắt đột ngột
