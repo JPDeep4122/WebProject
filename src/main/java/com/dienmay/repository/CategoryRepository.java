@@ -12,4 +12,13 @@ import com.dienmay.entity.Category;
 public interface CategoryRepository extends JpaRepository<Category, Long>{
 	List<Category> findByActiveTrue();
 	Optional<Category> findBySlug(String slug);
+
+    List<Category> findByParentIsNull();
+
+    List<Category> findByParent_Id(Long parentId);
+
+    boolean existsByParent_Id(Long parentId);
+
+    boolean existsBySlug(String slug);
+
 }
