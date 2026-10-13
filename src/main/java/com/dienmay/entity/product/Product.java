@@ -48,10 +48,10 @@ public class Product {
 	@Column(nullable = false, unique = true, length = 50)
 	private String sku;				 	// Mã sản phẩm: TV-SONY-55X80L
 
-	@Column(columnDefinition = "NVARCHAR(MAX)")
+	@Column(columnDefinition = "TEXT")
 	private String shortDescription;
 
-	@Column(columnDefinition = "NVARCHAR(MAX)")
+	@Column(columnDefinition = "TEXT")
 	private String description;
 
 	@Column(nullable = false, precision = 18, scale = 2)
