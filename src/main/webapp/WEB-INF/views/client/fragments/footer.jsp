@@ -248,13 +248,18 @@
       });
 
       // 6. KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP & HIỂN THỊ TÊN TRÊN HEADER
+            // 6. KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP & HIỂN THỊ TÊN TRÊN HEADER
       function checkLoginStatus() {
-        const token = localStorage.getItem('jwtToken');
+        const token = localStorage.getItem('jwtToken') || localStorage.getItem('accessToken');
         const userJson = localStorage.getItem('currentUser');
         const container = document.getElementById('userAuthContainer');
+        if (!container) return;
 
         if (token && userJson) {
           const user = JSON.parse(userJson);
+          // Đồng bộ token sang cookie để các trang JSP Controller nhận diện được người dùng
+          document.cookie = "accessToken=" + token + "; path=/; max-age=86400";
+
           container.innerHTML = `
             <div class="dropdown">
               <button class="btn btn-outline-primary btn-sm rounded-pill dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
@@ -263,17 +268,20 @@
               <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                 <li><h6 class="dropdown-header small text-muted">\${user.email}</h6></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-bag-check me-2"></i>Đơn hàng của tôi</a></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-person-gear me-2"></i>Thông tin tài khoản</a></li>
+                <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders"><i class="bi bi-bag-check me-2"></i>Đơn hàng của tôi</a></li>
+                <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders/tracking"><i class="bi bi-search me-2"></i>Tra cứu đơn vãng lai</a></li>
+                <li><a class="dropdown-item" href="${CONTEXT_PATH}/vouchers"><i class="bi bi-ticket-perforated me-2"></i>Kho Voucher</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
               </ul>
             </div>
           `;
         } else {
+          document.cookie = "accessToken=; path=/; max-age=0";
           container.innerHTML = `
-            <a href="javascript:void(0)" class="rounded-circle bg-light p-2 mx-1 d-inline-block text-dark" data-bs-toggle="modal" data-bs-target="#authModal" title="Tài khoản">
-              <svg width="24" height="24"><use xlink:href="#user"></use></svg>
+            <a href="${CONTEXT_PATH}/login" class="header-btn">
+              <i class="bi bi-person-circle fs-5"></i>
+              <span class="d-none d-xl-inline">Đăng nhập</span>
             </a>
           `;
         }
@@ -282,7 +290,9 @@
       // ĐĂNG XUẤT
       function logout() {
         localStorage.removeItem('jwtToken');
+        localStorage.removeItem('accessToken');
         localStorage.removeItem('currentUser');
+        document.cookie = "accessToken=; path=/; max-age=0";
         checkLoginStatus();
         window.location.reload();
       }

@@ -15,22 +15,22 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.dienmay.config.JwtUtils;
-import com.dienmay.dto.ApiResponse;
-import com.dienmay.dto.ForgotPasswordRequest;
-import com.dienmay.dto.JwtResponse;
-import com.dienmay.dto.LoginRequest;
-import com.dienmay.dto.RegisterRequest;
-import com.dienmay.dto.ResetPasswordRequest;
-import com.dienmay.dto.VerifyOtpRequest;
-import com.dienmay.entity.OtpCode;
-import com.dienmay.entity.Role;
-import com.dienmay.entity.User;
-import com.dienmay.repository.OtpCodeRepository;
-import com.dienmay.repository.RoleRepository;
-import com.dienmay.repository.UserRepository;
-import com.dienmay.service.AuthService;
-import com.dienmay.service.EmailService;
+import com.dienmay.dto.auth.ForgotPasswordRequest;
+import com.dienmay.dto.auth.JwtResponse;
+import com.dienmay.dto.auth.LoginRequest;
+import com.dienmay.dto.auth.RegisterRequest;
+import com.dienmay.dto.auth.ResetPasswordRequest;
+import com.dienmay.dto.auth.VerifyOtpRequest;
+import com.dienmay.dto.common.ApiResponse;
+import com.dienmay.entity.auth.OtpCode;
+import com.dienmay.entity.auth.Role;
+import com.dienmay.entity.auth.User;
+import com.dienmay.repository.auth.OtpCodeRepository;
+import com.dienmay.repository.auth.RoleRepository;
+import com.dienmay.repository.auth.UserRepository;
+import com.dienmay.security.jwt.JwtUtils;
+import com.dienmay.service.auth.AuthService;
+import com.dienmay.service.mail.EmailService;
 
 @Service
 public class AuthServiceImpl implements AuthService {

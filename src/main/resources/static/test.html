@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Upload Cloudinary</title>
+</head>
+<body style="font-family: Arial; padding: 30px;">
+    <h2>Kiểm thử Upload Ảnh lên Cloudinary</h2>
+    <form action="/api/test/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="image/*,video/*" required />
+        <br><br>
+        <button type="submit" style="padding: 8px 16px; cursor: pointer;">Upload lên Cloudinary</button>
+    </form>
+</body>
+</html>
