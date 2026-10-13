@@ -52,7 +52,7 @@ public class Address {
     @Column(name = "detail_address", length = 255)
     private String detailAddress; // Số nhà, tên đường
 
-    @Column(name = "full_address", columnDefinition = "NVARCHAR(500)")
+    @Column(name = "full_address", length = 500)
     private String fullAddress;
 
     @Column(name = "is_default")
