@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -42,8 +43,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/test/**", "/**").permitAll()
-                .anyRequest().authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers("/admin/categories/**").hasRole("ADMIN")
+                .requestMatchers("/admin/products/**", "/admin").hasAnyRole("ADMIN", "STAFF")
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/auth/**", "/api/test/**", "/", "/products/**", "/cart/**", "/checkout/**", "/login", "/register", "/css/**", "/js/**", "/images/**", "/static/**", "/favicon.ico").permitAll()
+                .anyRequest().permitAll()
             );
 
         http.userDetailsService(userDetailsService);
