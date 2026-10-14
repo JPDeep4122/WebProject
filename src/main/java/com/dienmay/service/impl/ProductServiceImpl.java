@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.dienmay.dto.product.ProductFilterRequest;
+import com.dienmay.dto.product.AdminProductRequest;
 import com.dienmay.entity.branch.BranchProduct;
 import com.dienmay.entity.product.Brand;
 import com.dienmay.entity.product.Category;
@@ -131,5 +132,50 @@ public class ProductServiceImpl implements ProductService {
         Pageable top20 = PageRequest.of(0, 20, sort);
 
         return productRepository.findAll(activeSpec, top20).getContent();
+    }
+
+    @Override
+    public List<Product> getAllProductsForAdmin() {
+        return productRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+    @Override
+    @Transactional
+    public Product saveProduct(Long id, AdminProductRequest request) {
+        Product product = id == null ? new Product() : productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
+        productRepository.findBySlug(request.getSlug().trim()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) throw new IllegalArgumentException("Slug đã được sử dụng");
+        });
+        productRepository.findBySku(request.getSku().trim()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) throw new IllegalArgumentException("SKU đã được sử dụng");
+        });
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh mục"));
+        Brand brand = brandRepository.findById(request.getBrandId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thương hiệu"));
+        product.setName(request.getName().trim());
+        product.setSlug(request.getSlug().trim());
+        product.setSku(request.getSku().trim());
+        product.setShortDescription(request.getShortDescription());
+        product.setDescription(request.getDescription());
+        product.setOriginalPrice(request.getOriginalPrice());
+        product.setDiscountPrice(request.getDiscountPrice());
+        product.setPrice(request.getDiscountPrice() != null ? request.getDiscountPrice() : request.getOriginalPrice());
+        product.setMainImageUrl(request.getMainImageUrl());
+        product.setCategory(category);
+        product.setBrand(brand);
+        product.setActive(request.getActive() == null || request.getActive());
+        product.setFeatured(request.getFeatured() != null && request.getFeatured());
+        return productRepository.save(product);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProduct(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
+        product.setActive(false);
+        productRepository.save(product);
     }
 }

@@ -2,7 +2,7 @@
 <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 260px; min-height: 100vh;">
     <a href="/admin" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
         <i class="bi bi-shield-lock-fill fs-4 text-warning me-2"></i>
-        <span class="fs-5 fw-bold">QUẢN TRỊ VIÊN</span>
+        <span class="fs-5 fw-bold">QUẢN LÝ CỬA HÀNG</span>
     </a>
     <hr>
     <ul class="nav nav-pills flex-column mb-auto">

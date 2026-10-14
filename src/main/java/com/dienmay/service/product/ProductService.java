@@ -2,6 +2,7 @@ package com.dienmay.service.product;
 
 import java.util.List;
 import com.dienmay.dto.product.ProductFilterRequest;
+import com.dienmay.dto.product.AdminProductRequest;
 import com.dienmay.entity.branch.BranchProduct;
 import com.dienmay.entity.product.Brand;
 import com.dienmay.entity.product.Category;
@@ -28,4 +29,10 @@ public interface ProductService {
 
     // Top 20 sản phẩm theo 4 Tab (newest, bestseller, rating, favorite)
     List<Product> getTop20ByTab(String tab);
+
+    List<Product> getAllProductsForAdmin();
+
+    Product saveProduct(Long id, AdminProductRequest request);
+
+    void deleteProduct(Long id);
 }

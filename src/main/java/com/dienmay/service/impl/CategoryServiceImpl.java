@@ -1,8 +1,8 @@
 package com.dienmay.service.impl;
 
 import com.dienmay.dto.category.*;
-import com.dienmay.entity.Category;
-import com.dienmay.repository.CategoryRepository;
+import com.dienmay.entity.product.Category;
+import com.dienmay.repository.product.CategoryRepository;
 import com.dienmay.service.CategoryService;
 
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryResponse create(CategoryCreateRequest request) {
-        if(categoryRepository.existsBySlug(request.getSlug())) {
+        if(categoryRepository.existsBySlug(request.getSlug().trim())) {
             throw new RuntimeException("Slug đã tồn tại");
         }
 
@@ -53,6 +53,9 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository
             .findById(id)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
+        categoryRepository.findBySlug(request.getSlug().trim()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) throw new RuntimeException("Slug đã tồn tại");
+        });
         if (request.getParentId() != null && request.getParentId().equals(id)) {
             throw new RuntimeException (
                 "Danh mục không thể làm cha của chính nó"
