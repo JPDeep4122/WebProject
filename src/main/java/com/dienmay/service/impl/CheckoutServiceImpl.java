@@ -35,8 +35,12 @@ import com.dienmay.repository.order.OrderItemRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.payment.PaymentRepository;
 import com.dienmay.service.checkout.CheckoutService;
+import com.dienmay.entity.promotion.Promotion;
+import com.dienmay.repository.promotion.PromotionRepository;
 
 import jakarta.servlet.http.HttpSession;
+import org.springframework.context.ApplicationEventPublisher;
+import com.dienmay.event.PromotionEvent;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -52,6 +56,8 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
+    private final PromotionRepository promotionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -110,6 +116,17 @@ public class CheckoutServiceImpl implements CheckoutService {
         }
 
         String c = code.trim().toUpperCase();
+        Promotion promotion = promotionRepository.findByCodeIgnoreCase(c).orElse(null);
+        if (promotion != null) {
+            LocalDateTime now = LocalDateTime.now();
+            if (!promotion.isActive() || (promotion.getStartsAt()!=null && now.isBefore(promotion.getStartsAt())) || (promotion.getEndsAt()!=null && now.isAfter(promotion.getEndsAt())))
+                return VoucherResponse.builder().valid(false).message("Khuyến mãi chưa bắt đầu, đã hết hạn hoặc đã tắt").build();
+            if (promotion.getMaxUses()!=null && promotion.getUsedCount() >= promotion.getMaxUses())
+                return VoucherResponse.builder().valid(false).message("Khuyến mãi đã hết lượt sử dụng").build();
+            BigDecimal discount = subtotal.multiply(promotion.getDiscountPercent()).divide(BigDecimal.valueOf(100));
+            BigDecimal newFinal = subtotal.subtract(discount).max(BigDecimal.ZERO);
+            return VoucherResponse.builder().valid(true).code(c).message("Áp dụng thành công khuyến mãi " + promotion.getName()).discountAmount(discount).newFinalAmount(newFinal).build();
+        }
         BigDecimal discount = BigDecimal.ZERO;
         String msg = "";
 
@@ -191,6 +208,7 @@ public class CheckoutServiceImpl implements CheckoutService {
             VoucherResponse vRes = applyVoucher(request.getVoucherCode(), subtotal);
             if (vRes.isValid()) {
                 discount = vRes.getDiscountAmount();
+                promotionRepository.findByCodeIgnoreCase(request.getVoucherCode().trim()).ifPresent(p -> { p.setUsedCount(p.getUsedCount() + 1); promotionRepository.save(p); eventPublisher.publishEvent(new PromotionEvent(p.getId(), "PROMOTION_REDEEMED", userEmail, "Sử dụng mã " + p.getCode())); });
             }
         }
 
