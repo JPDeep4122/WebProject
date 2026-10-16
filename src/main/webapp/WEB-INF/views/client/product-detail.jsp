@@ -36,6 +36,9 @@
 				<img src="${product.mainImageUrl}"
 					class="img-fluid rounded-4 object-fit-contain"
 					style="max-height: 380px;" alt="${product.name}">
+				<div class="d-flex gap-2 flex-wrap mt-3">
+					<c:forEach items="${product.images}" var="image"><img src="${image.imageUrl}" style="width:72px;height:72px;object-fit:cover" class="rounded border" alt="${product.name}"></c:forEach>
+				</div>
 			</div>
 		</div>
 
@@ -150,6 +153,7 @@
 			Chính Sách Bảo Hành</h4>
 		<div class="text-secondary leading-relaxed">
 			<p>${product.description}</p>
+			<c:if test="${not empty product.specifications}"><h5 class="mt-4">Thông số kỹ thuật</h5><pre class="bg-light border rounded p-3" style="white-space:pre-wrap;font-family:inherit">${product.specifications}</pre></c:if>
 			<div class="row g-3 mt-3">
 				<div class="col-md-4">
 					<div class="p-3 bg-light rounded-3 text-center">

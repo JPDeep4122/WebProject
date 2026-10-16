@@ -25,7 +25,7 @@ public class AdminProductController {
         return "admin/products";
     }
 
-    @PostMapping
+    @PostMapping(consumes = "multipart/form-data")
     public String create(@Valid @ModelAttribute("newProduct") AdminProductRequest request, BindingResult result, Model model, RedirectAttributes flash) {
         if (result.hasErrors()) {
             model.addAttribute("products", productService.getAllProductsForAdmin());
@@ -45,6 +45,7 @@ public class AdminProductController {
         AdminProductRequest form = new AdminProductRequest();
         form.setName(product.getName()); form.setSlug(product.getSlug()); form.setSku(product.getSku());
         form.setShortDescription(product.getShortDescription()); form.setDescription(product.getDescription());
+        form.setSpecifications(product.getSpecifications());
         form.setOriginalPrice(product.getOriginalPrice()); form.setDiscountPrice(product.getDiscountPrice());
         form.setMainImageUrl(product.getMainImageUrl()); form.setCategoryId(product.getCategory().getId());
         form.setBrandId(product.getBrand().getId()); form.setActive(product.isActive()); form.setFeatured(product.isFeatured());
@@ -53,7 +54,7 @@ public class AdminProductController {
         return "admin/product-form";
     }
 
-    @PostMapping("/{id}/edit")
+    @PostMapping(value = "/{id}/edit", consumes = "multipart/form-data")
     public String update(@PathVariable Long id, @Valid @ModelAttribute("form") AdminProductRequest request, BindingResult result, Model model, RedirectAttributes flash) {
         if (result.hasErrors()) {
             model.addAttribute("productId", id); model.addAttribute("categories", productService.getAllCategories());

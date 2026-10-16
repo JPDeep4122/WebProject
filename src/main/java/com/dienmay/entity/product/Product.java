@@ -54,6 +54,9 @@ public class Product {
 	@Column(columnDefinition = "TEXT")
 	private String description;
 
+	@Column(columnDefinition = "TEXT")
+	private String specifications;
+
 	@Column(nullable = false, precision = 18, scale = 2)
 	private BigDecimal originalPrice; 	// Giá gốc niêm yết
 
