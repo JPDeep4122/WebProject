@@ -23,16 +23,18 @@ public class UserDetailsImpl implements UserDetails {
     private String password;
 
     private boolean active;
+    private Long branchId;
 
     private Collection<? extends GrantedAuthority> authorities;
 
-    public UserDetailsImpl(Long id, String email, String fullName, String password, boolean active,
+    public UserDetailsImpl(Long id, String email, String fullName, String password, boolean active, Long branchId,
             Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;
         this.password = password;
         this.active = active;
+        this.branchId = branchId;
         this.authorities = authorities;
     }
 
@@ -47,12 +49,14 @@ public class UserDetailsImpl implements UserDetails {
                 user.getFullName(),
                 user.getPassword(),
                 user.isActive(),
+                user.getBranch() == null ? null : user.getBranch().getId(),
                 authorities);
     }
 
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public String getFullName() { return fullName; }
+    public Long getBranchId() { return branchId; }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() { return authorities; }
