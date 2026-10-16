@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import com.dienmay.entity.branch.Branch;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -58,6 +59,10 @@ public class User {
 
 	@Builder.Default
 	private Set<Role> roles = new HashSet<>();
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "branch_id")
+	private Branch branch;
 
 	@Column(name = "created_at", updatable = false)
 	private LocalDateTime createdAt;
