@@ -14,10 +14,15 @@ import com.dienmay.entity.branch.BranchProduct;
 import com.dienmay.entity.product.Brand;
 import com.dienmay.entity.product.Category;
 import com.dienmay.entity.product.Product;
+import com.dienmay.entity.product.ProductImage;
 import com.dienmay.repository.branch.BranchProductRepository;
 import com.dienmay.repository.product.BrandRepository;
 import com.dienmay.repository.product.CategoryRepository;
 import com.dienmay.repository.product.ProductRepository;
+import com.dienmay.repository.product.ProductImageRepository;
+import com.dienmay.service.CloudinaryService;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 import com.dienmay.repository.specification.ProductSpecification;
 import com.dienmay.service.product.ProductService;
 
@@ -32,6 +37,8 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
     private final BranchProductRepository branchProductRepository;
+    private final ProductImageRepository productImageRepository;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     public List<Category> getAllCategories() {
@@ -159,15 +166,34 @@ public class ProductServiceImpl implements ProductService {
         product.setSku(request.getSku().trim());
         product.setShortDescription(request.getShortDescription());
         product.setDescription(request.getDescription());
+        product.setSpecifications(request.getSpecifications());
         product.setOriginalPrice(request.getOriginalPrice());
         product.setDiscountPrice(request.getDiscountPrice());
         product.setPrice(request.getDiscountPrice() != null ? request.getDiscountPrice() : request.getOriginalPrice());
-        product.setMainImageUrl(request.getMainImageUrl());
+        if (request.getMainImageUrl() != null && !request.getMainImageUrl().isBlank()) {
+            product.setMainImageUrl(request.getMainImageUrl());
+        }
         product.setCategory(category);
         product.setBrand(brand);
         product.setActive(request.getActive() == null || request.getActive());
         product.setFeatured(request.getFeatured() != null && request.getFeatured());
-        return productRepository.save(product);
+        try {
+            if (request.getMainImage() != null && !request.getMainImage().isEmpty()) {
+                product.setMainImageUrl(cloudinaryService.uploadFile(request.getMainImage(), "products/main"));
+            }
+            Product saved = productRepository.save(product);
+            if (request.getGalleryImages() != null) {
+                for (MultipartFile file : request.getGalleryImages()) {
+                    if (file != null && !file.isEmpty()) {
+                        String url = cloudinaryService.uploadFile(file, "products/" + saved.getId());
+                        productImageRepository.save(ProductImage.builder().product(saved).imageUrl(url).build());
+                    }
+                }
+            }
+            return saved;
+        } catch (IOException ex) {
+            throw new IllegalArgumentException("Không thể tải ảnh sản phẩm lên: " + ex.getMessage(), ex);
+        }
     }
 
     @Override
