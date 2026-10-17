@@ -16,6 +16,9 @@ public class PlaceOrderRequest {
     @NotBlank(message = "Vui lòng nhập địa chỉ nhận hàng")
     private String shippingAddress;
 
+    @NotBlank(message = "Vui lòng chọn tỉnh/thành phố nhận hàng")
+    private String province;
+
     private String note;
 
     // COD, VNPAY, MOMO

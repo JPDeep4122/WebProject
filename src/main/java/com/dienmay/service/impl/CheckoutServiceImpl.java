@@ -34,7 +34,9 @@ import com.dienmay.repository.cart.CartRepository;
 import com.dienmay.repository.order.OrderItemRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.payment.PaymentRepository;
+import com.dienmay.repository.branch.BranchRepository;
 import com.dienmay.service.checkout.CheckoutService;
+import com.dienmay.service.checkout.ShippingService;
 import com.dienmay.entity.promotion.Promotion;
 import com.dienmay.repository.promotion.PromotionRepository;
 
@@ -58,6 +60,8 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final PaymentRepository paymentRepository;
     private final PromotionRepository promotionRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ShippingService shippingService;
+    private final BranchRepository branchRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -86,8 +90,7 @@ public class CheckoutServiceImpl implements CheckoutService {
                 .map(CheckoutItemDto::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Miễn phí vận chuyển cho đơn hàng
-        BigDecimal shippingFee = BigDecimal.ZERO;
+        BigDecimal shippingFee = BigDecimal.ZERO; // Sẽ được báo giá sau khi khách nhập địa chỉ.
         BigDecimal discount = BigDecimal.ZERO;
         BigDecimal finalAmount = subtotal.add(shippingFee).subtract(discount);
 
@@ -212,7 +215,8 @@ public class CheckoutServiceImpl implements CheckoutService {
             }
         }
 
-        BigDecimal shippingFee = BigDecimal.ZERO;
+        var shippingQuote = shippingService.quote(request.getShippingAddress(), request.getProvince());
+        BigDecimal shippingFee = shippingQuote.getShippingFee();
         BigDecimal finalAmount = subtotal.add(shippingFee).subtract(discount);
         if (finalAmount.compareTo(BigDecimal.ZERO) < 0) finalAmount = BigDecimal.ZERO;
 
@@ -223,6 +227,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         Order order = Order.builder()
                 .orderCode(orderCode)
                 .user(user)
+                .branch(branchRepository.findById(shippingQuote.getBranchId()).orElse(null))
                 .totalAmount(subtotal)
                 .shippingFee(shippingFee)
                 .discountAmount(discount)

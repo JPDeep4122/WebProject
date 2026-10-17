@@ -41,7 +41,8 @@
 									<option value="${addr.id}" 
 											data-name="${addr.recipientName}" 
 											data-phone="${addr.phoneNumber}" 
-											data-addr="${addr.fullAddress}">
+												data-addr="${addr.fullAddress}"
+												data-province="${addr.province}">
 										${addr.recipientName} - ${addr.phoneNumber} (${addr.fullAddress})
 									</option>
 								</c:forEach>
@@ -61,6 +62,11 @@
 						<div class="col-12">
 							<label class="form-label small fw-bold">Địa chỉ chi tiết (Số nhà, tên đường, phường/xã) <span class="text-danger">*</span></label>
 							<textarea name="shippingAddress" id="shippingAddress" rows="2" class="form-control rounded-3" required placeholder="Số 123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM"></textarea>
+						</div>
+						<div class="col-12">
+							<label class="form-label small fw-bold">Tỉnh / thành phố <span class="text-danger">*</span></label>
+							<input type="text" name="province" id="shippingProvince" class="form-control rounded-3" required placeholder="Ví dụ: Thành phố Hồ Chí Minh">
+							<small class="text-muted">Nhập tỉnh/thành để xác định miễn phí cùng tỉnh hoặc tính tuyến đường liên tỉnh.</small>
 						</div>
 						<div class="col-12">
 							<label class="form-label small fw-bold">Ghi chú đơn hàng (Tùy chọn)</label>
@@ -165,8 +171,9 @@
 
 						<div class="d-flex justify-content-between text-muted small">
 							<span>Phí vận chuyển:</span>
-							<span class="text-success fw-bold">Miễn phí (0 ₫)</span>
+							<span class="text-success fw-bold" id="shippingFeeDisplay">Nhập địa chỉ để tính phí</span>
 						</div>
+						<div class="small text-muted" id="shippingQuoteMessage" aria-live="polite"></div>
 
 						<div class="d-flex justify-content-between text-muted small" id="discountRow" style="display: none !important;">
 							<span>Giảm giá voucher:</span>
@@ -205,6 +212,13 @@
 
 <script>
   const originalSubtotal = ${checkoutData.subtotal};
+  let currentShippingFee = 0;
+  let currentDiscount = 0;
+  let shippingQuoteTimer;
+
+  function refreshTotal() {
+    document.getElementById('finalAmountDisplay').innerText = Math.max(0, originalSubtotal + currentShippingFee - currentDiscount).toLocaleString('vi-VN') + ' ₫';
+  }
 
   // 1. Tự động điền khi chọn địa chỉ lưu sẵn
   function onSelectSavedAddress(selectEl) {
@@ -213,8 +227,41 @@
       document.getElementById('recipientName').value = selectedOption.getAttribute('data-name');
       document.getElementById('recipientPhone').value = selectedOption.getAttribute('data-phone');
       document.getElementById('shippingAddress').value = selectedOption.getAttribute('data-addr');
+      document.getElementById('shippingProvince').value = selectedOption.getAttribute('data-province') || '';
+      requestShippingQuote();
     }
   }
+
+  function requestShippingQuote() {
+    clearTimeout(shippingQuoteTimer);
+    shippingQuoteTimer = setTimeout(async () => {
+      const address = document.getElementById('shippingAddress').value.trim();
+      const province = document.getElementById('shippingProvince').value.trim();
+      if (!address || !province) return;
+      const feeEl = document.getElementById('shippingFeeDisplay');
+      const msgEl = document.getElementById('shippingQuoteMessage');
+      feeEl.innerText = 'Đang tính...';
+      try {
+        const response = await fetch('${pageContext.request.contextPath}/api/checkout/shipping-quote', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({shippingAddress: address, province: province})
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || 'Không thể tính phí vận chuyển');
+        currentShippingFee = Number(result.data.shippingFee || 0);
+        feeEl.innerText = currentShippingFee === 0 ? 'Miễn phí (0 ₫)' : currentShippingFee.toLocaleString('vi-VN') + ' ₫';
+        feeEl.className = currentShippingFee === 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+        const distance = Number(result.data.distanceKm || 0);
+        msgEl.innerText = result.data.sameProvince ? result.message : result.message + ' Khoảng cách: ' + distance.toLocaleString('vi-VN', {maximumFractionDigits: 1}) + ' km; chi nhánh: ' + result.data.branchName + '.';
+        refreshTotal();
+      } catch (error) {
+        feeEl.innerText = 'Chưa tính được';
+        msgEl.innerText = error.message;
+      }
+    }, 500);
+  }
+  document.getElementById('shippingAddress').addEventListener('change', requestShippingQuote);
+  document.getElementById('shippingProvince').addEventListener('change', requestShippingQuote);
 
   // 2. Hiệu ứng chọn phương thức thanh toán
   document.querySelectorAll('.payment-option input[type="radio"]').forEach(radio => {
@@ -241,14 +288,17 @@
       if (res.success && res.data.valid) {
         msgEl.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i>' + res.message + '</span>';
         document.getElementById('hiddenVoucherCode').value = res.data.code;
+        currentDiscount = Number(res.data.discountAmount || 0);
         
         // Cập nhật số tiền giảm và tổng tiền
         document.getElementById('discountRow').style.setProperty('display', 'flex', 'important');
         document.getElementById('discountAmountDisplay').innerText = '-' + Number(res.data.discountAmount).toLocaleString('vi-VN') + ' ₫';
-        document.getElementById('finalAmountDisplay').innerText = Number(res.data.newFinalAmount).toLocaleString('vi-VN') + ' ₫';
+        refreshTotal();
       } else {
         msgEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>' + (res.message || 'Mã không hợp lệ') + '</span>';
         document.getElementById('hiddenVoucherCode').value = '';
+        currentDiscount = 0;
+        refreshTotal();
       }
     })
     .catch(err => {

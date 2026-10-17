@@ -31,6 +31,9 @@ public class Branch {
     @Column(nullable = false, length = 255)
     private String address;
 
+    @Column(length = 100)
+    private String province;
+
     @Column(length = 20)
     private String phone;
 

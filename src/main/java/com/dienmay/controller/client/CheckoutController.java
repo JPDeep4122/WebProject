@@ -12,13 +12,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import com.dienmay.dto.checkout.CheckoutPageDto;
 import com.dienmay.dto.checkout.PlaceOrderRequest;
 import com.dienmay.dto.checkout.VoucherResponse;
+import com.dienmay.dto.checkout.ShippingQuoteRequest;
+import com.dienmay.dto.checkout.ShippingQuoteResponse;
 import com.dienmay.dto.common.ApiResponse;
 import com.dienmay.entity.order.Order;
 import com.dienmay.service.checkout.CheckoutService;
+import com.dienmay.service.checkout.ShippingService;
 import com.dienmay.service.payment.VnPayService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +35,7 @@ public class CheckoutController {
 
     private final CheckoutService checkoutService;
     private final VnPayService vnPayService; // TIÊM VNPAY SERVICE
+    private final ShippingService shippingService;
 
     @GetMapping("/checkout")
     public String viewCheckout(Model model, Principal principal, HttpSession session) {
@@ -56,6 +61,20 @@ public class CheckoutController {
                 .message(res.getMessage())
                 .data(res)
                 .build());
+    }
+
+    @PostMapping("/api/checkout/shipping-quote")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<ShippingQuoteResponse>> shippingQuote(@RequestBody ShippingQuoteRequest request) {
+        try {
+            ShippingQuoteResponse quote = shippingService.quote(request.getShippingAddress(), request.getProvince());
+            return ResponseEntity.ok(ApiResponse.<ShippingQuoteResponse>builder().success(true)
+                    .message(quote.isSameProvince() ? "Giao hàng cùng tỉnh/thành, miễn phí vận chuyển." : "Đã tính phí theo tuyến đường Google Maps.")
+                    .data(quote).build());
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.<ShippingQuoteResponse>builder()
+                    .success(false).message(ex.getMessage()).build());
+        }
     }
 
     // ĐẶT HÀNG & RẼ NHÁNH VNPAY HOẶC COD
