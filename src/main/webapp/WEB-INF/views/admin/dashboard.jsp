@@ -28,52 +28,55 @@
                 </div>
             </div>
 
-            <!-- 4 Thẻ Card Thống kê mẫu -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm border-start border-primary border-4 p-3">
-                        <div class="d-flex justify-content-between">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm border-start border-primary border-4 p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-muted fw-bold">DOANH THU THÁNG</small>
-                                <h4 class="fw-bold text-primary mt-1">450.800.000 đ</h4>
+                                <small class="text-muted fw-bold">TỔNG SỐ KHÁCH HÀNG</small>
+                                <h4 class="fw-bold text-primary mt-1 mb-0"><fmt:formatNumber value="${customerCount}" type="number" maxFractionDigits="0"/> khách hàng</h4>
                             </div>
-                            <div class="fs-2 text-primary"><i class="bi bi-currency-dollar"></i></div>
+                            <div class="fs-2 text-primary"><i class="bi bi-people"></i></div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm border-start border-success border-4 p-3">
-                        <div class="d-flex justify-content-between">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm border-start border-success border-4 p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-muted fw-bold">ĐƠN HÀNG MỚI</small>
-                                <h4 class="fw-bold text-success mt-1">128 Đơn</h4>
+                                <small class="text-muted fw-bold">TỔNG DOANH THU</small>
+                                <h4 class="fw-bold text-success mt-1 mb-0"><fmt:formatNumber value="${totalRevenue}" type="number" maxFractionDigits="0" groupingUsed="true"/> đ</h4>
                             </div>
-                            <div class="fs-2 text-success"><i class="bi bi-cart-check"></i></div>
+                            <div class="fs-2 text-success"><i class="bi bi-currency-dollar"></i></div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm border-start border-warning border-4 p-3">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <small class="text-muted fw-bold">SẢN PHẨM TỒN KHO</small>
-                                <h4 class="fw-bold text-warning mt-1">1.450 SP</h4>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold py-3"><i class="bi bi-shop me-1"></i> Doanh thu theo chi nhánh</div>
+                <div class="card-body">
+                    <c:choose>
+                        <c:when test="${empty branches}"><p class="text-muted mb-0">Chưa có chi nhánh.</p></c:when>
+                        <c:otherwise>
+                            <div class="row g-3">
+                                <c:forEach var="branch" items="${branches}">
+                                    <div class="col-md-6 col-xl-4">
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="text-muted small">${branch.name}</div>
+                                            <div class="fs-5 fw-bold text-primary mt-1"><fmt:formatNumber value="${branch.revenue}" type="number" maxFractionDigits="0" groupingUsed="true"/> đ</div>
+                                        </div>
+                                    </div>
+                                </c:forEach>
                             </div>
-                            <div class="fs-2 text-warning"><i class="bi bi-box"></i></div>
-                        </div>
-                    </div>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm border-start border-info border-4 p-3">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <small class="text-muted fw-bold">KHÁCH HÀNG MỚI</small>
-                                <h4 class="fw-bold text-info mt-1">340 User</h4>
-                            </div>
-                            <div class="fs-2 text-info"><i class="bi bi-person-plus"></i></div>
-                        </div>
-                    </div>
-                </div>
+            </div>
+
+            <div class="alert alert-info small" role="note">
+                <i class="bi bi-info-circle me-1"></i>
+                Số liệu được truy vấn trực tiếp từ hệ thống và cập nhật khi tải lại trang. Doanh thu chỉ tính đơn đã thanh toán thành công; đơn đã hủy không được tính.
             </div>
 
             <!-- Bảng đơn hàng gần đây -->
@@ -119,6 +122,9 @@
         </div>
     </div>
 
+    <!-- JSTL -->
+    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+    <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
