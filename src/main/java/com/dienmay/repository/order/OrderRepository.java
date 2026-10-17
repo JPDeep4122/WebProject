@@ -5,10 +5,13 @@ import com.dienmay.entity.order.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -28,4 +31,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	List<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, OrderStatus status);
 
 	Optional<Order> findByOrderCodeAndRecipientPhone(String orderCode, String recipientPhone);
+
+	@Query("select coalesce(sum(o.finalAmount), 0) from Order o where o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
+	BigDecimal sumSuccessfulRevenue();
+
+	@Query("select coalesce(sum(o.finalAmount), 0) from Order o where o.branch.id = :branchId and o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
+	BigDecimal sumSuccessfulRevenueByBranch(@Param("branchId") Long branchId);
 }
