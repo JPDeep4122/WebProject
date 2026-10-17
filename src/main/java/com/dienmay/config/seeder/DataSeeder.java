@@ -30,6 +30,10 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         if (productRepo.count() > 0) {
+            branchRepo.findAll().stream()
+                    .filter(branch -> branch.getProvince() == null && branch.getAddress() != null
+                            && branch.getAddress().toLowerCase().contains("tp.hcm"))
+                    .forEach(branch -> { branch.setProvince("Thành phố Hồ Chí Minh"); branchRepo.save(branch); });
             // Nếu đã có sản phẩm nhưng chưa nạp tồn kho chi nhánh thì tự động nạp bổ sung
             if (branchProductRepo.count() == 0) {
                 seedBranchStock();
@@ -40,8 +44,8 @@ public class DataSeeder implements CommandLineRunner {
         System.out.println(">>> DANG KHOI TAO DU LIEU MAU CHO DIEN MAY SHOP...");
 
         // 1. Tạo Chi nhánh
-        Branch b1 = branchRepo.save(Branch.builder().name("Chi nhánh Quận 1").address("123 Lê Lợi, Bến Nghé, Q1, TP.HCM").phone("02838221122").build());
-        Branch b2 = branchRepo.save(Branch.builder().name("Chi nhánh Bình Thạnh").address("456 Điện Biên Phủ, P25, Bình Thạnh, TP.HCM").phone("02838992233").build());
+        Branch b1 = branchRepo.save(Branch.builder().name("Chi nhánh Quận 1").address("123 Lê Lợi, Bến Nghé, Q1, TP.HCM").province("Thành phố Hồ Chí Minh").phone("02838221122").build());
+        Branch b2 = branchRepo.save(Branch.builder().name("Chi nhánh Bình Thạnh").address("456 Điện Biên Phủ, P25, Bình Thạnh, TP.HCM").province("Thành phố Hồ Chí Minh").phone("02838992233").build());
 
         // 2. Tạo Danh mục
         Category catTivi = categoryRepo.save(Category.builder().name("Tivi").slug("tivi").icon("bi-tv").build());

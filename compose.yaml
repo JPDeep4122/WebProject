@@ -13,6 +13,7 @@ services:
       JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
     ports:
       - "${APP_PORT:-8080}:8080"
     restart: unless-stopped
