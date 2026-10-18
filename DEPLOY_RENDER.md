@@ -22,9 +22,17 @@ cho phép thay đổi sau khi kiểm tra nhu cầu. Nếu đã đặt `SPRING_PR
 hoặc `JAVA_TOOL_OPTIONS` trên dashboard, các giá trị đó sẽ thay thế mặc định
 trong Docker; cần giữ profile `render` và giới hạn JVM tương ứng.
 
-Trên CPU nhỏ, lần biên dịch JSP đầu tiên vẫn có thể lâu. Profile Render tự mở
-nội bộ trang chủ, sản phẩm và đăng nhập sau khi seed dữ liệu, trước khi báo
-sẵn sàng. Trong bước này `/health` trả 503 và log có dòng `Warming Render page`.
+Maven biên dịch toàn bộ JSP bằng JspC trong bước process-classes; lỗi JSP làm
+build thất bại. Profile Render đăng ký các servlet đã biên dịch và tắt servlet
+JSP mặc định, tránh biên dịch JSP khi đang nhận request. Khi khởi động phải có
+log Registered 22 precompiled JSP servlets (số lượng đổi khi thêm/bớt trang).
+
+Docker giải nén WAR tại build và khởi động thư mục đã giải nén bằng WarLauncher.
+Các thư viện được đọc từ file JAR trực tiếp thay vì quét JAR lồng trong WAR.
+
+Profile Render tự mở nội bộ trang chủ, sản phẩm và đăng nhập sau khi seed dữ
+liệu, trước khi báo sẵn sàng. Trong bước này `/health` trả 503 và log có dòng
+`Warming Render page`.
 Khi có `Render pages are ready`, ứng dụng mới sẵn sàng nhận traffic. Nếu một
 trang lỗi hoặc hết timeout 180 giây, startup thất bại để tránh báo Live sai.
 

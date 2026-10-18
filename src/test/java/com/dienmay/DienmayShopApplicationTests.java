@@ -23,6 +23,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.service.mail.EmailService;
 import com.zaxxer.hikari.HikariDataSource;
+import jakarta.servlet.ServletContext;
 
 @ActiveProfiles("render")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
@@ -46,6 +47,9 @@ class DienmayShopApplicationTests {
 	@Autowired
 	private UserRepository users;
 
+	@Autowired
+	private ServletContext servletContext;
+
 	@Test
 	void applicationStartsAndHealthChecksDatabase() throws Exception {
 		var response = get("/health");
@@ -59,6 +63,23 @@ class DienmayShopApplicationTests {
 		var response = get("/");
 		assertEquals(200, response.statusCode());
 		assertTrue(response.body().contains("Điện Máy UTE"));
+	}
+
+	@Test
+	void renderUsesCompiledJspServletsForPagesAndFragments() {
+		assertFalse(servletContext.getServletRegistrations().values().stream()
+				.anyMatch(registration -> "org.apache.jasper.servlet.JspServlet".equals(registration.getClassName())));
+		for (String path : java.util.List.of("/WEB-INF/views/client/home.jsp",
+				"/WEB-INF/views/client/login.jsp", "/WEB-INF/views/client/fragments/header.jsp")) {
+			assertTrue(servletContext.getServletRegistrations().values().stream()
+					.anyMatch(registration -> registration.getClassName().startsWith("org.apache.jsp.")
+							&& registration.getMappings().contains(path)), path);
+		}
+	}
+
+	@Test
+	void precompiledViewsRemainPrivateToServerSideForwards() throws Exception {
+		assertEquals(404, get("/WEB-INF/views/client/home.jsp").statusCode());
 	}
 
 	@Test

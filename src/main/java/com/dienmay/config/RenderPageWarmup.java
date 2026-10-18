@@ -32,8 +32,8 @@ public class RenderPageWarmup implements ApplicationRunner {
     public void run(ApplicationArguments args) throws Exception {
         int port = environment.getRequiredProperty("local.server.port", Integer.class);
         String contextPath = environment.getProperty("server.servlet.context-path", "");
-        // Readiness remains REFUSING_TRAFFIC until all runners finish. Compile the
-        // shared JSP layout here instead of on the first public visitor's request.
+        // Readiness remains REFUSING_TRAFFIC until all runners finish. Initialize the
+        // shared page layout here instead of on the first public visitor's request.
         try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
             for (String path : List.of("/", "/products", "/login")) {
                 long started = System.nanoTime();

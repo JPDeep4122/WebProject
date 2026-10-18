@@ -177,6 +177,44 @@
 
 	<build>
 		<plugins>
+			<!-- Compile JSPs with the project's Jasper version before packaging. -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.6.4</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.ant</groupId>
+						<artifactId>ant</artifactId>
+						<version>1.10.15</version>
+					</dependency>
+				</dependencies>
+				<executions>
+					<execution>
+						<id>precompile-jsps</id>
+						<phase>process-classes</phase>
+						<goals><goal>java</goal></goals>
+						<configuration>
+							<mainClass>org.apache.jasper.JspC</mainClass>
+							<includePluginDependencies>true</includePluginDependencies>
+							<blockSystemExit>true</blockSystemExit>
+							<arguments>
+								<argument>-uriroot</argument>
+								<argument>${project.basedir}/src/main/webapp</argument>
+								<argument>-d</argument>
+								<argument>${project.build.outputDirectory}</argument>
+								<argument>-webxml</argument>
+								<argument>${project.build.outputDirectory}/META-INF/jsp-servlets.xml</argument>
+								<argument>-compile</argument>
+								<argument>-source</argument><argument>21</argument>
+								<argument>-target</argument><argument>21</argument>
+								<argument>-threadCount</argument><argument>1</argument>
+								<argument>-die1</argument>
+							</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

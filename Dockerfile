@@ -7,6 +7,9 @@ COPY pom.xml ./
 COPY src ./src
 ARG RENDER_GIT_COMMIT=local
 RUN mvn -B -DskipTests -Dapp.revision="$RENDER_GIT_COMMIT" package
+# Avoid repeatedly inflating nested libraries during JSP/EL class loading.
+RUN mkdir -p target/runtime && cd target/runtime \
+    && jar -xf ../dienmay-shop-0.0.1-SNAPSHOT.war
 
 # Keep Maven and the JDK out of the runtime image.
 FROM eclipse-temurin:21-jre
@@ -18,8 +21,8 @@ ENV JAVA_TOOL_OPTIONS="-Xms64m -Xmx192m -Xss512k -XX:+UseSerialGC -XX:MaxMetaspa
 ENV SPRING_PROFILES_ACTIVE=render
 
 RUN useradd --system --uid 10001 --create-home appuser
-COPY --from=build /workspace/target/dienmay-shop-0.0.1-SNAPSHOT.war /app/app.war
+COPY --from=build /workspace/target/runtime/ /app/
 
 USER appuser
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.war"]
+ENTRYPOINT ["java", "-cp", "/app", "org.springframework.boot.loader.launch.WarLauncher"]
