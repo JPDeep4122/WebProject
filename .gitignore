@@ -25,6 +25,7 @@ src/test/java/com/dienmay/service/impl/CheckoutServiceImplTest.java
 *.ipr
 
 ### NetBeans ###
+/bin/
 /nbproject/private/
 /nbbuild/
 /dist/
