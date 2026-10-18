@@ -10,11 +10,14 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.dienmay.dto.checkout.CheckoutItemDto;
 import com.dienmay.dto.checkout.CheckoutPageDto;
 import com.dienmay.dto.checkout.PlaceOrderRequest;
 import com.dienmay.dto.checkout.VoucherResponse;
+import com.dienmay.dto.checkout.ShippingQuoteResponse;
 import com.dienmay.entity.auth.Address;
 import com.dienmay.entity.auth.Role;
 import com.dienmay.entity.auth.User;
@@ -62,6 +65,7 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final ApplicationEventPublisher eventPublisher;
     private final ShippingService shippingService;
     private final BranchRepository branchRepository;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -163,7 +167,15 @@ public class CheckoutServiceImpl implements CheckoutService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Order placeOrder(PlaceOrderRequest request, String userEmail, HttpSession session) {
+        // Google Maps must not hold a database transaction open while it responds.
+        ShippingQuoteResponse shippingQuote = shippingService.quote(request.getShippingAddress(), request.getProvince());
+        return transactionTemplate.execute(status -> createOrder(request, userEmail, session, shippingQuote));
+    }
+
+    private Order createOrder(PlaceOrderRequest request, String userEmail, HttpSession session,
+            ShippingQuoteResponse shippingQuote) {
         Cart cart = getCart(userEmail, session);
         if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
             throw new RuntimeException("Giỏ hàng của bạn đang trống!");
@@ -215,7 +227,6 @@ public class CheckoutServiceImpl implements CheckoutService {
             }
         }
 
-        var shippingQuote = shippingService.quote(request.getShippingAddress(), request.getProvince());
         BigDecimal shippingFee = shippingQuote.getShippingFee();
         BigDecimal finalAmount = subtotal.add(shippingFee).subtract(discount);
         if (finalAmount.compareTo(BigDecimal.ZERO) < 0) finalAmount = BigDecimal.ZERO;

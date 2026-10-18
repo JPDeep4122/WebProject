@@ -3,9 +3,13 @@ package com.dienmay.service.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.mail.MailException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,6 +18,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.dienmay.dto.auth.ForgotPasswordRequest;
 import com.dienmay.dto.auth.JwtResponse;
@@ -34,6 +40,7 @@ import com.dienmay.service.mail.EmailService;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+	private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
 	@Autowired
 	private UserRepository userRepository;
@@ -56,10 +63,17 @@ public class AuthServiceImpl implements AuthService {
 	@Autowired
 	private JwtUtils jwtUtils;
 
+	@Autowired
+	private TransactionTemplate transactionTemplate;
+
 	@Override
-	@Transactional
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public ApiResponse<String> register(RegisterRequest request) {
 		String email = request.getEmail().trim().toLowerCase();
+		return prepareAndSendOtp(email, "REGISTER", () -> registerAccount(request, email));
+	}
+
+	private ApiResponse<String> registerAccount(RegisterRequest request, String email) {
 
 		// 1. Kiểm tra xem email đã tồn tại và đã kích hoạt chưa
 		if (userRepository.existsByEmail(email)) {
@@ -87,9 +101,6 @@ public class AuthServiceImpl implements AuthService {
 			newUser.getRoles().add(customerRole);
 			userRepository.save(newUser);
 		}
-
-		// 4. Sinh mã OTP & gửi email
-		sendNewOtp(email, "REGISTER");
 
 		return ApiResponse.<String>builder().success(true)
 				.message("Đăng ký thành công! Mã OTP kích hoạt tài khoản đã được gửi đến email của bạn.").data(email)
@@ -139,9 +150,13 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	@Transactional
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public ApiResponse<String> resendOtp(String email) {
 		String cleanEmail = email.trim().toLowerCase();
+		return prepareAndSendOtp(cleanEmail, "REGISTER", () -> checkResendOtp(cleanEmail));
+	}
+
+	private ApiResponse<String> checkResendOtp(String cleanEmail) {
 		User user = userRepository.findByEmail(cleanEmail).orElse(null);
 
 		if (user == null) {
@@ -153,21 +168,40 @@ public class AuthServiceImpl implements AuthService {
 					.message("Tài khoản này đã được kích hoạt rồi, không cần gửi lại OTP!").build();
 		}
 
-		sendNewOtp(cleanEmail, "REGISTER");
-
 		return ApiResponse.<String>builder().success(true).message("Đã gửi lại mã OTP mới đến email của bạn!").build();
 	}
 
-	private void sendNewOtp(String email, String type) {
+	private String createOtp(String email, String type) {
 		String randomOtp = String.valueOf(new Random().nextInt(900000) + 100000);
 
 		OtpCode otpCode = OtpCode.builder().email(email).otpCode(randomOtp).type(type)
 				.expiryTime(LocalDateTime.now().plusMinutes(5)).used(false).build();
 
 		otpCodeRepository.save(otpCode);
-
-		emailService.sendOtpEmail(email, randomOtp);
+		return randomOtp;
 	}
+
+	private ApiResponse<String> prepareAndSendOtp(String email, String type,
+			Supplier<ApiResponse<String>> prepare) {
+		// Complete the database transaction and release its connection before SMTP.
+		OtpDelivery delivery = transactionTemplate.execute(status -> {
+			ApiResponse<String> response = prepare.get();
+			String otp = response.isSuccess() ? createOtp(email, type) : null;
+			return new OtpDelivery(response, otp);
+		});
+		if (delivery.otp() != null) {
+			try {
+				emailService.sendOtpEmail(email, delivery.otp());
+			} catch (MailException ex) {
+				log.warn("OTP email delivery failed: {}", ex.getClass().getSimpleName());
+				return ApiResponse.<String>builder().success(false).data(email)
+						.message("Không gửi được email OTP. Vui lòng thử gửi lại mã sau.").build();
+			}
+		}
+		return delivery.response();
+	}
+
+	private record OtpDelivery(ApiResponse<String> response, String otp) {}
 
 	@Override
 	public ApiResponse<JwtResponse> login(LoginRequest request) {
@@ -213,9 +247,13 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	@Transactional
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public ApiResponse<String> forgotPassword(ForgotPasswordRequest request) {
 		String email = request.getEmail().trim().toLowerCase();
+		return prepareAndSendOtp(email, "FORGOT_PASSWORD", () -> checkForgotPassword(email));
+	}
+
+	private ApiResponse<String> checkForgotPassword(String email) {
 
 		// 1. Kiểm tra tài khoản có tồn tại không
 		User user = userRepository.findByEmail(email).orElse(null);
@@ -229,9 +267,6 @@ public class AuthServiceImpl implements AuthService {
 			return ApiResponse.<String>builder().success(false)
 					.message("Tài khoản chưa được kích hoạt, không thể sử dụng chức năng quên mật khẩu!").build();
 		}
-
-		// 3. Sinh OTP FORGOT_PASSWORD và gửi về Gmail
-		sendNewOtp(email, "FORGOT_PASSWORD");
 
 		return ApiResponse.<String>builder().success(true)
 				.message("Mã OTP đặt lại mật khẩu đã được gửi đến email của bạn!").data(email).build();

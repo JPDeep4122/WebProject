@@ -3,12 +3,16 @@ package com.dienmay.service.impl;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.Normalizer;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -28,7 +32,15 @@ public class GoogleMapsShippingService implements ShippingService {
 
     private final BranchRepository branchRepository;
     private final ObjectMapper objectMapper;
-    private final RestClient restClient = RestClient.create();
+    private final TransactionTemplate transactionTemplate;
+    private final RestClient restClient = createRestClient();
+
+    private static RestClient createRestClient() {
+        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(client);
+        factory.setReadTimeout(Duration.ofSeconds(10));
+        return RestClient.builder().requestFactory(factory).build();
+    }
 
     @Value("${google.maps.api-key:}")
     private String apiKey;
@@ -38,7 +50,7 @@ public class GoogleMapsShippingService implements ShippingService {
         if (shippingAddress == null || shippingAddress.isBlank() || province == null || province.isBlank()) {
             throw new IllegalArgumentException("Vui lòng nhập địa chỉ và tỉnh/thành phố nhận hàng.");
         }
-        List<Branch> branches = branchRepository.findByActiveTrue();
+        List<Branch> branches = transactionTemplate.execute(status -> branchRepository.findByActiveTrue());
         if (branches.isEmpty()) throw new IllegalStateException("Hiện chưa có chi nhánh phục vụ giao hàng.");
 
         List<Branch> sameProvinceBranches = branches.stream()

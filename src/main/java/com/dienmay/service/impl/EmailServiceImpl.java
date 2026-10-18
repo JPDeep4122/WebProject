@@ -3,6 +3,7 @@ package com.dienmay.service.impl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
@@ -42,6 +43,9 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendHtmlEmail(String toEmail, String subject, String htmlBody) {
+        if (fromEmail == null || fromEmail.isBlank()) {
+            throw new MailSendException("Chưa cấu hình MAIL_USERNAME để gửi email.");
+        }
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -53,7 +57,7 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("Lỗi gửi email: " + e.getMessage(), e);
+            throw new MailSendException("Không thể tạo email.", e);
         }
     }
 }
