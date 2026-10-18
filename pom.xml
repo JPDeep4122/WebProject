@@ -19,6 +19,7 @@
 
 	<properties>
 		<java.version>21</java.version>
+		<app.revision>local</app.revision>
 	</properties>
 
 	<dependencies>
@@ -179,6 +180,16 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals><goal>build-info</goal></goals>
+						<configuration>
+							<additionalProperties>
+								<revision>${app.revision}</revision>
+							</additionalProperties>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 
 			<plugin>

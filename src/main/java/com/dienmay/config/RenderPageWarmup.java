@@ -4,6 +4,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
@@ -35,15 +36,23 @@ public class RenderPageWarmup implements ApplicationRunner {
         // shared JSP layout here instead of on the first public visitor's request.
         try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
             for (String path : List.of("/", "/products", "/login")) {
+                long started = System.nanoTime();
                 log.info("Warming Render page {} before accepting traffic", path);
                 HttpRequest request = HttpRequest.newBuilder(
                         URI.create("http://127.0.0.1:" + port + contextPath + path))
                         .timeout(Duration.ofSeconds(180)).GET().build();
-                var response = client.send(request, HttpResponse.BodyHandlers.discarding());
+                var response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
                 if (response.statusCode() != 200) {
                     throw new IllegalStateException("Page warmup failed for " + path
                             + ": HTTP " + response.statusCode());
                 }
+                if (!response.headers().firstValue("Content-Type").orElse("").startsWith("text/html")
+                        || !response.body().contains("Điện Máy UTE")
+                        || !response.body().contains("</html>")) {
+                    throw new IllegalStateException("Page warmup did not render expected HTML for " + path);
+                }
+                log.info("Warmed Render page {} in {} ms", path,
+                        Duration.ofNanos(System.nanoTime() - started).toMillis());
             }
         }
         log.info("Render pages are ready");

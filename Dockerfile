@@ -5,7 +5,8 @@ WORKDIR /workspace
 COPY pom.xml ./
 
 COPY src ./src
-RUN mvn -B -DskipTests package
+ARG RENDER_GIT_COMMIT=local
+RUN mvn -B -DskipTests -Dapp.revision="$RENDER_GIT_COMMIT" package
 
 # Keep Maven and the JDK out of the runtime image.
 FROM eclipse-temurin:21-jre

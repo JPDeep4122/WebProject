@@ -51,6 +51,7 @@ class DienmayShopApplicationTests {
 		var response = get("/health");
 		assertEquals(200, response.statusCode());
 		assertTrue(response.body().contains("UP"));
+		assertTrue(response.headers().firstValue("X-App-Revision").isPresent());
 	}
 
 	@Test

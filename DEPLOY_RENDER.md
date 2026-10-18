@@ -33,6 +33,22 @@ Metrics. Nếu vẫn vượt giới hạn khi dùng thực tế, cần giảm th
 bộ nhớ hoặc dùng instance có RAM lớn hơn; deploy Live không xác nhận đủ RAM
 cho mọi trang và mọi mức tải.
 
+## Xác nhận bản đang chạy và request chậm
+
+Build Docker ghi commit vào WAR. Mọi HTTP response có header X-App-Revision;
+kiểm tra header của /health để đối chiếu với commit trên dashboard. Khi build
+ngoài Render mà không truyền revision, header là diagnostics-v2. Header này
+đến từ WAR thực tế, không lấy nhãn deploy ở runtime.
+
+Log khởi động có dòng Deployment diagnostics-v2, gồm revision, instance,
+profile, cờ warmup và heap tối đa. Đối chiếu instance trước khi đọc lỗi
+port scan để tránh ghép log các lần khởi động khác nhau.
+
+Nếu GET trang chủ, /products hoặc /login còn chờ sau 15 giây, log tự ghi
+Slow page request và stack của thread đang xử lý. Khi request kết thúc,
+log ghi Slow page completed. Chỉ ghi đường dẫn cố định và stack frame,
+không ghi token, cookie, query string hay nội dung request.
+
 ## Chẩn đoán hết kết nối
 
 - Pool local có tối đa 10 kết nối, profile Render mặc định 3. `DB_POOL_SIZE` cho phép thay đổi khi đã
