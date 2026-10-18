@@ -22,6 +22,12 @@ cho phép thay đổi sau khi kiểm tra nhu cầu. Nếu đã đặt `SPRING_PR
 hoặc `JAVA_TOOL_OPTIONS` trên dashboard, các giá trị đó sẽ thay thế mặc định
 trong Docker; cần giữ profile `render` và giới hạn JVM tương ứng.
 
+Trên CPU nhỏ, lần biên dịch JSP đầu tiên vẫn có thể lâu. Profile Render tự mở
+nội bộ trang chủ, sản phẩm và đăng nhập sau khi seed dữ liệu, trước khi báo
+sẵn sàng. Trong bước này `/health` trả 503 và log có dòng `Warming Render page`.
+Khi có `Render pages are ready`, ứng dụng mới sẵn sàng nhận traffic. Nếu một
+trang lỗi hoặc hết timeout 180 giây, startup thất bại để tránh báo Live sai.
+
 Sau deploy, thử `/health`, trang chủ và đăng nhập, rồi kiểm tra Memory trong
 Metrics. Nếu vẫn vượt giới hạn khi dùng thực tế, cần giảm thêm mức sử dụng
 bộ nhớ hoặc dùng instance có RAM lớn hơn; deploy Live không xác nhận đủ RAM

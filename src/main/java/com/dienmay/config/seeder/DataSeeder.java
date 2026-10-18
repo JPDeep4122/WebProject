@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.core.annotation.Order;
 
 import com.dienmay.entity.branch.Branch;
 import com.dienmay.entity.branch.BranchProduct;
@@ -19,6 +20,7 @@ import com.dienmay.repository.product.CategoryRepository;
 import com.dienmay.repository.product.ProductRepository;
 
 @Component
+@Order(0)
 public class DataSeeder implements CommandLineRunner {
 
     @Autowired private CategoryRepository categoryRepo;
