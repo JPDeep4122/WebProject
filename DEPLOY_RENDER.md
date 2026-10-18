@@ -8,9 +8,28 @@
 3. Giữ các biến `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` và
    `VNPAY_RETURN_URL` đã cấu hình. Ứng dụng đọc `PORT` do Render cung cấp.
 
+## Bộ nhớ trên Render Free
+
+Docker kích hoạt profile `render` và đặt `JAVA_TOOL_OPTIONS` để giới hạn heap
+ở 192 MB, metaspace ở 128 MB, code cache ở 32 MB và direct memory ở 16 MB.
+Serial GC, một CPU logic và C1 JIT giúp giảm chi phí bộ nhớ/khởi động trên
+instance nhỏ. Tổng RAM thực tế vẫn bao gồm thread, thư viện và bộ nhớ native;
+`-Xmx` không phải giới hạn RAM của cả tiến trình.
+
+Profile Render dùng tối đa 12 thread Tomcat, 3 kết nối database và tắt kiểm tra
+biên dịch lại JSP ở chế độ phát triển. `TOMCAT_MAX_THREADS` và `DB_POOL_SIZE`
+cho phép thay đổi sau khi kiểm tra nhu cầu. Nếu đã đặt `SPRING_PROFILES_ACTIVE`
+hoặc `JAVA_TOOL_OPTIONS` trên dashboard, các giá trị đó sẽ thay thế mặc định
+trong Docker; cần giữ profile `render` và giới hạn JVM tương ứng.
+
+Sau deploy, thử `/health`, trang chủ và đăng nhập, rồi kiểm tra Memory trong
+Metrics. Nếu vẫn vượt giới hạn khi dùng thực tế, cần giảm thêm mức sử dụng
+bộ nhớ hoặc dùng instance có RAM lớn hơn; deploy Live không xác nhận đủ RAM
+cho mọi trang và mọi mức tải.
+
 ## Chẩn đoán hết kết nối
 
-- Pool mặc định vẫn có tối đa 10 kết nối. `DB_POOL_SIZE` cho phép thay đổi khi đã
+- Pool local có tối đa 10 kết nối, profile Render mặc định 3. `DB_POOL_SIZE` cho phép thay đổi khi đã
   xác định nhu cầu; tăng pool không xử lý kết nối bị giữ lâu.
 - `DB_LEAK_DETECTION_MS` mặc định `20000`: log ghi vị trí lấy kết nối nếu giữ
   quá 20 giây. Đây là cảnh báo chẩn đoán, không tự thu hồi kết nối đang dùng.
