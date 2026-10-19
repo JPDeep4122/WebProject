@@ -15,6 +15,7 @@ import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.service.order.OrderService;
+import com.dienmay.service.order.OrderStateMachine;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,6 +25,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final OrderStateMachine stateMachine;
 
     @Override
     @Transactional(readOnly = true)
@@ -81,7 +83,7 @@ public class OrderServiceImpl implements OrderService {
             return false;
         }
 
-        order.setStatus(OrderStatus.CANCELLED);
+        stateMachine.transition(order, OrderStatus.CANCELLED);
         String reasonText = (cancelReason != null && !cancelReason.trim().isEmpty())
                 ? " [Lý do hủy: " + cancelReason.trim() + "]"
                 : " [Khách hàng tự hủy đơn]";

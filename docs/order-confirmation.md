@@ -3,6 +3,7 @@
 1. Đăng nhập bằng tài khoản ADMIN hoặc STAFF đang hoạt động.
 2. Mở `/admin/orders`, lọc trạng thái `PENDING`.
 3. Bấm **Xác nhận đơn**. Khi đủ tồn kho, đơn chuyển sang `CONFIRMED`.
+4. Với đơn `CONFIRMED`, bấm **Bắt đầu lấy hàng** để chuyển sang `PROCESSING`.
 
 STAFF chỉ xác nhận đơn thuộc chi nhánh được gán. ADMIN có thể xác nhận ở mọi
 chi nhánh. Đơn phải có chi nhánh, có sản phẩm và mỗi sản phẩm phải có bản ghi
@@ -21,6 +22,10 @@ vượt tồn kho khi nhiều người cùng thao tác.
 Thanh toán VNPay thành công chỉ cập nhật thanh toán; đơn vẫn chờ chi nhánh
 xác nhận tồn kho. Nút xác nhận có bảo vệ CSRF. Hủy đơn chờ xác nhận dùng cùng
 khóa đơn để không tranh chấp với xác nhận.
+
+State machine phần 1 chỉ cho phép `PENDING → CONFIRMED → PROCESSING`. Đơn
+`PENDING` cũng có thể chuyển sang `CANCELLED` theo luồng khách hủy. Không thể
+bỏ qua bước, lùi trạng thái hoặc thực hiện lại cùng một thao tác.
 
 Kiểm thử tích hợp `OrderConfirmationTests` dùng H2 riêng, không thay đổi dữ
 liệu ứng dụng. Các ca bao gồm xác nhận lặp, thiếu hàng, thiếu bản ghi tồn kho,

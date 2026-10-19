@@ -81,6 +81,12 @@
                                         <button class="btn btn-sm btn-success">Xác nhận đơn</button>
                                     </form>
                                 </c:if>
+                                <c:if test="${order.status eq 'CONFIRMED'}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/start-picking" class="mt-2">
+                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                        <button class="btn btn-sm btn-primary">Bắt đầu lấy hàng</button>
+                                    </form>
+                                </c:if>
                             </td>
                         </tr>
                     </c:forEach>

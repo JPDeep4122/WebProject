@@ -30,6 +30,7 @@ public class AdminOrderController {
     private final UserRepository userRepository;
     private final BranchRepository branchRepository;
     private final com.dienmay.service.order.OrderConfirmationService confirmationService;
+    private final com.dienmay.service.order.OrderPickingService pickingService;
 
     @org.springframework.web.bind.annotation.PostMapping("/{id}/confirm")
     public String confirm(@org.springframework.web.bind.annotation.PathVariable Long id,
@@ -37,6 +38,18 @@ public class AdminOrderController {
         try {
             confirmationService.confirm(id, principal.getName());
             flash.addFlashAttribute("success", "Đã xác nhận đơn hàng và trừ tồn kho chi nhánh.");
+        } catch (IllegalArgumentException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/orders";
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/start-picking")
+    public String startPicking(@org.springframework.web.bind.annotation.PathVariable Long id,
+            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        try {
+            pickingService.startPicking(id, principal.getName());
+            flash.addFlashAttribute("success", "Đã chuyển đơn sang bước lấy và chuẩn bị hàng.");
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }

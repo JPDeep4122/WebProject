@@ -42,7 +42,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.requireCsrfProtectionMatcher(request ->
                     "POST".equals(request.getMethod())
-                    && request.getServletPath().matches("/admin/orders/[^/]+/confirm")))
+                    && request.getServletPath().matches("/admin/orders/[^/]+/(confirm|start-picking)")))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")

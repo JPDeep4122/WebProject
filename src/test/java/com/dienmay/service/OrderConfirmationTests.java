@@ -20,13 +20,16 @@ import com.dienmay.entity.branch.*;
 import com.dienmay.entity.order.*;
 import com.dienmay.entity.product.Product;
 import com.dienmay.service.order.OrderConfirmationService;
+import com.dienmay.service.order.OrderPickingService;
+import com.dienmay.service.order.OrderStateMachine;
 import jakarta.persistence.EntityManager;
 
 @DataJpaTest(showSql = false, properties = {"spring.jpa.hibernate.ddl-auto=create-drop"})
-@Import(OrderConfirmationService.class)
+@Import({OrderConfirmationService.class, OrderPickingService.class, OrderStateMachine.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class OrderConfirmationTests {
     @Autowired OrderConfirmationService service;
+    @Autowired OrderPickingService pickingService;
     @Autowired EntityManager em;
     @Autowired PlatformTransactionManager manager;
     TransactionTemplate tx;
@@ -80,6 +83,30 @@ class OrderConfirmationTests {
         service.confirm(orderId, email);
         assertState(orderId, OrderStatus.CONFIRMED, 7);
         assertThrows(IllegalArgumentException.class, () -> service.confirm(orderId, email));
+        assertState(orderId, OrderStatus.CONFIRMED, 7);
+    }
+
+    @Test void confirmedOrderCanStartPickingWithoutDeductingAgain() {
+        service.confirm(orderId, email);
+        pickingService.startPicking(orderId, email);
+        assertState(orderId, OrderStatus.PROCESSING, 7);
+        assertThrows(IllegalArgumentException.class, () -> pickingService.startPicking(orderId, email));
+        assertState(orderId, OrderStatus.PROCESSING, 7);
+    }
+
+    @Test void pendingOrderCannotSkipConfirmation() {
+        assertThrows(IllegalArgumentException.class, () -> pickingService.startPicking(orderId, email));
+        assertState(orderId, OrderStatus.PENDING, 10);
+    }
+
+    @Test void staffCannotPickOrderFromAnotherBranch() {
+        service.confirm(orderId, email);
+        tx.executeWithoutResult(s -> {
+            var other = Branch.builder().name("Other").address("Other").build();
+            em.persist(other);
+            em.find(User.class, userId).setBranch(other);
+        });
+        assertThrows(AccessDeniedException.class, () -> pickingService.startPicking(orderId, email));
         assertState(orderId, OrderStatus.CONFIRMED, 7);
     }
 

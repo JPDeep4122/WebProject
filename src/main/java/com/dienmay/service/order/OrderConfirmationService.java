@@ -21,6 +21,7 @@ public class OrderConfirmationService {
     private final OrderRepository orders;
     private final BranchInventoryRepository inventories;
     private final UserRepository users;
+    private final OrderStateMachine stateMachine;
 
     @Transactional
     public void confirm(Long orderId, String email) {
@@ -72,6 +73,6 @@ public class OrderConfirmationService {
             inventory.setStockQuantity(stock);
             inventory.setAvailableQuantity(stock - inventory.getReservedQuantity());
         }
-        order.setStatus(OrderStatus.CONFIRMED);
+        stateMachine.transition(order, OrderStatus.CONFIRMED);
     }
 }
