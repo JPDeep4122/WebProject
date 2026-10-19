@@ -20,16 +20,19 @@ import com.dienmay.entity.branch.*;
 import com.dienmay.entity.order.*;
 import com.dienmay.entity.product.Product;
 import com.dienmay.service.order.OrderConfirmationService;
+import com.dienmay.service.order.OrderFulfillmentService;
 import com.dienmay.service.order.OrderPickingService;
 import com.dienmay.service.order.OrderStateMachine;
 import jakarta.persistence.EntityManager;
 
 @DataJpaTest(showSql = false, properties = {"spring.jpa.hibernate.ddl-auto=create-drop"})
-@Import({OrderConfirmationService.class, OrderPickingService.class, OrderStateMachine.class})
+@Import({OrderConfirmationService.class, OrderPickingService.class, OrderFulfillmentService.class,
+        OrderStateMachine.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class OrderConfirmationTests {
     @Autowired OrderConfirmationService service;
     @Autowired OrderPickingService pickingService;
+    @Autowired OrderFulfillmentService fulfillmentService;
     @Autowired EntityManager em;
     @Autowired PlatformTransactionManager manager;
     TransactionTemplate tx;
@@ -97,6 +100,69 @@ class OrderConfirmationTests {
     @Test void pendingOrderCannotSkipConfirmation() {
         assertThrows(IllegalArgumentException.class, () -> pickingService.startPicking(orderId, email));
         assertState(orderId, OrderStatus.PENDING, 10);
+    }
+
+    @Test void completesDeliveryAndReturnRestoresStockOnlyOnce() {
+        service.confirm(orderId, email);
+        pickingService.startPicking(orderId, email);
+        fulfillmentService.startShipping(orderId, email);
+        fulfillmentService.markDelivered(orderId, email);
+        fulfillmentService.requestReturn(orderId, email);
+        assertState(orderId, OrderStatus.RETURN_REQUESTED, 7);
+
+        fulfillmentService.completeReturn(orderId, email);
+        assertState(orderId, OrderStatus.RETURNED, 10);
+        assertThrows(IllegalArgumentException.class,
+                () -> fulfillmentService.completeReturn(orderId, email));
+        assertState(orderId, OrderStatus.RETURNED, 10);
+    }
+
+    @Test void cancellationAfterConfirmationRestoresStockOnlyOnce() {
+        service.confirm(orderId, email);
+        fulfillmentService.cancel(orderId, email);
+        assertState(orderId, OrderStatus.CANCELLED, 10);
+        assertThrows(IllegalArgumentException.class, () -> fulfillmentService.cancel(orderId, email));
+        assertState(orderId, OrderStatus.CANCELLED, 10);
+    }
+
+    @Test void cancellationDuringShippingRestoresStock() {
+        service.confirm(orderId, email);
+        pickingService.startPicking(orderId, email);
+        fulfillmentService.startShipping(orderId, email);
+        fulfillmentService.cancel(orderId, email);
+        assertState(orderId, OrderStatus.CANCELLED, 10);
+    }
+
+    @Test void deliveryFlowCannotSkipSteps() {
+        assertThrows(IllegalArgumentException.class,
+                () -> fulfillmentService.startShipping(orderId, email));
+        service.confirm(orderId, email);
+        assertThrows(IllegalArgumentException.class,
+                () -> fulfillmentService.markDelivered(orderId, email));
+        assertThrows(IllegalArgumentException.class,
+                () -> fulfillmentService.requestReturn(orderId, email));
+        assertState(orderId, OrderStatus.CONFIRMED, 7);
+    }
+
+    @Test void staffCannotShipOrderFromAnotherBranch() {
+        service.confirm(orderId, email);
+        pickingService.startPicking(orderId, email);
+        tx.executeWithoutResult(s -> {
+            var other = Branch.builder().name("Other shipping").address("Other").build();
+            em.persist(other);
+            em.find(User.class, userId).setBranch(other);
+        });
+        assertThrows(AccessDeniedException.class,
+                () -> fulfillmentService.startShipping(orderId, email));
+        assertState(orderId, OrderStatus.PROCESSING, 7);
+    }
+
+    @Test void missingInventoryRollsBackCancellation() {
+        service.confirm(orderId, email);
+        tx.executeWithoutResult(s -> em.remove(em.find(BranchInventory.class, inventoryId)));
+        assertThrows(IllegalArgumentException.class, () -> fulfillmentService.cancel(orderId, email));
+        tx.executeWithoutResult(s -> assertEquals(OrderStatus.CONFIRMED,
+                em.find(Order.class, orderId).getStatus()));
     }
 
     @Test void staffCannotPickOrderFromAnotherBranch() {

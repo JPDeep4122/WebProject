@@ -31,6 +31,7 @@ public class AdminOrderController {
     private final BranchRepository branchRepository;
     private final com.dienmay.service.order.OrderConfirmationService confirmationService;
     private final com.dienmay.service.order.OrderPickingService pickingService;
+    private final com.dienmay.service.order.OrderFulfillmentService fulfillmentService;
 
     @org.springframework.web.bind.annotation.PostMapping("/{id}/confirm")
     public String confirm(@org.springframework.web.bind.annotation.PathVariable Long id,
@@ -54,6 +55,41 @@ public class AdminOrderController {
             flash.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/admin/orders";
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/start-shipping")
+    public String startShipping(@org.springframework.web.bind.annotation.PathVariable Long id,
+            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        return execute(id, principal, flash, fulfillmentService::startShipping,
+                "Đã chuyển đơn sang trạng thái đang giao.");
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/deliver")
+    public String deliver(@org.springframework.web.bind.annotation.PathVariable Long id,
+            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        return execute(id, principal, flash, fulfillmentService::markDelivered,
+                "Đã xác nhận giao hàng thành công.");
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/cancel")
+    public String cancel(@org.springframework.web.bind.annotation.PathVariable Long id,
+            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        return execute(id, principal, flash, fulfillmentService::cancel,
+                "Đã hủy đơn và hoàn lại tồn kho chi nhánh.");
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/request-return")
+    public String requestReturn(@org.springframework.web.bind.annotation.PathVariable Long id,
+            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        return execute(id, principal, flash, fulfillmentService::requestReturn,
+                "Đã ghi nhận yêu cầu trả hàng.");
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/complete-return")
+    public String completeReturn(@org.springframework.web.bind.annotation.PathVariable Long id,
+            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        return execute(id, principal, flash, fulfillmentService::completeReturn,
+                "Đã hoàn tất trả hàng và hoàn lại tồn kho chi nhánh.");
     }
 
     @GetMapping
@@ -104,5 +140,22 @@ public class AdminOrderController {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private String execute(Long id, Principal principal,
+            org.springframework.web.servlet.mvc.support.RedirectAttributes flash,
+            OrderAction action, String successMessage) {
+        try {
+            action.run(id, principal.getName());
+            flash.addFlashAttribute("success", successMessage);
+        } catch (IllegalArgumentException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/orders";
+    }
+
+    @FunctionalInterface
+    private interface OrderAction {
+        void run(Long orderId, String email);
     }
 }

@@ -15,15 +15,24 @@ class OrderStateMachineTests {
     private final OrderStateMachine stateMachine = new OrderStateMachine();
 
     @Test
-    void allowsOnlyPartOneForwardFlowAndPendingCancellation() {
+    void allowsCompleteForwardFlowCancellationAndReturn() {
         assertTrue(stateMachine.canTransition(OrderStatus.PENDING, OrderStatus.CONFIRMED));
         assertTrue(stateMachine.canTransition(OrderStatus.PENDING, OrderStatus.CANCELLED));
         assertTrue(stateMachine.canTransition(OrderStatus.CONFIRMED, OrderStatus.PROCESSING));
+        assertTrue(stateMachine.canTransition(OrderStatus.CONFIRMED, OrderStatus.CANCELLED));
+        assertTrue(stateMachine.canTransition(OrderStatus.PROCESSING, OrderStatus.SHIPPING));
+        assertTrue(stateMachine.canTransition(OrderStatus.PROCESSING, OrderStatus.CANCELLED));
+        assertTrue(stateMachine.canTransition(OrderStatus.SHIPPING, OrderStatus.DELIVERED));
+        assertTrue(stateMachine.canTransition(OrderStatus.SHIPPING, OrderStatus.CANCELLED));
+        assertTrue(stateMachine.canTransition(OrderStatus.DELIVERED, OrderStatus.RETURN_REQUESTED));
+        assertTrue(stateMachine.canTransition(OrderStatus.RETURN_REQUESTED, OrderStatus.RETURNED));
 
         assertFalse(stateMachine.canTransition(OrderStatus.PENDING, OrderStatus.PROCESSING));
         assertFalse(stateMachine.canTransition(OrderStatus.CONFIRMED, OrderStatus.PENDING));
         assertFalse(stateMachine.canTransition(OrderStatus.PROCESSING, OrderStatus.CONFIRMED));
         assertFalse(stateMachine.canTransition(OrderStatus.CONFIRMED, OrderStatus.CONFIRMED));
+        assertFalse(stateMachine.canTransition(OrderStatus.DELIVERED, OrderStatus.CANCELLED));
+        assertFalse(stateMachine.canTransition(OrderStatus.RETURNED, OrderStatus.RETURN_REQUESTED));
     }
 
     @Test
@@ -34,9 +43,13 @@ class OrderStateMachineTests {
         assertEquals(OrderStatus.CONFIRMED, order.getStatus());
         stateMachine.transition(order, OrderStatus.PROCESSING);
         assertEquals(OrderStatus.PROCESSING, order.getStatus());
+        stateMachine.transition(order, OrderStatus.SHIPPING);
+        assertEquals(OrderStatus.SHIPPING, order.getStatus());
+        stateMachine.transition(order, OrderStatus.DELIVERED);
+        assertEquals(OrderStatus.DELIVERED, order.getStatus());
 
         assertThrows(IllegalArgumentException.class,
                 () -> stateMachine.transition(order, OrderStatus.PENDING));
-        assertEquals(OrderStatus.PROCESSING, order.getStatus());
+        assertEquals(OrderStatus.DELIVERED, order.getStatus());
     }
 }

@@ -18,7 +18,15 @@ public class OrderStateMachine {
         allowedTransitions.put(OrderStatus.PENDING,
                 EnumSet.of(OrderStatus.CONFIRMED, OrderStatus.CANCELLED));
         allowedTransitions.put(OrderStatus.CONFIRMED,
-                EnumSet.of(OrderStatus.PROCESSING));
+                EnumSet.of(OrderStatus.PROCESSING, OrderStatus.CANCELLED));
+        allowedTransitions.put(OrderStatus.PROCESSING,
+                EnumSet.of(OrderStatus.SHIPPING, OrderStatus.CANCELLED));
+        allowedTransitions.put(OrderStatus.SHIPPING,
+                EnumSet.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED));
+        allowedTransitions.put(OrderStatus.DELIVERED,
+                EnumSet.of(OrderStatus.RETURN_REQUESTED));
+        allowedTransitions.put(OrderStatus.RETURN_REQUESTED,
+                EnumSet.of(OrderStatus.RETURNED));
     }
 
     public boolean canTransition(OrderStatus current, OrderStatus target) {
