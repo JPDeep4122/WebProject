@@ -22,7 +22,8 @@
             <span class="badge text-bg-primary fs-6">${ordersPage.totalElements} đơn</span>
         </div>
 
-        <c:if test="${not empty error}"><div class="alert alert-danger">${error}</div></c:if>
+        <c:if test="${not empty success}"><div class="alert alert-success"><c:out value="${success}"/></div></c:if>
+        <c:if test="${not empty error}"><div class="alert alert-danger"><c:out value="${error}"/></div></c:if>
 
         <div class="card mb-3">
             <div class="card-body">
@@ -73,7 +74,14 @@
                             <td><c:out value="${order.branch.name}" default="Chưa gán"/></td>
                             <td>${order.createdAt}</td>
                             <td class="text-end"><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫</td>
-                            <td><span class="badge text-bg-secondary">${order.status}</span></td>
+                            <td><span class="badge text-bg-secondary">${order.status}</span>
+                                <c:if test="${order.status eq 'PENDING'}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/confirm" class="mt-2">
+                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                        <button class="btn btn-sm btn-success">Xác nhận đơn</button>
+                                    </form>
+                                </c:if>
+                            </td>
                         </tr>
                     </c:forEach>
                     <c:if test="${empty ordersPage.content}"><tr><td colspan="6" class="text-center text-secondary py-5">Không có đơn hàng phù hợp.</td></tr></c:if>

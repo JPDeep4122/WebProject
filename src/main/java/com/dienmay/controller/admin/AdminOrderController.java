@@ -29,6 +29,19 @@ public class AdminOrderController {
     private final OrderService orderService;
     private final UserRepository userRepository;
     private final BranchRepository branchRepository;
+    private final com.dienmay.service.order.OrderConfirmationService confirmationService;
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/confirm")
+    public String confirm(@org.springframework.web.bind.annotation.PathVariable Long id,
+            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        try {
+            confirmationService.confirm(id, principal.getName());
+            flash.addFlashAttribute("success", "Đã xác nhận đơn hàng và trừ tồn kho chi nhánh.");
+        } catch (IllegalArgumentException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/orders";
+    }
 
     @GetMapping
     public String listOrders(

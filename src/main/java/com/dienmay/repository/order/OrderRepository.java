@@ -17,6 +17,14 @@ import java.math.BigDecimal;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.id = :id")
+    Optional<Order> findForUpdate(@Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.orderCode = :code")
+    Optional<Order> findByCodeForUpdate(@Param("code") String code);
+
 	Optional<Order> findByOrderCode(String orderCode);
 
 	Page<Order> findByUserId(Long userId, Pageable pageable);

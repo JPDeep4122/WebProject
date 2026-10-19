@@ -10,6 +10,12 @@ import java.util.Optional;
 @Repository
 public interface BranchInventoryRepository extends JpaRepository<BranchInventory, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select i from BranchInventory i where i.branch.id = :branchId and i.product.id = :productId")
+    Optional<BranchInventory> findForUpdate(
+            @org.springframework.data.repository.query.Param("branchId") Long branchId,
+            @org.springframework.data.repository.query.Param("productId") Long productId);
+
     Optional<BranchInventory> findByBranchIdAndProductId(Long branchId, Long productId);
 
     List<BranchInventory> findByBranchId(Long branchId);

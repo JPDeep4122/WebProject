@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.dienmay.config.vnpay.VnPayConfig;
 import com.dienmay.entity.order.Order;
-import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.entity.payment.Payment;
 import com.dienmay.entity.payment.PaymentStatus;
 import com.dienmay.repository.order.OrderRepository;
@@ -154,8 +153,7 @@ public class VnPayServiceImpl implements VnPayService {
                 payment.setPaymentTime(LocalDateTime.now());
                 paymentRepository.save(payment);
             }
-            order.setStatus(OrderStatus.CONFIRMED);
-            orderRepository.save(order);
+            // Payment success does not confirm fulfilment: the branch must check and deduct stock.
             return true;
         } else {
             if (payment != null) {

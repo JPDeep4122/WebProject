@@ -70,7 +70,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public boolean cancelOrder(String orderCode, String userEmail, String cancelReason) {
-        Order order = getOrderDetail(orderCode, userEmail);
+        Order order = orderRepository.findByCodeForUpdate(orderCode.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
+        if (userEmail == null || order.getUser() == null
+                || !userEmail.equalsIgnoreCase(order.getUser().getEmail())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền hủy đơn hàng này.");
+        }
 
         if (order.getStatus() != OrderStatus.PENDING) {
             return false;

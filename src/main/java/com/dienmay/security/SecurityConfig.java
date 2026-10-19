@@ -40,7 +40,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.requireCsrfProtectionMatcher(request ->
+                    "POST".equals(request.getMethod())
+                    && request.getServletPath().matches("/admin/orders/[^/]+/confirm")))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
