@@ -5,6 +5,7 @@ import com.dienmay.entity.order.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,9 +21,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	Page<Order> findByUserId(Long userId, Pageable pageable);
 
+	@EntityGraph(attributePaths = {"user", "branch"})
 	Page<Order> findByBranchId(Long branchId, Pageable pageable);
 
+	@EntityGraph(attributePaths = {"user", "branch"})
 	Page<Order> findByBranchIdAndStatus(Long branchId, OrderStatus status, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch"})
+	Page<Order> findByStatus(OrderStatus status, Pageable pageable);
+
+	@Override
+	@EntityGraph(attributePaths = {"user", "branch"})
+	Page<Order> findAll(Pageable pageable);
 
 	List<Order> findByStatus(OrderStatus status);
 

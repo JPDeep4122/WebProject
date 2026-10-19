@@ -6,6 +6,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.dienmay.entity.auth.User;
 import com.dienmay.entity.order.Order;
@@ -104,5 +106,20 @@ public class OrderServiceImpl implements OrderService {
                                 && o.getRecipientPhone() != null
                                 && o.getRecipientPhone().replace(" ", "").equals(cleanPhone.replace(" ", "")))
                         .findFirst().orElse(null));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Order> getOrdersForBranch(Long branchId, OrderStatus status, Pageable pageable) {
+        if (branchId != null && status != null) {
+            return orderRepository.findByBranchIdAndStatus(branchId, status, pageable);
+        }
+        if (branchId != null) {
+            return orderRepository.findByBranchId(branchId, pageable);
+        }
+        if (status != null) {
+            return orderRepository.findByStatus(status, pageable);
+        }
+        return orderRepository.findAll(pageable);
     }
 }
