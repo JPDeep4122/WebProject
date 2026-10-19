@@ -51,8 +51,16 @@ public class BranchInventory {
     protected void onSave() {
         if (this.stockQuantity == null) this.stockQuantity = 0;
         if (this.reservedQuantity == null) this.reservedQuantity = 0;
-        // Tính toán số lượng có sẵn có thể bán
-        this.availableQuantity = Math.max(0, this.stockQuantity - this.reservedQuantity);
+        if (this.stockQuantity < 0) {
+            throw new IllegalStateException("Tồn kho không được âm");
+        }
+        if (this.reservedQuantity < 0) {
+            throw new IllegalStateException("Số lượng giữ chỗ không được âm");
+        }
+        if (this.reservedQuantity > this.stockQuantity) {
+            throw new IllegalStateException("Số lượng giữ chỗ không được vượt quá tồn kho");
+        }
+        this.availableQuantity = this.stockQuantity - this.reservedQuantity;
         this.updatedAt = LocalDateTime.now();
     }
 }

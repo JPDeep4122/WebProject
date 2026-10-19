@@ -39,4 +39,16 @@ public class OrderItem {
 
     @Column(name = "subtotal", nullable = false, precision = 15, scale = 2)
     private BigDecimal subtotal; // Thành tiền (price * quantity)
+
+    @PrePersist
+    @PreUpdate
+    protected void validateAndCalculateSubtotal() {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalStateException("Số lượng sản phẩm trong đơn phải lớn hơn 0");
+        }
+        if (price == null || price.signum() < 0) {
+            throw new IllegalStateException("Giá sản phẩm trong đơn không được âm");
+        }
+        subtotal = price.multiply(BigDecimal.valueOf(quantity));
+    }
 }

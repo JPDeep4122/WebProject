@@ -11,6 +11,12 @@ Trên một database Neon mới hoặc database đã được backup và chuẩn
 1. `01_schema.sql`
 2. `02_indexes.sql`
 
+Schema hiện hành của ứng dụng vẫn dùng tên bảng tiếng Anh. Để tạo riêng phần
+nghiệp vụ của Thành viên 2 trên database ứng dụng hiện tại, chạy
+`03_current_app_order_domain.sql` sau khi các bảng `users`, `branches` và
+`products` đã tồn tại. Không chạy file này cùng `01_schema.sql`, vì hai bộ SQL
+đại diện cho hai phương án đặt tên schema khác nhau.
+
 Chạy bằng Neon SQL Editor hoặc `psql`. Các file này là DDL thủ công, không tự chạy
 khi ứng dụng Spring Boot khởi động. Không chạy trực tiếp lên database đang có dữ
 liệu trước khi so sánh schema và tạo backup.
