@@ -87,6 +87,38 @@
                                         <button class="btn btn-sm btn-primary">Bắt đầu lấy hàng</button>
                                     </form>
                                 </c:if>
+                                <c:if test="${order.status eq 'PROCESSING'}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/start-shipping" class="mt-2">
+                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                        <button class="btn btn-sm btn-primary">Bắt đầu giao</button>
+                                    </form>
+                                </c:if>
+                                <c:if test="${order.status eq 'SHIPPING'}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/deliver" class="mt-2">
+                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                        <button class="btn btn-sm btn-success">Đã giao</button>
+                                    </form>
+                                </c:if>
+                                <c:if test="${order.status eq 'CONFIRMED' or order.status eq 'PROCESSING' or order.status eq 'SHIPPING'}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/cancel" class="mt-2"
+                                          onsubmit="return confirm('Hủy đơn và hoàn lại toàn bộ tồn kho?');">
+                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                        <button class="btn btn-sm btn-outline-danger">Hủy đơn</button>
+                                    </form>
+                                </c:if>
+                                <c:if test="${order.status eq 'DELIVERED'}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/request-return" class="mt-2">
+                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                        <button class="btn btn-sm btn-warning">Yêu cầu trả hàng</button>
+                                    </form>
+                                </c:if>
+                                <c:if test="${order.status eq 'RETURN_REQUESTED'}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/complete-return" class="mt-2"
+                                          onsubmit="return confirm('Hoàn tất trả hàng và nhập lại tồn kho?');">
+                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                        <button class="btn btn-sm btn-warning">Hoàn tất trả hàng</button>
+                                    </form>
+                                </c:if>
                             </td>
                         </tr>
                     </c:forEach>
