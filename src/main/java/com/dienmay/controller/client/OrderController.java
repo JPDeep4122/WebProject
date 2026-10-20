@@ -18,6 +18,7 @@ import com.dienmay.entity.order.OrderItem;
 import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.service.cart.CartService;
 import com.dienmay.service.order.OrderService;
+import com.dienmay.service.order.ReturnRequestService;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class OrderController {
 
 	private final OrderService orderService;
 	private final CartService cartService;
+	private final ReturnRequestService returnRequestService;
 
 	// 1. DANH SÁCH ĐƠN HÀNG CỦA TÔI
 	@GetMapping
@@ -82,7 +84,26 @@ public class OrderController {
 	            orderCode, principal.getName());
 
 	    model.addAttribute("order", order);
+	    model.addAttribute("returnRequest",
+	            returnRequestService.findLatestForCustomer(order.getId(), principal.getName()).orElse(null));
 	    return "client/order-detail";
+	}
+
+	@PostMapping("/{orderCode}/return-request")
+	public String requestReturn(@PathVariable String orderCode,
+			@RequestParam String reason, Principal principal,
+			RedirectAttributes redirectAttributes) {
+		if (principal == null) {
+			return "redirect:/login?redirect=/orders/" + orderCode;
+		}
+		try {
+			returnRequestService.submit(orderCode, reason, principal.getName());
+			redirectAttributes.addFlashAttribute("successMessage",
+					"Đã gửi yêu cầu trả hàng. Cửa hàng sẽ kiểm tra và phản hồi.");
+		} catch (IllegalArgumentException | org.springframework.security.access.AccessDeniedException ex) {
+			redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+		}
+		return "redirect:/orders/" + orderCode;
 	}
 
 	// 3. HỦY ĐƠN HÀNG (Dành cho đơn PENDING)

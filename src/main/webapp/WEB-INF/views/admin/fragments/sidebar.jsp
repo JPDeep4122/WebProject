@@ -22,6 +22,9 @@
             <a href="/admin/inventory" class="nav-link text-white-50"><i class="bi bi-boxes me-2"></i> Tồn kho chi nhánh</a>
         </li>
         <li>
+            <a href="/admin/returns" class="nav-link text-white-50"><i class="bi bi-arrow-counterclockwise me-2"></i> Yêu cầu trả hàng</a>
+        </li>
+        <li>
             <a href="/admin/branches" class="nav-link text-white-50"><i class="bi bi-shop me-2"></i> Quản lý Chi nhánh</a>
         </li>
         <li>

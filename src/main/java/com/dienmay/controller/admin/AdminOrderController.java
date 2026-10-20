@@ -93,20 +93,6 @@ public class AdminOrderController {
                 "Đã hủy đơn và hoàn lại tồn kho chi nhánh.");
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/{id}/request-return")
-    public String requestReturn(@org.springframework.web.bind.annotation.PathVariable Long id,
-            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
-        return execute(id, principal, flash, fulfillmentService::requestReturn,
-                "Đã ghi nhận yêu cầu trả hàng.");
-    }
-
-    @org.springframework.web.bind.annotation.PostMapping("/{id}/complete-return")
-    public String completeReturn(@org.springframework.web.bind.annotation.PathVariable Long id,
-            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
-        return execute(id, principal, flash, fulfillmentService::completeReturn,
-                "Đã hoàn tất trả hàng và hoàn lại tồn kho chi nhánh.");
-    }
-
     @GetMapping
     public String listOrders(
             @RequestParam(required = false) Long branchId,

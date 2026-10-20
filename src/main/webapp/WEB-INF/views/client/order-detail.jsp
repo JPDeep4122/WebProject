@@ -118,6 +118,12 @@
 					<i class="bi bi-x-circle me-1"></i>Hủy đơn hàng
 				</button>
 			</c:if>
+			<c:if test="${order.status == 'DELIVERED' and (empty returnRequest or returnRequest.status eq 'REJECTED')}">
+				<button type="button" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-bold"
+					data-bs-toggle="modal" data-bs-target="#returnRequestModal">
+					<i class="bi bi-arrow-counterclockwise me-1"></i>Yêu cầu trả hàng
+				</button>
+			</c:if>
 		</div>
 	</div>
 
@@ -127,6 +133,17 @@
 			role="alert">
 			<i class="bi bi-check-circle-fill me-2"></i>${successMessage}
 			<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+		</div>
+	</c:if>
+	<c:if test="${not empty returnRequest}">
+		<div class="alert ${returnRequest.status eq 'APPROVED' ? 'alert-success' : (returnRequest.status eq 'REJECTED' ? 'alert-danger' : 'alert-warning')} rounded-4 mb-4">
+			<div class="fw-bold"><i class="bi bi-arrow-counterclockwise me-2"></i>
+				<c:choose><c:when test="${returnRequest.status eq 'PENDING'}">Yêu cầu trả hàng đang chờ duyệt</c:when>
+				<c:when test="${returnRequest.status eq 'APPROVED'}">Yêu cầu trả hàng đã được duyệt</c:when>
+				<c:otherwise>Yêu cầu trả hàng đã bị từ chối</c:otherwise></c:choose>
+			</div>
+			<div class="small mt-1">Lý do: <c:out value="${returnRequest.reason}"/></div>
+			<c:if test="${not empty returnRequest.reviewNote}"><div class="small mt-1">Phản hồi: <c:out value="${returnRequest.reviewNote}"/></div></c:if>
 		</div>
 	</c:if>
 	<c:if test="${not empty errorMessage}">
@@ -352,6 +369,21 @@
 		</div>
 	</div>
 </div>
+
+<c:if test="${order.status == 'DELIVERED' and (empty returnRequest or returnRequest.status eq 'REJECTED')}">
+<div class="modal fade" id="returnRequestModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered"><div class="modal-content rounded-4 border-0 shadow">
+		<form action="${pageContext.request.contextPath}/orders/${order.orderCode}/return-request" method="post">
+			<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+			<div class="modal-header border-bottom-0"><h5 class="modal-title fw-bold">Yêu cầu trả hàng / hoàn tiền</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+			<div class="modal-body"><p class="text-muted small">Cửa hàng sẽ kiểm tra yêu cầu trước khi hướng dẫn nhận lại sản phẩm và hoàn tiền.</p>
+				<label class="form-label fw-semibold">Lý do trả hàng</label><textarea class="form-control" name="reason" rows="5" minlength="10" maxlength="1000" required placeholder="Mô tả tình trạng sản phẩm và lý do muốn trả hàng"></textarea>
+			</div>
+			<div class="modal-footer border-top-0"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button><button class="btn btn-warning fw-bold">Gửi yêu cầu</button></div>
+		</form>
+	</div></div>
+</div>
+</c:if>
 
 <!-- MODAL XÁC NHẬN HỦY ĐƠN HÀNG -->
 <div class="modal fade" id="cancelOrderModal" tabindex="-1"
