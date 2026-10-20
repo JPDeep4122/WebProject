@@ -1,6 +1,8 @@
 package com.dienmay.controller.shipper;
 
 import java.security.Principal;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +20,8 @@ import com.dienmay.entity.order.DeliveryStatus;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.order.DeliveryAssignmentRepository;
 import com.dienmay.service.order.DeliveryStatusService;
+import com.dienmay.service.order.DeliveryStatisticsPeriod;
+import com.dienmay.service.order.DeliveryStatisticsService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +32,7 @@ public class ShipperOrderController {
     private final DeliveryAssignmentRepository assignments;
     private final UserRepository users;
     private final DeliveryStatusService deliveryStatusService;
+    private final DeliveryStatisticsService deliveryStatisticsService;
 
     @GetMapping
     public String home() {
@@ -73,6 +78,21 @@ public class ShipperOrderController {
         return "redirect:/shipper/orders";
     }
 
+    @GetMapping("/statistics")
+    public String statistics(@RequestParam(required = false) String period,
+            @RequestParam(required = false) String date,
+            Principal principal, Model model) {
+        DeliveryStatisticsPeriod selectedPeriod = DeliveryStatisticsPeriod.parse(period);
+        LocalDate anchor = parseDate(date);
+        var report = deliveryStatisticsService.summarize(
+                principal.getName(), selectedPeriod, anchor);
+        var shipper = users.findByEmail(principal.getName())
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản shipper."));
+        model.addAttribute("report", report);
+        model.addAttribute("shipper", shipper);
+        return "shipper/statistics";
+    }
+
     private DeliveryStatus parseStatus(String status) {
         if (status == null || status.isBlank()) {
             return null;
@@ -91,5 +111,16 @@ public class ShipperOrderController {
             case DELIVERED_FAILED -> "Đã ghi nhận giao hàng thất bại.";
             default -> "Đã cập nhật trạng thái giao hàng.";
         };
+    }
+
+    private LocalDate parseDate(String date) {
+        if (date == null || date.isBlank()) {
+            return LocalDate.now();
+        }
+        try {
+            return LocalDate.parse(date.trim());
+        } catch (DateTimeParseException ignored) {
+            return LocalDate.now();
+        }
     }
 }

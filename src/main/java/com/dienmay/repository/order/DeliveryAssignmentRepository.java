@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
@@ -38,4 +39,16 @@ public interface DeliveryAssignmentRepository extends JpaRepository<DeliveryAssi
             + "and assignment.status = :status")
     Page<DeliveryAssignment> findAssignedToByStatus(@Param("email") String email,
             @Param("status") DeliveryStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"order"})
+    @Query("select assignment from DeliveryAssignment assignment "
+            + "where lower(assignment.shipper.email) = lower(:email) "
+            + "and assignment.status = :status "
+            + "and assignment.completedAt >= :from "
+            + "and assignment.completedAt < :to "
+            + "order by assignment.completedAt")
+    List<DeliveryAssignment> findCompletedInPeriod(@Param("email") String email,
+            @Param("status") DeliveryStatus status,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
 }

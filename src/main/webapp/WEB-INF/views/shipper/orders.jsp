@@ -18,6 +18,9 @@
                 <i class="bi bi-truck me-2 text-warning"></i>Điện Máy UTE - Giao hàng
             </a>
             <div class="d-flex align-items-center gap-3 text-white">
+                <a class="btn btn-outline-warning btn-sm" href="${pageContext.request.contextPath}/shipper/statistics">
+                    <i class="bi bi-bar-chart"></i> Thống kê
+                </a>
                 <div class="text-end d-none d-sm-block">
                     <div class="fw-semibold"><c:out value="${shipper.fullName}"/></div>
                     <small class="text-white-50"><c:out value="${shipper.branch.name}" default="Chưa gán chi nhánh"/></small>
