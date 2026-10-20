@@ -295,4 +295,9 @@
 	</c:choose>
 </div>
 
+<div id="orderRealtime" data-context-path="${pageContext.request.contextPath}"></div>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script src="${pageContext.request.contextPath}/js/order-realtime.js"></script>
+
 <jsp:include page="fragments/footer.jsp" />

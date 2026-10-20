@@ -43,7 +43,8 @@ public class SecurityConfig {
         http
             .csrf(Customizer.withDefaults())
             .sessionManagement(session -> session
-            	    .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))            .authorizeHttpRequests(auth -> auth
+                    .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
