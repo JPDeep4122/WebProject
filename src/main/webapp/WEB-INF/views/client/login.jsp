@@ -291,8 +291,10 @@
                 showAlert('success', 'Đăng nhập thành công! Đang chuyển hướng...');
                 const urlParams = new URLSearchParams(window.location.search);
                 const redirectUrl = urlParams.get('redirect');
+                const roles = Array.isArray(data.data.roles) ? data.data.roles : [];
+                const defaultUrl = roles.includes('ROLE_SHIPPER') ? '/shipper/orders' : '/';
                 setTimeout(() => {
-                    window.location.href = redirectUrl ? CONTEXT_PATH + redirectUrl : CONTEXT_PATH + '/';
+                    window.location.href = redirectUrl ? CONTEXT_PATH + redirectUrl : CONTEXT_PATH + defaultUrl;
                 }, 700);
             } else {
                 showAlert('danger', data.message || 'Email hoặc mật khẩu không chính xác!');
