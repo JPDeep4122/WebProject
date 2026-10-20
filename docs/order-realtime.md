@@ -13,6 +13,13 @@ Trang `/orders` và `/orders/{orderCode}` tự kết nối khi người dùng đ
 Khi nhận trạng thái mới, trang hiển thị thông báo ngắn rồi tải lại để đồng bộ toàn
 bộ nút, bộ đếm và tiến trình đơn hàng từ database.
 
-Ngày 8 triển khai luồng phát sự kiện và client nhận riêng. Ngày 9 tiếp tục kiểm
-thử kết nối tích hợp, xử lý mất kết nối và phối hợp các màn hình của thành viên
-khác.
+Ngày 9 bổ sung tích hợp với trang quản trị: STAFF đăng ký topic đúng chi nhánh
+`/topic/branches/{branchId}/order-status`, còn ADMIN khi xem toàn hệ thống dùng
+`/topic/admin/order-status`. Interceptor từ chối nhân viên đăng ký topic của chi
+nhánh khác và chỉ cho ADMIN dùng topic toàn hệ thống.
+
+Client tự kết nối lại theo khoảng chờ tăng dần từ 2 đến 30 giây, kết nối lại ngay
+khi trình duyệt online và đóng kết nối khi rời trang. Kiểm thử tích hợp xác nhận
+một giao dịch đổi trạng thái đã commit sẽ gửi đồng thời tới khách hàng, chi nhánh
+và quản trị viên; kiểm thử bảo mật kiểm tra JWT, kết nối ẩn danh và phạm vi chi
+nhánh.

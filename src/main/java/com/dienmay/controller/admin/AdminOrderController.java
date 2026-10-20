@@ -18,6 +18,7 @@ import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.branch.BranchRepository;
 import com.dienmay.service.order.OrderService;
+import com.dienmay.service.order.OrderStatusWebSocketNotifier;
 
 import lombok.RequiredArgsConstructor;
 
@@ -128,6 +129,11 @@ public class AdminOrderController {
                 : currentUser.getBranch() == null ? java.util.List.of() : java.util.List.of(currentUser.getBranch()));
         model.addAttribute("canChooseBranch", admin);
         model.addAttribute("pageSize", safeSize);
+        model.addAttribute("orderRealtimeDestination",
+                admin && effectiveBranchId == null
+                        ? OrderStatusWebSocketNotifier.ADMIN_DESTINATION
+                        : effectiveBranchId == null ? ""
+                        : OrderStatusWebSocketNotifier.branchDestination(effectiveBranchId));
         return "admin/orders";
     }
 

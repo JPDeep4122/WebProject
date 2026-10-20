@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OrderStatusWebSocketNotifier {
     public static final String USER_DESTINATION = "/queue/order-status";
+    public static final String ADMIN_DESTINATION = "/topic/admin/order-status";
 
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -23,5 +24,14 @@ public class OrderStatusWebSocketNotifier {
         }
         messagingTemplate.convertAndSendToUser(
                 event.recipientEmail(), USER_DESTINATION, event.update());
+        if (event.branchId() != null) {
+            messagingTemplate.convertAndSend(
+                    branchDestination(event.branchId()), event.update());
+            messagingTemplate.convertAndSend(ADMIN_DESTINATION, event.update());
+        }
+    }
+
+    public static String branchDestination(Long branchId) {
+        return "/topic/branches/" + branchId + "/order-status";
     }
 }

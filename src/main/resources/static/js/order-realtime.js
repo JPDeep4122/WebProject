@@ -4,6 +4,7 @@
 
     const contextPath = root.dataset.contextPath || '';
     const currentOrderCode = root.dataset.orderCode || '';
+    const destination = root.dataset.destination || '/user/queue/order-status';
     const token = localStorage.getItem('jwtToken') || localStorage.getItem('accessToken');
     if (!token) return;
 
@@ -17,6 +18,9 @@
         RETURNED: 'Đã hoàn tất trả hàng'
     };
     let reconnectTimer;
+    let reconnectDelay = 2000;
+    let stopped = false;
+    let client;
 
     function showUpdate(update) {
         if (currentOrderCode && update.orderCode !== currentOrderCode) return;
@@ -32,23 +36,38 @@
     }
 
     function connect() {
+        if (stopped || !navigator.onLine) return;
         const socket = new SockJS(contextPath + '/ws');
-        const client = Stomp.over(socket);
+        client = Stomp.over(socket);
         client.debug = null;
         client.connect(
             { Authorization: 'Bearer ' + token },
             function () {
-                client.subscribe('/user/queue/order-status', function (message) {
+                reconnectDelay = 2000;
+                client.subscribe(destination, function (message) {
                     try { showUpdate(JSON.parse(message.body)); }
                     catch (error) { console.error('Dữ liệu trạng thái đơn không hợp lệ.', error); }
                 });
             },
             function () {
                 window.clearTimeout(reconnectTimer);
-                reconnectTimer = window.setTimeout(connect, 5000);
+                if (!stopped) {
+                    reconnectTimer = window.setTimeout(connect, reconnectDelay);
+                    reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+                }
             }
         );
     }
 
     document.addEventListener('DOMContentLoaded', connect);
+    window.addEventListener('online', function () {
+        window.clearTimeout(reconnectTimer);
+        reconnectDelay = 2000;
+        connect();
+    });
+    window.addEventListener('beforeunload', function () {
+        stopped = true;
+        window.clearTimeout(reconnectTimer);
+        if (client && client.connected) client.disconnect(function () {});
+    });
 })();

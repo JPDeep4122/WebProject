@@ -10,7 +10,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,12 +24,14 @@ import com.dienmay.entity.product.Product;
 import com.dienmay.service.order.OrderConfirmationService;
 import com.dienmay.service.order.OrderFulfillmentService;
 import com.dienmay.service.order.OrderPickingService;
+import com.dienmay.service.order.OrderStatusWebSocketNotifier;
 import com.dienmay.service.order.OrderStateMachine;
+import com.dienmay.dto.order.OrderStatusUpdate;
 import jakarta.persistence.EntityManager;
 
 @DataJpaTest(showSql = false, properties = {"spring.jpa.hibernate.ddl-auto=create-drop"})
 @Import({OrderConfirmationService.class, OrderPickingService.class, OrderFulfillmentService.class,
-        OrderStateMachine.class})
+        OrderStateMachine.class, OrderStatusWebSocketNotifier.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class OrderConfirmationTests {
     @Autowired OrderConfirmationService service;
@@ -35,6 +39,7 @@ class OrderConfirmationTests {
     @Autowired OrderFulfillmentService fulfillmentService;
     @Autowired EntityManager em;
     @Autowired PlatformTransactionManager manager;
+    @MockitoBean SimpMessagingTemplate messagingTemplate;
     TransactionTemplate tx;
     Long orderId, inventoryId, branchId, userId, productId;
     String email;
@@ -87,6 +92,23 @@ class OrderConfirmationTests {
         assertState(orderId, OrderStatus.CONFIRMED, 7);
         assertThrows(IllegalArgumentException.class, () -> service.confirm(orderId, email));
         assertState(orderId, OrderStatus.CONFIRMED, 7);
+    }
+
+    @Test void committedConfirmationPublishesCustomerBranchAndAdminUpdates() {
+        service.confirm(orderId, email);
+
+        var update = org.mockito.ArgumentCaptor.forClass(OrderStatusUpdate.class);
+        org.mockito.Mockito.verify(messagingTemplate).convertAndSendToUser(
+                org.mockito.ArgumentMatchers.eq(email),
+                org.mockito.ArgumentMatchers.eq("/queue/order-status"), update.capture());
+        assertEquals(OrderStatus.PENDING, update.getValue().previousStatus());
+        assertEquals(OrderStatus.CONFIRMED, update.getValue().status());
+        org.mockito.Mockito.verify(messagingTemplate).convertAndSend(
+                org.mockito.ArgumentMatchers.eq("/topic/branches/" + branchId + "/order-status"),
+                org.mockito.ArgumentMatchers.any(OrderStatusUpdate.class));
+        org.mockito.Mockito.verify(messagingTemplate).convertAndSend(
+                org.mockito.ArgumentMatchers.eq("/topic/admin/order-status"),
+                org.mockito.ArgumentMatchers.any(OrderStatusUpdate.class));
     }
 
     @Test void confirmedOrderCanStartPickingWithoutDeductingAgain() {

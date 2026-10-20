@@ -21,9 +21,11 @@ class OrderStatusWebSocketNotifierTests {
         var update = new OrderStatusUpdate("ORD-1", OrderStatus.PROCESSING,
                 OrderStatus.SHIPPING, LocalDateTime.now());
 
-        notifier.notifyCustomer(new OrderStatusChangedEvent("customer@example.test", update));
+        notifier.notifyCustomer(new OrderStatusChangedEvent("customer@example.test", 7L, update));
 
         verify(messaging).convertAndSendToUser(
                 "customer@example.test", "/queue/order-status", update);
+        verify(messaging).convertAndSend("/topic/branches/7/order-status", update);
+        verify(messaging).convertAndSend("/topic/admin/order-status", update);
     }
 }

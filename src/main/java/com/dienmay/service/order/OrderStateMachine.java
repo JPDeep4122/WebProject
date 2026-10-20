@@ -64,6 +64,8 @@ public class OrderStateMachine implements ApplicationEventPublisherAware {
         }
         var update = new OrderStatusUpdate(
                 order.getOrderCode(), previousStatus, status, LocalDateTime.now());
-        eventPublisher.publishEvent(new OrderStatusChangedEvent(order.getUser().getEmail(), update));
+        Long branchId = order.getBranch() == null ? null : order.getBranch().getId();
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                order.getUser().getEmail(), branchId, update));
     }
 }
