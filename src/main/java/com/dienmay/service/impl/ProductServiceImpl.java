@@ -1,29 +1,30 @@
 package com.dienmay.service.impl;
 
+import java.io.IOException;
 import java.util.List;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.dienmay.dto.product.ProductFilterRequest;
 import com.dienmay.dto.product.AdminProductRequest;
-import com.dienmay.entity.branch.BranchProduct;
+import com.dienmay.dto.product.ProductFilterRequest;
+import com.dienmay.entity.branch.BranchInventory;
 import com.dienmay.entity.product.Brand;
 import com.dienmay.entity.product.Category;
 import com.dienmay.entity.product.Product;
 import com.dienmay.entity.product.ProductImage;
-import com.dienmay.repository.branch.BranchProductRepository;
+import com.dienmay.repository.branch.BranchInventoryRepository;
 import com.dienmay.repository.product.BrandRepository;
 import com.dienmay.repository.product.CategoryRepository;
-import com.dienmay.repository.product.ProductRepository;
 import com.dienmay.repository.product.ProductImageRepository;
-import com.dienmay.service.CloudinaryService;
-import org.springframework.web.multipart.MultipartFile;
-import java.io.IOException;
+import com.dienmay.repository.product.ProductRepository;
 import com.dienmay.repository.specification.ProductSpecification;
+import com.dienmay.service.CloudinaryService;
 import com.dienmay.service.product.ProductService;
 
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
-    private final BranchProductRepository branchProductRepository;
+    private final BranchInventoryRepository branchInventoryRepository;
     private final ProductImageRepository productImageRepository;
     private final CloudinaryService cloudinaryService;
 
@@ -69,9 +70,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<BranchProduct> getBranchStock(Long productId) {
-        // Dùng method có sẵn trong repository thay vì Specification
-        return branchProductRepository.findByProduct_Id(productId);
+    public List<BranchInventory> getBranchStock(Long productId) {
+        return branchInventoryRepository.findByProductId(productId);
     }
 
     @Override

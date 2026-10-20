@@ -7,7 +7,7 @@ import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.dienmay.entity.branch.BranchProduct;
+import com.dienmay.entity.branch.BranchInventory;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -83,9 +83,12 @@ public class Product {
 	@Builder.Default
 	private List<ProductImage> images = new ArrayList<>();
 
-	@OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(
+	        mappedBy = "product",
+	        cascade = CascadeType.ALL,
+	        orphanRemoval = true)
 	@Builder.Default
-	private List<BranchProduct> branchProducts = new ArrayList<>();
+	private List<BranchInventory> branchInventories = new ArrayList<>();
 	
 	@Column(name = "price", precision = 18, scale = 2)
     private BigDecimal price; 			// Giá bán hiện tại

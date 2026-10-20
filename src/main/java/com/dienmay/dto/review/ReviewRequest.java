@@ -27,6 +27,7 @@ public class ReviewRequest {
     private Integer rating;
 
     @NotBlank(message = "Nội dung đánh giá không được để trống")
-    @Size(min = 50, message = "Bình luận phải có ít nhất 50 ký tự")
+    @Size(min = 50, max = 5000,
+            message = "Bình luận phải từ 50 đến 5000 ký tự")
     private String comment;
 }

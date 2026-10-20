@@ -27,123 +27,116 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService orderService;
-    private final CartService cartService;
+	private final OrderService orderService;
+	private final CartService cartService;
 
-    // 1. DANH SÁCH ĐƠN HÀNG CỦA TÔI
-    @GetMapping
-    public String listOrders(
-    		@RequestParam(required = false) String status,
-            @RequestParam(required = false) String email,
-            Principal principal,
-            Model model) {
-        String userEmail = (principal != null) ? principal.getName() : email;
-        if (userEmail == null || userEmail.equalsIgnoreCase("anonymousUser")) {
-            return "redirect:/login?redirect=/orders";
-        }
+	// 1. DANH SÁCH ĐƠN HÀNG CỦA TÔI
+	@GetMapping
+	public String listOrders(@RequestParam(required = false) String status, Principal principal, Model model) {
+		String userEmail = principal != null ? principal.getName() : null;
+		if (userEmail == null || userEmail.equalsIgnoreCase("anonymousUser")) {
+			return "redirect:/login?redirect=/orders";
+		}
 
-        OrderStatus orderStatus = null;
-        if (status != null && !status.trim().isEmpty() && !status.equalsIgnoreCase("ALL")) {
-            try {
-                orderStatus = OrderStatus.valueOf(status.trim().toUpperCase());
-            } catch (Exception ignored) {}
-        }
+		OrderStatus orderStatus = null;
+		if (status != null && !status.trim().isEmpty() && !status.equalsIgnoreCase("ALL")) {
+			try {
+				orderStatus = OrderStatus.valueOf(status.trim().toUpperCase());
+			} catch (Exception ignored) {
+			}
+		}
 
-        List<Order> orders = orderService.getOrdersByUser(userEmail, orderStatus);
+		List<Order> orders = orderService.getOrdersByUser(userEmail, orderStatus);
 
-        long countAll = orderService.getOrdersByUser(userEmail, null).size();
-        long countPending = orderService.getOrdersByUser(userEmail, OrderStatus.PENDING).size();
-        long countConfirmed = orderService.getOrdersByUser(userEmail, OrderStatus.CONFIRMED).size();
-        long countShipping = orderService.getOrdersByUser(userEmail, OrderStatus.SHIPPING).size();
-        long countDelivered = orderService.getOrdersByUser(userEmail, OrderStatus.DELIVERED).size();
-        long countCancelled = orderService.getOrdersByUser(userEmail, OrderStatus.CANCELLED).size();
+		long countAll = orderService.getOrdersByUser(userEmail, null).size();
+		long countPending = orderService.getOrdersByUser(userEmail, OrderStatus.PENDING).size();
+		long countConfirmed = orderService.getOrdersByUser(userEmail, OrderStatus.CONFIRMED).size();
+		long countShipping = orderService.getOrdersByUser(userEmail, OrderStatus.SHIPPING).size();
+		long countDelivered = orderService.getOrdersByUser(userEmail, OrderStatus.DELIVERED).size();
+		long countCancelled = orderService.getOrdersByUser(userEmail, OrderStatus.CANCELLED).size();
 
-        model.addAttribute("orders", orders);
-        model.addAttribute("currentStatus", (status != null && !status.isEmpty()) ? status.toUpperCase() : "ALL");
-        model.addAttribute("countAll", countAll);
-        model.addAttribute("countPending", countPending);
-        model.addAttribute("countConfirmed", countConfirmed);
-        model.addAttribute("countShipping", countShipping);
-        model.addAttribute("countDelivered", countDelivered);
-        model.addAttribute("countCancelled", countCancelled);
+		model.addAttribute("orders", orders);
+		model.addAttribute("currentStatus", (status != null && !status.isEmpty()) ? status.toUpperCase() : "ALL");
+		model.addAttribute("countAll", countAll);
+		model.addAttribute("countPending", countPending);
+		model.addAttribute("countConfirmed", countConfirmed);
+		model.addAttribute("countShipping", countShipping);
+		model.addAttribute("countDelivered", countDelivered);
+		model.addAttribute("countCancelled", countCancelled);
 
-        return "client/order-history";
-    }
+		return "client/order-history";
+	}
 
-    // 2. CHI TIẾT ĐƠN HÀNG
-    @GetMapping("/{orderCode}")
-    public String orderDetail(
-            @PathVariable String orderCode,
-            Principal principal,
-            Model model) {
-        String email = (principal != null) ? principal.getName() : null;
-        try {
-            Order order = orderService.getOrderDetail(orderCode, email);
-            model.addAttribute("order", order);
-            return "client/order-detail";
-        } catch (Exception e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            return "redirect:/orders";
-        }
-    }
+	// 2. CHI TIẾT ĐƠN HÀNG
+	@GetMapping("/{orderCode}")
+	public String orderDetail(
+	        @PathVariable String orderCode,
+	        Principal principal,
+	        Model model) {
 
-    // 3. HỦY ĐƠN HÀNG (Dành cho đơn PENDING)
-    @PostMapping("/{orderCode}/cancel")
-    public String cancelOrder(
-            @PathVariable String orderCode,
-            @RequestParam(required = false) String cancelReason,
-            Principal principal,
-            RedirectAttributes redirectAttributes) {
-        String email = (principal != null) ? principal.getName() : null;
-        boolean success = orderService.cancelOrder(orderCode, email, cancelReason);
-        if (success) {
-            redirectAttributes.addFlashAttribute("successMessage", "Đã hủy đơn hàng thành công!");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không thể hủy đơn hàng này (chỉ hỗ trợ hủy khi đơn đang ở trạng thái Chờ xác nhận)!");
-        }
-        return "redirect:/orders/" + orderCode;
-    }
+	    if (principal == null) {
+	        return "redirect:/login?redirect=/orders";
+	    }
 
-    // 4. MUA LẠI ĐƠN HÀNG (Thêm lại các món trong đơn vào giỏ)
-    @PostMapping("/{orderCode}/reorder")
-    public String reorder(
-            @PathVariable String orderCode,
-            Principal principal,
-            HttpSession session) {
-        String email = (principal != null) ? principal.getName() : null;
-        try {
-            Order order = orderService.getOrderDetail(orderCode, email);
-            if (order.getOrderItems() != null) {
-                for (OrderItem item : order.getOrderItems()) {
-                    AddToCartRequest req = new AddToCartRequest();
-                    req.setProductId(item.getProduct().getId());
-                    req.setQuantity(item.getQuantity());
-                    cartService.addToCart(req, email, session);
-                }
-            }
-        } catch (Exception ignored) {}
-        return "redirect:/cart";
-    }
+	    Order order = orderService.getOrderDetail(
+	            orderCode, principal.getName());
 
-    // 5. TRA CỨU ĐƠN HÀNG NHANH CHO KHÁCH VÃNG LAI
-    @GetMapping("/tracking")
-    public String trackingPage() {
-        return "client/order-tracking";
-    }
+	    model.addAttribute("order", order);
+	    return "client/order-detail";
+	}
 
-    @PostMapping("/tracking")
-    public String trackOrder(
-            @RequestParam String orderCode,
-            @RequestParam String phone,
-            Model model) {
-        Order order = orderService.trackOrder(orderCode, phone);
-        if (order != null) {
-            return "redirect:/orders/" + order.getOrderCode();
-        } else {
-            model.addAttribute("errorMessage", "Không tìm thấy đơn hàng với thông tin đã nhập. Vui lòng kiểm tra lại Mã đơn hàng và Số điện thoại!");
-            model.addAttribute("orderCode", orderCode);
-            model.addAttribute("phone", phone);
-            return "client/order-tracking";
-        }
-    }
+	// 3. HỦY ĐƠN HÀNG (Dành cho đơn PENDING)
+	@PostMapping("/{orderCode}/cancel")
+	public String cancelOrder(@PathVariable String orderCode, @RequestParam(required = false) String cancelReason,
+			Principal principal, RedirectAttributes redirectAttributes) {
+		String email = (principal != null) ? principal.getName() : null;
+		boolean success = orderService.cancelOrder(orderCode, email, cancelReason);
+		if (success) {
+			redirectAttributes.addFlashAttribute("successMessage", "Đã hủy đơn hàng thành công!");
+		} else {
+			redirectAttributes.addFlashAttribute("errorMessage",
+					"Không thể hủy đơn hàng này (chỉ hỗ trợ hủy khi đơn đang ở trạng thái Chờ xác nhận)!");
+		}
+		return "redirect:/orders/" + orderCode;
+	}
+
+	// 4. MUA LẠI ĐƠN HÀNG (Thêm lại các món trong đơn vào giỏ)
+	@PostMapping("/{orderCode}/reorder")
+	public String reorder(@PathVariable String orderCode, Principal principal, HttpSession session) {
+		String email = (principal != null) ? principal.getName() : null;
+		try {
+			Order order = orderService.getOrderDetail(orderCode, email);
+			if (order.getOrderItems() != null) {
+				for (OrderItem item : order.getOrderItems()) {
+					AddToCartRequest req = new AddToCartRequest();
+					req.setProductId(item.getProduct().getId());
+					req.setQuantity(item.getQuantity());
+					cartService.addToCart(req, email, session);
+				}
+			}
+		} catch (Exception ignored) {
+		}
+		return "redirect:/cart";
+	}
+
+	// 5. TRA CỨU ĐƠN HÀNG NHANH CHO KHÁCH VÃNG LAI
+	@GetMapping("/tracking")
+	public String trackingPage() {
+		return "client/order-tracking";
+	}
+
+	@PostMapping("/tracking")
+	public String trackOrder(@RequestParam String orderCode, @RequestParam String phone, Model model) {
+		Order order = orderService.trackOrder(orderCode, phone);
+		if (order != null) {
+		    model.addAttribute("order", order);
+		    return "client/order-detail";
+		} else {
+			model.addAttribute("errorMessage",
+					"Không tìm thấy đơn hàng với thông tin đã nhập. Vui lòng kiểm tra lại Mã đơn hàng và Số điện thoại!");
+			model.addAttribute("orderCode", orderCode);
+			model.addAttribute("phone", phone);
+			return "client/order-tracking";
+		}
+	}
 }

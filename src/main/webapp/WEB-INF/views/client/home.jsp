@@ -6,71 +6,103 @@
 <!-- Nhúng Header -->
 <jsp:include page="fragments/header.jsp" />
 
-<!-- BANNER CHÍNH -->
-<section class="py-4">
-	<div class="container-fluid">
-		<div class="row g-3">
-			<div class="col-lg-8">
-				<div
-					class="p-5 text-white rounded-4 position-relative overflow-hidden"
-					style="min-height: 380px; background: linear-gradient(135deg, #0d6efd 0%, #052c65 100%);">
-					<div class="col-md-8">
-						<span
-							class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3">SIÊU
-							SALE ĐIỆN MÁY 2026</span>
-						<h1 class="display-5 fw-bold mb-3">Tivi OLED & Loa Soundbar
-							Giảm Đến 40%</h1>
-						<p class="lead mb-4">Trải nghiệm rạp chiếu phim đỉnh cao tại
-							gia. Bảo hành 2 năm toàn quốc.</p>
-						<a href="#featured-section"
-							class="btn btn-warning btn-lg px-4 fw-bold rounded-pill shadow">MUA
-							NGAY</a>
-					</div>
+<c:choose>
+	<c:when test="${not empty topBestseller}">
+		<c:set var="heroProduct" value="${topBestseller[0]}" />
+	</c:when>
+	<c:when test="${not empty topNewest}">
+		<c:set var="heroProduct" value="${topNewest[0]}" />
+	</c:when>
+</c:choose>
+
+<section class="sf-home-hero">
+	<div class="storefront-container">
+		<div class="sf-hero-grid">
+
+			<div class="sf-hero-main">
+				<div>
+					<p class="sf-eyebrow">Điện máy cho mọi nhà</p>
+
+					<h1>
+						Chọn thiết bị tốt.<br>Sống tiện nghi hơn.
+					</h1>
+
+					<p class="sf-hero-description">Khám phá tivi, tủ lạnh, máy giặt
+						và thiết bị gia dụng phù hợp với không gian sống của bạn.</p>
+
+					<a class="sf-primary-action"
+						href="${pageContext.request.contextPath}/products"> Khám phá
+						sản phẩm </a>
+				</div>
+
+				<div class="sf-hero-visual">
+					<c:choose>
+						<c:when test="${not empty heroProduct.mainImageUrl}">
+							<img src="<c:out value='${heroProduct.mainImageUrl}'/>"
+								alt="<c:out value='${heroProduct.name}'/>" fetchpriority="high">
+						</c:when>
+						<c:otherwise>
+							<i class="bi bi-tv" aria-hidden="true"></i>
+						</c:otherwise>
+					</c:choose>
 				</div>
 			</div>
-			<div class="col-lg-4 d-flex flex-column gap-3">
-				<div
-					class="p-4 bg-light rounded-4 border h-100 d-flex flex-column justify-content-center">
-					<span class="text-danger fw-bold small">MÁY GIẶT CỬA TRƯỚC</span>
-					<h5 class="fw-bold mt-1">Giặt Hơi Nước Diệt Khuẩn AI</h5>
-					<p class="text-muted small mb-0">Tiết kiệm 50% điện nước</p>
+
+			<aside class="sf-hero-side" aria-label="Gợi ý mua sắm">
+				<p class="sf-eyebrow">Khám phá ngay</p>
+				<h2>Gợi ý mua sắm</h2>
+
+				<div class="sf-shortcuts">
+					<a
+						href="${pageContext.request.contextPath}/products?sortBy=bestseller">
+						<i class="bi bi-fire" aria-hidden="true"></i> Sản phẩm bán chạy
+					</a> <a
+						href="${pageContext.request.contextPath}/products?sortBy=newest">
+						<i class="bi bi-stars" aria-hidden="true"></i> Sản phẩm mới nhất
+					</a> <a
+						href="${pageContext.request.contextPath}/products?sortBy=rating">
+						<i class="bi bi-star" aria-hidden="true"></i> Đánh giá cao
+					</a> <a href="${pageContext.request.contextPath}/vouchers"> <i
+						class="bi bi-ticket-perforated" aria-hidden="true"></i> Khám phá
+						voucher
+					</a>
 				</div>
-				<div
-					class="p-4 bg-light rounded-4 border h-100 d-flex flex-column justify-content-center">
-					<span class="text-success fw-bold small">TỦ LẠNH SIDE BY
-						SIDE</span>
-					<h5 class="fw-bold mt-1">Làm Lạnh Đa Chiều Inverter</h5>
-					<p class="text-muted small mb-0">Bảo hành động cơ 10 năm</p>
-				</div>
-			</div>
+			</aside>
+
 		</div>
 	</div>
 </section>
 
-<!-- DANH MỤC SẢN PHẨM TỪ CSDL -->
-<section class="py-3">
-	<div class="container-fluid">
-		<h4 class="fw-bold mb-3">Danh Mục Sản Phẩm</h4>
-		<div
-			class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 text-center">
+<section class="sf-category-section">
+	<div class="storefront-container">
+
+		<div class="sf-section-heading">
+			<h2>Mua sắm theo danh mục</h2>
+
+			<a href="${pageContext.request.contextPath}/products"> Xem tất cả
+			</a>
+		</div>
+
+		<div class="sf-category-grid">
 			<c:forEach items="${categories}" var="cat">
-				<div class="col">
-					<a href="#" class="text-decoration-none text-dark">
-						<div
-							class="card h-100 border-0 shadow-sm rounded-4 p-3 bg-light hover-shadow">
-							<i class="bi ${cat.icon} fs-1 text-primary mb-2"></i>
-							<h6 class="fw-bold mb-0">${cat.name}</h6>
-						</div>
+				<c:if test="${cat.active}">
+					<c:url var="categoryUrl" value="/products/category/${cat.slug}" />
+
+					<a class="sf-category-card" href="<c:out value='${categoryUrl}'/>">
+						<i class="bi <c:out value='${cat.icon}'/>" aria-hidden="true"></i>
+						<span><c:out value="${cat.name}" /></span>
 					</a>
-				</div>
+				</c:if>
 			</c:forEach>
 		</div>
+
 	</div>
 </section>
+
 
 <!-- TOP 20 SẢN PHẨM: 4 TAB -->
 <section class="py-5 bg-white" id="top20-section">
-	<div class="container-fluid">
+	<div class="storefront-container">
 		<!-- TIÊU ĐỀ VÀ TAB NAVIGATION -->
 		<div
 			class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 border-bottom pb-3">

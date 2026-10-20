@@ -105,6 +105,7 @@
 			<form
 				action="${pageContext.request.contextPath}/orders/${order.orderCode}/reorder"
 				method="post" class="d-inline">
+				<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 				<button type="submit"
 					class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">
 					<i class="bi bi-arrow-repeat me-1"></i>Mua lại đơn này
@@ -360,6 +361,7 @@
 			<form
 				action="${pageContext.request.contextPath}/orders/${order.orderCode}/cancel"
 				method="post">
+				<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 				<div class="modal-header border-bottom-0 pb-0">
 					<h5 class="modal-title fw-bold text-danger">
 						<i class="bi bi-exclamation-triangle me-2"></i>Xác nhận hủy đơn

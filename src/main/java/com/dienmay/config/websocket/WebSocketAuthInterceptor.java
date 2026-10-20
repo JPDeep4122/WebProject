@@ -23,10 +23,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-/**
- * Interceptor kiểm tra JWT Token khi client thực hiện kết nối (STOMP CONNECT)
- * Phân công: Thành viên 2 (TV2)
- */
 @Component
 @RequiredArgsConstructor
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
@@ -37,9 +33,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private final UserDetailsService userDetailsService;
     private final UserRepository userRepository;
 
-    @Override
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+	@Override
+	public Message<?> preSend(Message<?> message, MessageChannel channel) {
+		StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor == null) {
             return message;
@@ -47,17 +43,17 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             List<String> authorization = accessor.getNativeHeader("Authorization");
 
-            if (authorization != null && !authorization.isEmpty()) {
-                String bearerToken = authorization.get(0);
-                if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-                    String jwt = bearerToken.substring(7);
-                    try {
-                        if (jwtUtils.validateJwtToken(jwt)) {
-                            String username = jwtUtils.getUserNameFromJwtToken(jwt);
-                            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+			if (authorization != null && !authorization.isEmpty()) {
+				String bearerToken = authorization.get(0);
+				if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+					String jwt = bearerToken.substring(7);
+					try {
+						if (jwtUtils.validateJwtToken(jwt)) {
+							String username = jwtUtils.getUserNameFromJwtToken(jwt);
+							UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                            UsernamePasswordAuthenticationToken authentication =
-                                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+							UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+									userDetails, null, userDetails.getAuthorities());
 
                             accessor.setUser(authentication);
                         }
@@ -69,6 +65,10 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             if (accessor.getUser() == null) {
                 throw new AccessDeniedException("Bạn cần đăng nhập để nhận cập nhật đơn hàng.");
             }
+        }
+        if (accessor.getUser() != null
+                && accessor.getCommand() != StompCommand.DISCONNECT) {
+            userDetailsService.loadUserByUsername(accessor.getUser().getName());
         }
         if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
             authorizeOrderSubscription(accessor);

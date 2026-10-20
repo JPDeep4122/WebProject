@@ -1,6 +1,7 @@
 package com.dienmay.controller.client;
 
 import java.security.Principal;
+import jakarta.validation.Valid;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -29,64 +30,55 @@ public class ReviewApiController {
     private final ReviewService reviewService;
     private final JwtUtils jwtUtils;
 
-    // 1. API GỬI ĐÁNH GIÁ 
     @PostMapping
     public ResponseEntity<ApiResponse<ReviewResponse>> submitReview(
-            @ModelAttribute ReviewRequest request,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files,
-            @RequestParam(required = false) String email,
-            @CookieValue(value = "accessToken", required = false) String cookieToken,
+            @Valid @ModelAttribute ReviewRequest request,
+            @RequestParam(value = "files", required = false)
+            List<MultipartFile> files,
             Principal principal) {
 
-        String userEmail = resolveEmail(principal, email, cookieToken);
-        if (userEmail == null || userEmail.equalsIgnoreCase("anonymousUser")) {
-            return ResponseEntity.badRequest().body(ApiResponse.<ReviewResponse>builder()
-                    .success(false)
-                    .message("Vui lòng đăng nhập để gửi đánh giá sản phẩm!")
-                    .build());
+        if (principal == null
+                || "anonymousUser".equalsIgnoreCase(principal.getName())) {
+            return ResponseEntity.status(401)
+                    .body(ApiResponse.<ReviewResponse>builder()
+                            .success(false)
+                            .message("Vui lòng đăng nhập để đánh giá.")
+                            .build());
         }
 
         try {
-            ReviewResponse response = reviewService.createReview(request, files, userEmail);
-            return ResponseEntity.ok(ApiResponse.<ReviewResponse>builder()
-                    .success(true)
-                    .message("Cảm ơn bạn đã gửi đánh giá sản phẩm thành công!")
-                    .data(response)
-                    .build());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.<ReviewResponse>builder()
-                    .success(false)
-                    .message(e.getMessage())
-                    .build());
+            ReviewResponse response = reviewService.createReview(
+                    request, files, principal.getName());
+
+            return ResponseEntity.ok(
+                    ApiResponse.<ReviewResponse>builder()
+                            .success(true)
+                            .message("Đã gửi đánh giá thành công.")
+                            .data(response)
+                            .build());
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.<ReviewResponse>builder()
+                            .success(false)
+                            .message(ex.getMessage())
+                            .build());
         }
     }
 
-    // 2. API KIỂM TRA ĐIỀU KIỆN ĐƯỢC PHÉP ĐÁNH GIÁ
     @GetMapping("/check-eligibility")
     public ResponseEntity<ApiResponse<Boolean>> checkEligibility(
             @RequestParam Long productId,
-            @RequestParam(required = false) String email,
-            @CookieValue(value = "accessToken", required = false) String cookieToken,
             Principal principal) {
 
-        String userEmail = resolveEmail(principal, email, cookieToken);
-        boolean canReview = reviewService.canUserReviewProduct(userEmail, productId);
-        return ResponseEntity.ok(ApiResponse.<Boolean>builder()
-                .success(true)
-                .data(canReview)
-                .build());
-    }
+        String email = principal != null ? principal.getName() : null;
 
-    private String resolveEmail(Principal principal, String email, String cookieToken) {
-        if (principal != null && !principal.getName().equalsIgnoreCase("anonymousUser")) {
-            return principal.getName();
-        }
-        if (email != null && !email.trim().isEmpty()) {
-            return email.trim();
-        }
-        if (cookieToken != null && jwtUtils.validateJwtToken(cookieToken)) {
-            return jwtUtils.getUserNameFromJwtToken(cookieToken);
-        }
-        return null;
+        boolean eligible = reviewService.canUserReviewProduct(
+                email, productId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Boolean>builder()
+                        .success(true)
+                        .data(eligible)
+                        .build());
     }
 }

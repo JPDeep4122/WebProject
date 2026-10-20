@@ -1,15 +1,18 @@
 package com.dienmay.service.product;
 
 import java.util.List;
-import com.dienmay.dto.product.ProductFilterRequest;
+
 import com.dienmay.dto.product.AdminProductRequest;
-import com.dienmay.entity.branch.BranchProduct;
+import com.dienmay.dto.product.ProductFilterRequest;
+import com.dienmay.entity.branch.BranchInventory;
 import com.dienmay.entity.product.Brand;
 import com.dienmay.entity.product.Category;
 import com.dienmay.entity.product.Product;
 
 public interface ProductService {
 
+	List<BranchInventory> getBranchStock(Long productId);
+	
     List<Category> getAllCategories();
 
     List<Brand> getAllBrands();
@@ -20,7 +23,6 @@ public interface ProductService {
 
     Product getProductBySlug(String slug);
 
-    List<BranchProduct> getBranchStock(Long productId);
 
     List<Product> getRelatedProducts(Long categoryId, Long currentProductId);
 

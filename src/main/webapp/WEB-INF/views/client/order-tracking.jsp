@@ -22,6 +22,7 @@
                 </c:if>
 
                 <form action="${pageContext.request.contextPath}/orders/tracking" method="post" class="text-start">
+                	<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                     <div class="mb-3">
                         <label class="form-label text-muted small fw-bold">Mã đơn hàng</label>
                         <input type="text" name="orderCode" value="${orderCode}" class="form-control rounded-3 py-2" 

@@ -11,5 +11,6 @@ public interface CheckoutService {
     CheckoutPageDto getCheckoutData(String userEmail, HttpSession session);
     VoucherResponse applyVoucher(String code, BigDecimal subtotal);
     Order placeOrder(PlaceOrderRequest request, String userEmail, HttpSession session);
-    Order getOrderByCode(String orderCode);
+    Order getOrderByCode(
+            String orderCode, String userEmail, HttpSession session);
 }

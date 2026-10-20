@@ -98,8 +98,17 @@ public class CheckoutController {
     }
 
     @GetMapping("/order-success/{orderCode}")
-    public String orderSuccess(@PathVariable String orderCode, Model model) {
-        Order order = checkoutService.getOrderByCode(orderCode);
+    public String orderSuccess(
+            @PathVariable String orderCode,
+            Principal principal,
+            HttpSession session,
+            Model model) {
+
+        String email = principal != null ? principal.getName() : null;
+
+        Order order = checkoutService.getOrderByCode(
+                orderCode, email, session);
+
         model.addAttribute("order", order);
         return "client/order-success";
     }

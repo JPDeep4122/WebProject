@@ -37,7 +37,11 @@
 					class="img-fluid rounded-4 object-fit-contain"
 					style="max-height: 380px;" alt="${product.name}">
 				<div class="d-flex gap-2 flex-wrap mt-3">
-					<c:forEach items="${product.images}" var="image"><img src="${image.imageUrl}" style="width:72px;height:72px;object-fit:cover" class="rounded border" alt="${product.name}"></c:forEach>
+					<c:forEach items="${product.images}" var="image">
+						<img src="${image.imageUrl}"
+							style="width: 72px; height: 72px; object-fit: cover"
+							class="rounded border" alt="${product.name}">
+					</c:forEach>
 				</div>
 			</div>
 		</div>
@@ -103,10 +107,10 @@
 								</div>
 								<div>
 									<c:choose>
-										<c:when test="${stock.quantity > 0}">
+										<c:when test="${stock.availableQuantity > 0}">
 											<span
 												class="badge bg-success-subtle text-success border border-success rounded-pill px-2 py-1">
-												Còn ${stock.quantity} máy </span>
+												Còn ${stock.availableQuantity} máy </span>
 										</c:when>
 										<c:otherwise>
 											<span
@@ -153,7 +157,11 @@
 			Chính Sách Bảo Hành</h4>
 		<div class="text-secondary leading-relaxed">
 			<p>${product.description}</p>
-			<c:if test="${not empty product.specifications}"><h5 class="mt-4">Thông số kỹ thuật</h5><pre class="bg-light border rounded p-3" style="white-space:pre-wrap;font-family:inherit">${product.specifications}</pre></c:if>
+			<c:if test="${not empty product.specifications}">
+				<h5 class="mt-4">Thông số kỹ thuật</h5>
+				<pre class="bg-light border rounded p-3"
+					style="white-space: pre-wrap; font-family: inherit">${product.specifications}</pre>
+			</c:if>
 			<div class="row g-3 mt-3">
 				<div class="col-md-4">
 					<div class="p-3 bg-light rounded-3 text-center">
@@ -309,10 +317,15 @@
 									<div
 										class="bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center"
 										style="width: 40px; height: 40px; font-size: 1rem;">
-										${rev.userFullName.substring(0, 1).toUpperCase()}</div>
+										<c:out
+											value="${rev.userFullName.substring(0, 1).toUpperCase()}" />
+									</div>
 									<div>
-										<div class="fw-bold text-dark small">${rev.userFullName}
-											<span class="text-muted fw-normal">(${rev.userEmail})</span>
+										<div class="fw-bold text-dark small">
+											<c:out value="${rev.userFullName}" />
+											<span class="text-muted fw-normal"> (<c:out
+													value="${rev.userEmail}" />)
+											</span>
 										</div>
 										<span
 											class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-0 px-2"
@@ -331,7 +344,9 @@
 								</c:forEach>
 							</div>
 
-							<p class="text-secondary small mb-2" style="line-height: 1.6;">${rev.comment}</p>
+							<p class="text-secondary small mb-2" style="line-height: 1.6;">
+								<c:out value="${rev.comment}" />
+							</p>
 
 							<c:if test="${not empty rev.mediaList}">
 								<div class="d-flex flex-wrap gap-2 mt-2">
@@ -523,7 +538,7 @@
 				const formData = new FormData(this);
 
 				try {
-					const res = await fetch('${pageContext.request.contextPath}/api/reviews', {
+					const res = await csrfFetch('${pageContext.request.contextPath}/api/reviews', {
 						method: 'POST',
 						body: formData
 					});
@@ -545,8 +560,8 @@
 						}, 1200);
 					} else {
 						reviewAlert.className = 'alert alert-danger rounded-3 small py-2 px-3 mb-3 d-flex align-items-center gap-2';
-						reviewAlert.innerHTML = '<i class="bi bi-exclamation-octagon-fill text-danger fs-5"></i><span>' + (data.message || 'Không thể gửi đánh giá!') + '</span>';
-						btnSubmit.disabled = false;
+						reviewAlert.textContent =
+						    data.message || 'Không thể gửi đánh giá!';						btnSubmit.disabled = false;
 						btnSubmit.innerText = 'GỬI ĐÁNH GIÁ';
 					}
 				} catch (err) {

@@ -281,6 +281,7 @@
 							<form
 								action="${pageContext.request.contextPath}/orders/${order.orderCode}/reorder"
 								method="post" class="d-inline">
+								<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 								<button type="submit"
 									class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">
 									<i class="bi bi-arrow-repeat me-1"></i>Mua lại

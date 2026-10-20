@@ -8,4 +8,5 @@ import com.dienmay.entity.cart.CartItem;
 @Repository
 public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     Optional<CartItem> findByCart_IdAndProduct_Id(Long cartId, Long productId);
+    Optional<CartItem> findByIdAndCart_Id(Long id, Long cartId);
 }

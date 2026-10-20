@@ -2,8 +2,8 @@
 	pageEncoding="UTF-8"%>
 
 <!-- FOOTER CỦA FOODMART -->
-<footer class="py-5 bg-light border-top mt-5">
-	<div class="container-fluid">
+<footer class="sf-footer mt-5">
+	<div class="storefront-container">
 		<div class="row">
 			<div class="col-lg-4 col-md-6 mb-4">
 				<h5 class="text-primary fw-bold mb-3">
@@ -55,8 +55,6 @@
 			</div>
 		</div>
 		<hr class="text-muted">
-		<div class="text-center text-muted small">© 2026 ĐIỆN MÁY SHOP.
-			Đồ án môn Lập Trình Web - Đại học Công Nghệ.</div>
 	</div>
 </footer>
 
@@ -107,7 +105,7 @@
         const password = document.getElementById('loginPassword').value;
 
         try {
-          const res = await fetch(CONTEXT_PATH + '/api/auth/login', {
+          const res = await csrfFetch(CONTEXT_PATH + '/api/auth/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email, password})
@@ -142,7 +140,7 @@
         const password = document.getElementById('regPassword').value;
 
         try {
-          const res = await fetch(CONTEXT_PATH + '/api/auth/register', {
+          const res = await csrfFetch(CONTEXT_PATH + '/api/auth/register', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({fullname, phoneNumber, email, password})
@@ -171,7 +169,7 @@
         const otpCode = document.getElementById('otpInput').value;
 
         try {
-          const res = await fetch(CONTEXT_PATH + '/api/auth/verify-otp', {
+          const res = await csrfFetch(CONTEXT_PATH + '/api/auth/verify-otp', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email: currentPendingEmail, otpCode})
@@ -200,7 +198,7 @@
         currentPendingEmail = email;
 
         try {
-          const res = await fetch(CONTEXT_PATH + '/api/auth/forgot-password', {
+          const res = await csrfFetch(CONTEXT_PATH + '/api/auth/forgot-password', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email})
@@ -227,7 +225,7 @@
         const newPassword = document.getElementById('resetNewPassword').value;
 
         try {
-          const res = await fetch(CONTEXT_PATH + '/api/auth/reset-password', {
+          const res = await csrfFetch(CONTEXT_PATH + '/api/auth/reset-password', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({email: currentPendingEmail, otpCode, newPassword})
@@ -247,8 +245,7 @@
         }
       });
 
-      // 6. KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP & HIỂN THỊ TÊN TRÊN HEADER
-            // 6. KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP & HIỂN THỊ TÊN TRÊN HEADER
+      
       function checkLoginStatus() {
         const token = localStorage.getItem('jwtToken') || localStorage.getItem('accessToken');
         const userJson = localStorage.getItem('currentUser');
@@ -263,10 +260,12 @@
           container.innerHTML = `
             <div class="dropdown">
               <button class="btn btn-outline-primary btn-sm rounded-pill dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
-                <i class="bi bi-person-circle"></i> \${user.fullName}
+              <i class="bi bi-person-circle"></i> <span data-user-name></span>
               </button>
               <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                <li><h6 class="dropdown-header small text-muted">\${user.email}</h6></li>
+              <li>
+              <h6 class="dropdown-header small text-muted" data-user-email></h6>
+          </li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders"><i class="bi bi-bag-check me-2"></i>Đơn hàng của tôi</a></li>
                 <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders/tracking"><i class="bi bi-search me-2"></i>Tra cứu đơn vãng lai</a></li>
@@ -276,6 +275,11 @@
               </ul>
             </div>
           `;
+          container.querySelector('[data-user-name]').textContent =
+              user.fullName || 'Tài khoản';
+
+          container.querySelector('[data-user-email]').textContent =
+              user.email || '';
         } else {
           document.cookie = "accessToken=; path=/; max-age=0";
           container.innerHTML = `
