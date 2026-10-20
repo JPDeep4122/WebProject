@@ -5,10 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+
 import org.junit.jupiter.api.Test;
 
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.auth.User;
+import com.dienmay.service.order.OrderStatusChangedEvent;
 import com.dienmay.service.order.OrderStateMachine;
 
 class OrderStateMachineTests {
@@ -51,5 +55,23 @@ class OrderStateMachineTests {
         assertThrows(IllegalArgumentException.class,
                 () -> stateMachine.transition(order, OrderStatus.PENDING));
         assertEquals(OrderStatus.DELIVERED, order.getStatus());
+    }
+
+    @Test
+    void publishesCustomerUpdateForSuccessfulTransition() {
+        var events = new ArrayList<Object>();
+        stateMachine.setApplicationEventPublisher(events::add);
+        var user = User.builder().email("customer@example.test").build();
+        var order = Order.builder().orderCode("ORD-REALTIME-1").user(user)
+                .status(OrderStatus.PENDING).build();
+
+        stateMachine.transition(order, OrderStatus.CONFIRMED);
+
+        assertEquals(1, events.size());
+        var event = (OrderStatusChangedEvent) events.get(0);
+        assertEquals("customer@example.test", event.recipientEmail());
+        assertEquals("ORD-REALTIME-1", event.update().orderCode());
+        assertEquals(OrderStatus.PENDING, event.update().previousStatus());
+        assertEquals(OrderStatus.CONFIRMED, event.update().status());
     }
 }

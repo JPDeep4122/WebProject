@@ -9,6 +9,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
@@ -54,6 +55,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                         System.err.println("[WebSocket Auth] Xác thực JWT thất bại: " + e.getMessage());
                     }
                 }
+            }
+            if (accessor.getUser() == null) {
+                throw new AccessDeniedException("Bạn cần đăng nhập để nhận cập nhật đơn hàng.");
             }
         }
         return message;
