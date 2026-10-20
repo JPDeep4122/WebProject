@@ -1,5 +1,6 @@
 package com.dienmay.service.order;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.TreeMap;
 
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.order.DeliveryStatus;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.branch.BranchInventoryRepository;
 import com.dienmay.repository.order.OrderRepository;
@@ -80,6 +82,30 @@ public class OrderFulfillmentService {
             restoreInventory(order, branchId);
         }
         stateMachine.transition(order, target);
+        syncDeliveryStatus(order, target);
+    }
+
+    private void syncDeliveryStatus(Order order, OrderStatus target) {
+        var assignment = order.getDeliveryAssignment();
+        if (assignment == null) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (target == OrderStatus.SHIPPING
+                && (assignment.getStatus() == DeliveryStatus.ASSIGNED
+                        || assignment.getStatus() == DeliveryStatus.PICKED_UP
+                        || assignment.getStatus() == DeliveryStatus.DELIVERED_FAILED)) {
+            assignment.setStatus(DeliveryStatus.DELIVERING);
+            if (assignment.getPickedUpAt() == null) {
+                assignment.setPickedUpAt(now);
+            }
+            assignment.setCompletedAt(null);
+            assignment.setFailureReason(null);
+        } else if (target == OrderStatus.DELIVERED) {
+            assignment.setStatus(DeliveryStatus.DELIVERED_SUCCESS);
+            assignment.setCompletedAt(now);
+            assignment.setFailureReason(null);
+        }
     }
 
     private void restoreInventory(Order order, Long branchId) {

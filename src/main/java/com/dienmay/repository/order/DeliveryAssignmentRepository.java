@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -17,6 +18,10 @@ import java.util.Optional;
 public interface DeliveryAssignmentRepository extends JpaRepository<DeliveryAssignment, Long> {
 
     Optional<DeliveryAssignment> findByOrderId(Long orderId);
+
+    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select assignment from DeliveryAssignment assignment where assignment.id = :id")
+    Optional<DeliveryAssignment> findForUpdate(@Param("id") Long id);
 
     Page<DeliveryAssignment> findByShipperId(Long shipperId, Pageable pageable);
 

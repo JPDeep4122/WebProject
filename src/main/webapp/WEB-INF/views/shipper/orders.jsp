@@ -40,6 +40,9 @@
             </span>
         </div>
 
+        <c:if test="${not empty success}"><div class="alert alert-success"><c:out value="${success}"/></div></c:if>
+        <c:if test="${not empty error}"><div class="alert alert-danger"><c:out value="${error}"/></div></c:if>
+
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
                 <form method="get" action="${pageContext.request.contextPath}/shipper/orders"
@@ -90,6 +93,7 @@
                             <th class="text-end">Thu hộ</th>
                             <th>Phân công</th>
                             <th>Trạng thái</th>
+                            <th>Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -128,10 +132,55 @@
                                         <c:otherwise><span class="badge text-bg-warning">Đã từ chối</span></c:otherwise>
                                     </c:choose>
                                 </td>
+                                <td style="min-width: 220px">
+                                    <c:if test="${assignment.status eq 'ASSIGNED' or assignment.status eq 'PICKED_UP'}">
+                                        <form method="post" action="${pageContext.request.contextPath}/shipper/orders/${assignment.id}/status">
+                                            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                            <input type="hidden" name="status" value="DELIVERING">
+                                            <button class="btn btn-sm btn-primary w-100"
+                                                    onclick="return confirm('Bắt đầu giao đơn này?');">
+                                                <i class="bi bi-truck"></i> Bắt đầu giao
+                                            </button>
+                                        </form>
+                                    </c:if>
+                                    <c:if test="${assignment.status eq 'DELIVERING'}">
+                                        <form method="post" action="${pageContext.request.contextPath}/shipper/orders/${assignment.id}/status" class="mb-2">
+                                            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                            <input type="hidden" name="status" value="DELIVERED_SUCCESS">
+                                            <button class="btn btn-sm btn-success w-100"
+                                                    onclick="return confirm('Xác nhận đã giao hàng thành công?');">
+                                                <i class="bi bi-check-circle"></i> Giao thành công
+                                            </button>
+                                        </form>
+                                        <form method="post" action="${pageContext.request.contextPath}/shipper/orders/${assignment.id}/status">
+                                            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                            <input type="hidden" name="status" value="DELIVERED_FAILED">
+                                            <input class="form-control form-control-sm mb-2" name="failureReason"
+                                                   maxlength="1000" placeholder="Lý do giao thất bại" required>
+                                            <button class="btn btn-sm btn-outline-danger w-100"
+                                                    onclick="return confirm('Xác nhận giao hàng thất bại?');">
+                                                <i class="bi bi-x-circle"></i> Giao thất bại
+                                            </button>
+                                        </form>
+                                    </c:if>
+                                    <c:if test="${assignment.status eq 'DELIVERED_FAILED'}">
+                                        <div class="small text-danger mb-2"><c:out value="${assignment.failureReason}"/></div>
+                                        <form method="post" action="${pageContext.request.contextPath}/shipper/orders/${assignment.id}/status">
+                                            <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                            <input type="hidden" name="status" value="DELIVERING">
+                                            <button class="btn btn-sm btn-outline-primary w-100">
+                                                <i class="bi bi-arrow-repeat"></i> Giao lại
+                                            </button>
+                                        </form>
+                                    </c:if>
+                                    <c:if test="${assignment.status eq 'DELIVERED_SUCCESS'}">
+                                        <span class="text-success small"><i class="bi bi-check2-all"></i> Đã hoàn tất</span>
+                                    </c:if>
+                                </td>
                             </tr>
                         </c:forEach>
                         <c:if test="${empty assignmentsPage.content}">
-                            <tr><td colspan="7" class="text-center py-5 text-secondary">
+                            <tr><td colspan="8" class="text-center py-5 text-secondary">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                 Không có đơn giao phù hợp.
                             </td></tr>

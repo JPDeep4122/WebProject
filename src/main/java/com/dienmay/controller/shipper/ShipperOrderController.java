@@ -8,12 +8,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.dienmay.entity.order.DeliveryStatus;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.order.DeliveryAssignmentRepository;
+import com.dienmay.service.order.DeliveryStatusService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class ShipperOrderController {
     private final DeliveryAssignmentRepository assignments;
     private final UserRepository users;
+    private final DeliveryStatusService deliveryStatusService;
 
     @GetMapping
     public String home() {
@@ -54,6 +59,20 @@ public class ShipperOrderController {
         return "shipper/orders";
     }
 
+    @PostMapping("/orders/{id}/status")
+    public String updateStatus(@PathVariable Long id,
+            @RequestParam DeliveryStatus status,
+            @RequestParam(required = false) String failureReason,
+            Principal principal, RedirectAttributes flash) {
+        try {
+            deliveryStatusService.update(id, status, failureReason, principal.getName());
+            flash.addFlashAttribute("success", successMessage(status));
+        } catch (IllegalArgumentException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/shipper/orders";
+    }
+
     private DeliveryStatus parseStatus(String status) {
         if (status == null || status.isBlank()) {
             return null;
@@ -63,5 +82,14 @@ public class ShipperOrderController {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    private String successMessage(DeliveryStatus status) {
+        return switch (status) {
+            case DELIVERING -> "Đã chuyển đơn sang trạng thái đang giao.";
+            case DELIVERED_SUCCESS -> "Đã xác nhận giao hàng thành công.";
+            case DELIVERED_FAILED -> "Đã ghi nhận giao hàng thất bại.";
+            default -> "Đã cập nhật trạng thái giao hàng.";
+        };
     }
 }
