@@ -42,6 +42,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 			}
 		} catch (Exception e) {
 			logger.error("Không thể xác thực người dùng: {}", e);
+			SecurityContextHolder.clearContext();
+		    logger.warn("Không thể xác thực JWT", e);
 		}
 
 		filterChain.doFilter(request, response);

@@ -1,8 +1,118 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Quản lý danh mục</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"></head>
-<body><div class="d-flex"><jsp:include page="fragments/sidebar.jsp"/><main class="flex-grow-1 bg-light p-4"><h3 class="mb-4">Quản lý danh mục sản phẩm</h3>
-<c:if test="${not empty success}"><div class="alert alert-success">${success}</div></c:if><c:if test="${not empty error}"><div class="alert alert-danger">${error}</div></c:if>
-<div class="card mb-4"><div class="card-header">Thêm danh mục</div><div class="card-body"><form method="post" action="/admin/categories" class="row g-2"><div class="col-md-3"><input class="form-control" name="name" placeholder="Tên danh mục" required maxlength="100"></div><div class="col-md-3"><input class="form-control" name="slug" placeholder="Slug" required maxlength="100"></div><div class="col-md-3"><input class="form-control" name="icon" placeholder="Icon"></div><div class="col-md-2"><select class="form-select" name="parentId"><option value="">Danh mục gốc</option><c:forEach items="${categories}" var="c"><option value="${c.id}">${c.name}</option></c:forEach></select></div><div class="col-md-1"><button class="btn btn-primary w-100">Thêm</button></div></form></div></div>
-<div class="card"><div class="table-responsive"><table class="table table-striped align-middle mb-0"><thead><tr><th>ID</th><th>Tên</th><th>Slug</th><th>Danh mục cha</th><th>Icon</th><th>Trạng thái</th><th></th></tr></thead><tbody><c:forEach items="${categories}" var="c"><tr><td>${c.id}<form id="update-${c.id}" method="post" action="/admin/categories/${c.id}/update"></form></td><td><input form="update-${c.id}" class="form-control form-control-sm" name="name" value="${c.name}" required></td><td><input form="update-${c.id}" class="form-control form-control-sm" name="slug" value="${c.slug}" required></td><td><select form="update-${c.id}" class="form-select form-select-sm" name="parentId"><option value="">Danh mục gốc</option><c:forEach items="${categories}" var="parent"><c:if test="${parent.id ne c.id}"><option value="${parent.id}" ${parent.id eq c.parentId ? 'selected' : ''}>${parent.name}</option></c:if></c:forEach></select></td><td><input form="update-${c.id}" class="form-control form-control-sm" name="icon" value="${c.icon}"></td><td><select form="update-${c.id}" class="form-select form-select-sm" name="active"><option value="true" ${c.active ? 'selected' : ''}>Đang bật</option><option value="false" ${!c.active ? 'selected' : ''}>Đã ẩn</option></select></td><td class="text-nowrap"><button form="update-${c.id}" class="btn btn-sm btn-outline-primary">Lưu</button> <form method="post" action="/admin/categories/${c.id}/delete" class="d-inline" onsubmit="return confirm('Xóa danh mục này?')"><button class="btn btn-sm btn-outline-danger">Xóa</button></form></td></tr></c:forEach></tbody></table></div></div>
-</main></div></body></html>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="jakarta.tags.core"%>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quản lý danh mục</title>
+<link
+	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+	rel="stylesheet">
+<link
+	href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+	rel="stylesheet">
+<jsp:include page="/WEB-INF/views/shared/security.jsp"/>
+</head>
+<body>
+	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
+			class="flex-grow-1 bg-light p-4">
+			<h3 class="mb-4">Quản lý danh mục sản phẩm</h3>
+			<c:if test="${not empty success}">
+				<div class="alert alert-success">${success}</div>
+			</c:if>
+			<c:if test="${not empty error}">
+				<div class="alert alert-danger">${error}</div>
+			</c:if>
+			<div class="card mb-4">
+				<div class="card-header">Thêm danh mục</div>
+				<div class="card-body">
+					<form method="post" action="/admin/categories" class="row g-2">
+						<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+						<div class="col-md-3">
+							<input class="form-control" name="name"
+								placeholder="Tên danh mục" required maxlength="100">
+						</div>
+						<div class="col-md-3">
+							<input class="form-control" name="slug" placeholder="Slug"
+								required maxlength="100">
+						</div>
+						<div class="col-md-3">
+							<input class="form-control" name="icon" placeholder="Icon">
+						</div>
+						<div class="col-md-2">
+							<select class="form-select" name="parentId"><option
+									value="">Danh mục gốc</option>
+								<c:forEach items="${categories}" var="c">
+									<option value="${c.id}">${c.name}</option>
+								</c:forEach></select>
+						</div>
+						<div class="col-md-1">
+							<button class="btn btn-primary w-100">Thêm</button>
+						</div>
+					</form>
+				</div>
+			</div>
+			<div class="card">
+				<div class="table-responsive">
+					<table class="table table-striped align-middle mb-0">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Tên</th>
+								<th>Slug</th>
+								<th>Danh mục cha</th>
+								<th>Icon</th>
+								<th>Trạng thái</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							<c:forEach items="${categories}" var="c">
+								<tr>
+									<td>${c.id}<form id="update-${c.id}" method="post"
+											action="/admin/categories/${c.id}/update">
+										<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+									</form></td>
+									<td><input form="update-${c.id}"
+										class="form-control form-control-sm" name="name"
+										value="${c.name}" required></td>
+									<td><input form="update-${c.id}"
+										class="form-control form-control-sm" name="slug"
+										value="${c.slug}" required></td>
+									<td><select form="update-${c.id}"
+										class="form-select form-select-sm" name="parentId"><option
+												value="">Danh mục gốc</option>
+											<c:forEach items="${categories}" var="parent">
+												<c:if test="${parent.id ne c.id}">
+													<option value="${parent.id}"
+														${parent.id eq c.parentId ? 'selected' : ''}>${parent.name}</option>
+												</c:if>
+											</c:forEach></select></td>
+									<td><input form="update-${c.id}"
+										class="form-control form-control-sm" name="icon"
+										value="${c.icon}"></td>
+									<td><select form="update-${c.id}"
+										class="form-select form-select-sm" name="active"><option
+												value="true" ${c.active ? 'selected' : ''}>Đang bật</option>
+											<option value="false" ${!c.active ? 'selected' : ''}>Đã
+												ẩn</option></select></td>
+									<td class="text-nowrap"><button form="update-${c.id}"
+											class="btn btn-sm btn-outline-primary">Lưu</button>
+										<form method="post" action="/admin/categories/${c.id}/delete"
+											class="d-inline"
+											onsubmit="return confirm('Xóa danh mục này?')">
+											<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+											<button class="btn btn-sm btn-outline-danger">Xóa</button>
+										</form></td>
+								</tr>
+							</c:forEach>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</main>
+	</div>
+</body>
+</html>

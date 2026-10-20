@@ -48,7 +48,12 @@ public class ReviewServiceImpl implements ReviewService {
 
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Tài khoản người dùng không tồn tại!"));
-
+        
+        if (!user.isActive()) {
+            throw new IllegalArgumentException(
+                    "Tài khoản hiện không được phép gửi đánh giá.");
+        }
+        
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại!"));
 
@@ -63,31 +68,28 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         // 3. Kiểm tra điều kiện: Người dùng phải đã mua sản phẩm này trong đơn hàng DELIVERED
-        Order matchedOrder = null;
-        if (request.getOrderCode() != null && !request.getOrderCode().trim().isEmpty()) {
-            String cleanCode = request.getOrderCode().trim();
-            matchedOrder = orderRepository.findByOrderCode(cleanCode)
-                    .orElseGet(() -> orderRepository.findAll().stream()
-                            .filter(o -> o.getOrderCode() != null && o.getOrderCode().replace("-", "").equalsIgnoreCase(cleanCode.replace("-", "")))
-                            .findFirst().orElse(null));
+        String requestedCode = request.getOrderCode() == null
+                || request.getOrderCode().isBlank()
+                ? null
+                : request.getOrderCode().trim().replace("-", "");
 
-            if (matchedOrder != null && matchedOrder.getStatus() != OrderStatus.DELIVERED) {
-                throw new RuntimeException("Bạn chỉ có thể đánh giá khi đơn hàng đã được giao thành công!");
-            }
-        } else {
-            // Tìm đơn DELIVERED bất kỳ của user chứa sản phẩm này
-            List<Order> deliveredOrders = orderRepository.findByUserIdAndStatusOrderByCreatedAtDesc(user.getId(), OrderStatus.DELIVERED);
-            for (Order o : deliveredOrders) {
-                if (o.getOrderItems() != null) {
-                    boolean containsProduct = o.getOrderItems().stream()
-                            .anyMatch(item -> item.getProduct().getId().equals(product.getId()));
-                    if (containsProduct) {
-                        matchedOrder = o;
-                        break;
-                    }
-                }
-            }
-        }
+        Order matchedOrder = orderRepository
+                .findByUserIdAndStatusOrderByCreatedAtDesc(
+                        user.getId(), OrderStatus.DELIVERED)
+                .stream()
+                .filter(order -> requestedCode == null
+                        || (order.getOrderCode() != null
+                            && order.getOrderCode().replace("-", "")
+                                    .equalsIgnoreCase(requestedCode)))
+                .filter(order -> order.getOrderItems() != null
+                        && order.getOrderItems().stream()
+                                .anyMatch(item -> item.getProduct() != null
+                                        && product.getId().equals(
+                                                item.getProduct().getId())))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Bạn chỉ được đánh giá sản phẩm trong đơn hàng "
+                        + "của mình đã giao thành công."));
 
         // Kiểm tra xem đã từng đánh giá sản phẩm này chưa
         if (reviewRepository.existsByUserIdAndProductId(user.getId(), product.getId())) {
@@ -188,7 +190,7 @@ public class ReviewServiceImpl implements ReviewService {
             return false;
         }
         User user = userRepository.findByEmail(userEmail).orElse(null);
-        if (user == null) return false;
+        if (user == null || !user.isActive()) return false;
 
         // Nếu đã đánh giá rồi thì không cho đánh giá lại
         if (reviewRepository.existsByUserIdAndProductId(user.getId(), productId)) {

@@ -275,7 +275,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang đăng nhập...';
 
         try {
-            const res = await fetch(CONTEXT_PATH + '/api/auth/login', {
+            const res = await csrfFetch(CONTEXT_PATH + '/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -320,7 +320,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang tạo tài khoản & gửi OTP...';
 
         try {
-            const res = await fetch(CONTEXT_PATH + '/api/auth/register', {
+            const res = await csrfFetch(CONTEXT_PATH + '/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fullname, phoneNumber, email, password })
@@ -355,7 +355,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang kích hoạt...';
 
         try {
-            const res = await fetch(CONTEXT_PATH + '/api/auth/verify-otp', {
+            const res = await csrfFetch(CONTEXT_PATH + '/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: currentPendingEmail, otpCode })
@@ -384,7 +384,7 @@
     async function resendOtp() {
         if (!currentPendingEmail) return;
         try {
-            const res = await fetch(CONTEXT_PATH + '/api/auth/resend-otp?email=' + encodeURIComponent(currentPendingEmail), { method: 'POST' });
+            const res = await csrfFetch(CONTEXT_PATH + '/api/auth/resend-otp?email=' + encodeURIComponent(currentPendingEmail), { method: 'POST' });
             const data = await res.json();
             showAlert(data.success ? 'info' : 'danger', data.message);
         } catch (e) {
@@ -403,7 +403,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang gửi mã...';
 
         try {
-            const res = await fetch(CONTEXT_PATH + '/api/auth/forgot-password', {
+            const res = await csrfFetch(CONTEXT_PATH + '/api/auth/forgot-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
@@ -438,7 +438,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang lưu mật khẩu...';
 
         try {
-            const res = await fetch(CONTEXT_PATH + '/api/auth/reset-password', {
+            const res = await csrfFetch(CONTEXT_PATH + '/api/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: currentPendingEmail, otpCode, newPassword })

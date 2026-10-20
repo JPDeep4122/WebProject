@@ -48,6 +48,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import com.dienmay.event.PromotionEvent;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -118,60 +121,149 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     @Override
     public VoucherResponse applyVoucher(String code, BigDecimal subtotal) {
-        if (code == null || code.trim().isEmpty()) {
-            return VoucherResponse.builder().valid(false).message("Vui lòng nhập mã giảm giá").build();
+        if (code == null || code.isBlank()) {
+            return VoucherResponse.builder()
+                    .valid(false)
+                    .message("Vui lòng nhập mã giảm giá.")
+                    .build();
         }
 
-        String c = code.trim().toUpperCase();
-        Promotion promotion = promotionRepository.findByCodeIgnoreCase(c).orElse(null);
-        if (promotion != null) {
-            LocalDateTime now = LocalDateTime.now();
-            if (!promotion.isActive() || (promotion.getStartsAt()!=null && now.isBefore(promotion.getStartsAt())) || (promotion.getEndsAt()!=null && now.isAfter(promotion.getEndsAt())))
-                return VoucherResponse.builder().valid(false).message("Khuyến mãi chưa bắt đầu, đã hết hạn hoặc đã tắt").build();
-            if (promotion.getMaxUses()!=null && promotion.getUsedCount() >= promotion.getMaxUses())
-                return VoucherResponse.builder().valid(false).message("Khuyến mãi đã hết lượt sử dụng").build();
-            BigDecimal discount = subtotal.multiply(promotion.getDiscountPercent()).divide(BigDecimal.valueOf(100));
-            BigDecimal newFinal = subtotal.subtract(discount).max(BigDecimal.ZERO);
-            return VoucherResponse.builder().valid(true).code(c).message("Áp dụng thành công khuyến mãi " + promotion.getName()).discountAmount(discount).newFinalAmount(newFinal).build();
-        }
-        BigDecimal discount = BigDecimal.ZERO;
-        String msg = "";
-
-        if (c.equals("DIENMAY50K")) {
-            if (subtotal.compareTo(BigDecimal.valueOf(500000)) >= 0) {
-                discount = BigDecimal.valueOf(50000);
-                msg = "Áp dụng thành công mã giảm 50.000₫!";
-            } else {
-                return VoucherResponse.builder().valid(false).message("Mã DIENMAY50K chỉ áp dụng cho đơn từ 500.000₫").build();
-            }
-        } else if (c.equals("SALE10")) {
-            discount = subtotal.multiply(BigDecimal.valueOf(0.10));
-            msg = "Áp dụng thành công mã giảm 10%!";
-        } else if (c.equals("FREESHIP")) {
-            discount = BigDecimal.valueOf(30000);
-            msg = "Miễn phí vận chuyển 30.000₫!";
-        } else {
-            return VoucherResponse.builder().valid(false).message("Mã giảm giá không tồn tại hoặc đã hết hạn").build();
+        if (subtotal == null || subtotal.signum() < 0) {
+            return VoucherResponse.builder()
+                    .valid(false)
+                    .message("Giá trị đơn hàng không hợp lệ.")
+                    .build();
         }
 
-        BigDecimal newFinal = subtotal.subtract(discount);
-        if (newFinal.compareTo(BigDecimal.ZERO) < 0) newFinal = BigDecimal.ZERO;
+        String normalizedCode = code.trim()
+                .toUpperCase(java.util.Locale.ROOT);
+
+        Promotion promotion = promotionRepository
+                .findByCodeIgnoreCase(normalizedCode)
+                .orElse(null);
+
+        return promotion != null
+                ? calculatePromotionVoucher(promotion, subtotal)
+                : calculateLegacyVoucher(normalizedCode, subtotal);
+    }
+
+    private VoucherResponse calculatePromotionVoucher(
+            Promotion promotion, BigDecimal subtotal) {
+
+        LocalDateTime now = LocalDateTime.now();
+        int usedCount = promotion.getUsedCount() == null
+                ? 0 : promotion.getUsedCount();
+
+        if (!promotion.isActive()
+                || (promotion.getStartsAt() != null
+                    && now.isBefore(promotion.getStartsAt()))
+                || (promotion.getEndsAt() != null
+                    && now.isAfter(promotion.getEndsAt()))) {
+            return VoucherResponse.builder()
+                    .valid(false)
+                    .message("Khuyến mãi chưa bắt đầu, đã hết hạn hoặc đã tắt.")
+                    .build();
+        }
+
+        if (promotion.getMaxUses() != null
+                && usedCount >= promotion.getMaxUses()) {
+            return VoucherResponse.builder()
+                    .valid(false)
+                    .message("Khuyến mãi đã hết lượt sử dụng.")
+                    .build();
+        }
+
+        BigDecimal percent = promotion.getDiscountPercent();
+
+        if (percent == null || percent.signum() <= 0
+                || percent.compareTo(BigDecimal.valueOf(100)) > 0) {
+            return VoucherResponse.builder()
+                    .valid(false)
+                    .message("Cấu hình mức giảm không hợp lệ.")
+                    .build();
+        }
+
+        BigDecimal discount = subtotal.multiply(percent)
+                .divide(BigDecimal.valueOf(100))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
 
         return VoucherResponse.builder()
                 .valid(true)
-                .code(c)
-                .message(msg)
+                .code(promotion.getCode())
+                .message("Áp dụng thành công khuyến mãi "
+                        + promotion.getName())
                 .discountAmount(discount)
-                .newFinalAmount(newFinal)
+                .newFinalAmount(subtotal.subtract(discount)
+                        .max(BigDecimal.ZERO))
+                .build();
+    }
+
+    private VoucherResponse calculateLegacyVoucher(
+            String code, BigDecimal subtotal) {
+
+        BigDecimal discount;
+
+        switch (code) {
+            case "DIENMAY50K":
+                if (subtotal.compareTo(BigDecimal.valueOf(500000)) < 0) {
+                    return VoucherResponse.builder()
+                            .valid(false)
+                            .message("Mã DIENMAY50K áp dụng cho đơn từ 500.000₫.")
+                            .build();
+                }
+                discount = BigDecimal.valueOf(50000);
+                break;
+
+            case "SALE10":
+                discount = subtotal.multiply(new BigDecimal("0.10"));
+                break;
+
+            case "FREESHIP":
+                discount = BigDecimal.valueOf(30000);
+                break;
+
+            default:
+                return VoucherResponse.builder()
+                        .valid(false)
+                        .message("Mã giảm giá không tồn tại.")
+                        .build();
+        }
+
+        return VoucherResponse.builder()
+                .valid(true)
+                .code(code)
+                .message("Đã áp dụng mã " + code)
+                .discountAmount(discount)
+                .newFinalAmount(subtotal.subtract(discount)
+                        .max(BigDecimal.ZERO))
                 .build();
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Order placeOrder(PlaceOrderRequest request, String userEmail, HttpSession session) {
-        // Google Maps must not hold a database transaction open while it responds.
-        ShippingQuoteResponse shippingQuote = shippingService.quote(request.getShippingAddress(), request.getProvince());
-        return transactionTemplate.execute(status -> createOrder(request, userEmail, session, shippingQuote));
+    public Order placeOrder(
+            PlaceOrderRequest request,
+            String userEmail,
+            HttpSession session) {
+
+        ShippingQuoteResponse shippingQuote = shippingService.quote(
+                request.getShippingAddress(), request.getProvince());
+
+        Order order = transactionTemplate.execute(
+                status -> createOrder(request, userEmail, session, shippingQuote));
+
+        if (order == null) {
+            throw new IllegalStateException("Không thể tạo đơn hàng.");
+        }
+
+        // Chỉ cấp quyền sau khi đơn được tạo và transaction đã thành công.
+        if (userEmail == null || userEmail.isBlank()
+                || userEmail.equalsIgnoreCase("anonymousUser")) {
+            session.setAttribute(
+                    "GUEST_CHECKOUT_ORDER_" + order.getId(), Boolean.TRUE);
+        }
+
+        return order;
     }
 
     private Order createOrder(PlaceOrderRequest request, String userEmail, HttpSession session,
@@ -219,11 +311,39 @@ public class CheckoutServiceImpl implements CheckoutService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal discount = BigDecimal.ZERO;
-        if (request.getVoucherCode() != null && !request.getVoucherCode().trim().isEmpty()) {
-            VoucherResponse vRes = applyVoucher(request.getVoucherCode(), subtotal);
-            if (vRes.isValid()) {
-                discount = vRes.getDiscountAmount();
-                promotionRepository.findByCodeIgnoreCase(request.getVoucherCode().trim()).ifPresent(p -> { p.setUsedCount(p.getUsedCount() + 1); promotionRepository.save(p); eventPublisher.publishEvent(new PromotionEvent(p.getId(), "PROMOTION_REDEEMED", userEmail, "Sử dụng mã " + p.getCode())); });
+
+        if (request.getVoucherCode() != null
+                && !request.getVoucherCode().isBlank()) {
+
+            String code = request.getVoucherCode().trim()
+                    .toUpperCase(java.util.Locale.ROOT);
+
+            Promotion promotion = promotionRepository
+                    .findByCodeForUpdate(code)
+                    .orElse(null);
+
+            VoucherResponse voucher = promotion != null
+                    ? calculatePromotionVoucher(promotion, subtotal)
+                    : calculateLegacyVoucher(code, subtotal);
+
+            if (!voucher.isValid()) {
+                throw new IllegalArgumentException(voucher.getMessage());
+            }
+
+            discount = voucher.getDiscountAmount();
+
+            if (promotion != null) {
+                int usedCount = promotion.getUsedCount() == null
+                        ? 0 : promotion.getUsedCount();
+
+                promotion.setUsedCount(Math.addExact(usedCount, 1));
+                promotionRepository.save(promotion);
+
+                eventPublisher.publishEvent(new PromotionEvent(
+                        promotion.getId(),
+                        "PROMOTION_REDEEMED",
+                        userEmail,
+                        "Sử dụng mã " + promotion.getCode()));
             }
         }
 
@@ -295,12 +415,45 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     @Override
     @Transactional(readOnly = true)
-    public Order getOrderByCode(String orderCode) {
-        return orderRepository.findByOrderCode(orderCode)
+    public Order getOrderByCode(
+            String orderCode, String userEmail, HttpSession session) {
+
+        if (orderCode == null || orderCode.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.");
+        }
+
+        String cleanCode = orderCode.trim();
+
+        Order order = orderRepository.findByOrderCode(cleanCode)
                 .orElseGet(() -> orderRepository.findAll().stream()
-                        .filter(o -> o.getOrderCode() != null && o.getOrderCode().replace("-", "").equalsIgnoreCase(orderCode.replace("-", "")))
+                        .filter(o -> o.getOrderCode() != null
+                                && o.getOrderCode().replace("-", "")
+                                        .equalsIgnoreCase(cleanCode.replace("-", "")))
                         .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode)));
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Không tìm thấy đơn hàng.")));
+
+        boolean authenticated = userEmail != null
+                && !userEmail.isBlank()
+                && !userEmail.equalsIgnoreCase("anonymousUser");
+
+        boolean owner = authenticated
+                && order.getUser() != null
+                && userEmail.equalsIgnoreCase(order.getUser().getEmail());
+
+        boolean guestWithAccess = !authenticated
+                && session != null
+                && Boolean.TRUE.equals(session.getAttribute(
+                        "GUEST_CHECKOUT_ORDER_" + order.getId()));
+
+        if (!owner && !guestWithAccess) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.");
+        }
+
+        return order;
     }
 
     private Cart getCart(String userEmail, HttpSession session) {

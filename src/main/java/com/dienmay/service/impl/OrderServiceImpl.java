@@ -19,6 +19,9 @@ import com.dienmay.service.order.OrderStateMachine;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
@@ -49,21 +52,33 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public Order getOrderDetail(String orderCode, String userEmail) {
-        if (orderCode == null || orderCode.trim().isEmpty()) {
-            throw new RuntimeException("Mã đơn hàng không hợp lệ!");
+        if (userEmail == null || userEmail.isBlank()
+                || userEmail.equalsIgnoreCase("anonymousUser")) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập.");
+        }
+
+        if (orderCode == null || orderCode.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.");
         }
 
         String cleanCode = orderCode.trim();
+
         Order order = orderRepository.findByOrderCode(cleanCode)
                 .orElseGet(() -> orderRepository.findAll().stream()
-                        .filter(o -> o.getOrderCode() != null && o.getOrderCode().replace("-", "").equalsIgnoreCase(cleanCode.replace("-", "")))
+                        .filter(o -> o.getOrderCode() != null
+                                && o.getOrderCode().replace("-", "")
+                                        .equalsIgnoreCase(cleanCode.replace("-", "")))
                         .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + cleanCode)));
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Không tìm thấy đơn hàng.")));
 
-        if (userEmail != null && !userEmail.equalsIgnoreCase("anonymousUser")) {
-            if (order.getUser() != null && !userEmail.equalsIgnoreCase(order.getUser().getEmail())) {
-                throw new RuntimeException("Bạn không có quyền truy cập đơn hàng này!");
-            }
+        if (order.getUser() == null
+                || !userEmail.equalsIgnoreCase(order.getUser().getEmail())) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.");
         }
 
         return order;

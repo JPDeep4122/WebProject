@@ -16,46 +16,47 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 
-/**
- * Interceptor kiểm tra JWT Token khi client thực hiện kết nối (STOMP CONNECT)
- * Phân công: Thành viên 2 (TV2)
- */
 @Component
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
-    @Autowired
-    private JwtUtils jwtUtils;
+	@Autowired
+	private JwtUtils jwtUtils;
 
-    @Autowired
-    private UserDetailsService userDetailsService;
+	@Autowired
+	private UserDetailsService userDetailsService;
 
-    @Override
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+	@Override
+	public Message<?> preSend(Message<?> message, MessageChannel channel) {
+		StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-            List<String> authorization = accessor.getNativeHeader("Authorization");
+		if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
+			List<String> authorization = accessor.getNativeHeader("Authorization");
 
-            if (authorization != null && !authorization.isEmpty()) {
-                String bearerToken = authorization.get(0);
-                if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-                    String jwt = bearerToken.substring(7);
-                    try {
-                        if (jwtUtils.validateJwtToken(jwt)) {
-                            String username = jwtUtils.getUserNameFromJwtToken(jwt);
-                            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+			if (authorization != null && !authorization.isEmpty()) {
+				String bearerToken = authorization.get(0);
+				if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+					String jwt = bearerToken.substring(7);
+					try {
+						if (jwtUtils.validateJwtToken(jwt)) {
+							String username = jwtUtils.getUserNameFromJwtToken(jwt);
+							UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                            UsernamePasswordAuthenticationToken authentication =
-                                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+							UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+									userDetails, null, userDetails.getAuthorities());
 
-                            accessor.setUser(authentication);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("[WebSocket Auth] Xác thực JWT thất bại: " + e.getMessage());
-                    }
-                }
-            }
-        }
-        return message;
-    }
+							accessor.setUser(authentication);
+						}
+					} catch (Exception e) {
+						System.err.println("[WebSocket Auth] Xác thực JWT thất bại: " + e.getMessage());
+					}
+				}
+			}
+		}
+
+		if (accessor != null && accessor.getUser() != null && accessor.getCommand() != StompCommand.DISCONNECT) {
+			userDetailsService.loadUserByUsername(accessor.getUser().getName());
+		}
+
+		return message;
+	}
 }

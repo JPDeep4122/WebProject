@@ -197,7 +197,7 @@
   document.getElementById('btnConfirmDelete').addEventListener('click', function() {
     if (!itemToDeleteId) return;
 
-    fetch(ctx + '/api/cart/items/' + itemToDeleteId, { method: 'DELETE' })
+    csrfFetch(ctx + '/api/cart/items/' + itemToDeleteId, { method: 'DELETE' })
       .then(res => res.json())
       .then(res => {
         deleteModal.hide();
@@ -226,7 +226,7 @@
       return;
     }
     
-    fetch(ctx + '/api/cart/items/' + itemId + '/quantity?quantity=' + newQty, { method: 'PUT' })
+    csrfFetch(ctx + '/api/cart/items/' + itemId + '/quantity?quantity=' + newQty, { method: 'PUT' })
       .then(res => res.json())
       .then(res => {
         if (res.success) {
@@ -237,7 +237,7 @@
 
   // 4. Chọn / Bỏ chọn 1 sản phẩm
   function toggleSelectItem(itemId, selected) {
-    fetch(ctx + '/api/cart/items/' + itemId + '/select?selected=' + selected, { method: 'PUT' })
+    csrfFetch(ctx + '/api/cart/items/' + itemId + '/select?selected=' + selected, { method: 'PUT' })
       .then(res => res.json())
       .then(res => {
         if (res.success) {
@@ -248,7 +248,7 @@
 
   // 5. Chọn tất cả / Bỏ chọn tất cả
   function toggleSelectAll(selected) {
-    fetch(ctx + '/api/cart/select-all?selected=' + selected, { method: 'PUT' })
+    csrfFetch(ctx + '/api/cart/select-all?selected=' + selected, { method: 'PUT' })
       .then(res => res.json())
       .then(res => {
         if (res.success) {
