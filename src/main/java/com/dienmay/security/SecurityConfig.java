@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
                 .requestMatchers("/admin/categories/**").hasRole("ADMIN")
-                .requestMatchers("/admin/products/**", "/admin/orders/**", "/admin").hasAnyRole("ADMIN", "STAFF")
+                .requestMatchers("/admin/products/**", "/admin/orders/**", "/admin/inventory/**", "/admin").hasAnyRole("ADMIN", "STAFF")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/shipper", "/shipper/**").hasRole("SHIPPER")
                 .requestMatchers("/api/auth/**", "/api/test/**", "/", "/products/**", "/cart/**", "/checkout/**", "/login", "/register", "/css/**", "/js/**", "/images/**", "/static/**", "/favicon.ico").permitAll()
