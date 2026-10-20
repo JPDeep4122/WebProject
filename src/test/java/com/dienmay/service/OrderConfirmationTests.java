@@ -68,6 +68,27 @@ class OrderConfirmationTests {
         });
     }
 
+    private void assignShipper(Long id) {
+        tx.executeWithoutResult(s -> {
+            var shipperRole = em.createQuery("select r from Role r where r.name = 'ROLE_SHIPPER'", Role.class)
+                    .getResultStream().findFirst().orElseGet(() -> {
+                        var role = Role.builder().name("ROLE_SHIPPER").build();
+                        em.persist(role);
+                        return role;
+                    });
+            var branch = em.find(Branch.class, branchId);
+            var shipper = User.builder().email(UUID.randomUUID() + "@shipper.test")
+                    .password("test").fullName("Shipper").active(true)
+                    .branch(branch).roles(Set.of(shipperRole)).build();
+            em.persist(shipper);
+            var order = em.find(Order.class, id);
+            var assignment = DeliveryAssignment.builder().order(order).shipper(shipper)
+                    .status(DeliveryStatus.ASSIGNED).build();
+            em.persist(assignment);
+            order.setDeliveryAssignment(assignment);
+        });
+    }
+
     private Long createOrder(int quantity) {
         var order = Order.builder().orderCode(UUID.randomUUID().toString())
                 .user(em.find(User.class, userId)).branch(em.find(Branch.class, branchId))
@@ -127,6 +148,7 @@ class OrderConfirmationTests {
     @Test void completesDeliveryAndReturnRestoresStockOnlyOnce() {
         service.confirm(orderId, email);
         pickingService.startPicking(orderId, email);
+        assignShipper(orderId);
         fulfillmentService.startShipping(orderId, email);
         fulfillmentService.markDelivered(orderId, email);
         fulfillmentService.requestReturn(orderId, email);
@@ -150,6 +172,7 @@ class OrderConfirmationTests {
     @Test void cancellationDuringShippingRestoresStock() {
         service.confirm(orderId, email);
         pickingService.startPicking(orderId, email);
+        assignShipper(orderId);
         fulfillmentService.startShipping(orderId, email);
         fulfillmentService.cancel(orderId, email);
         assertState(orderId, OrderStatus.CANCELLED, 10);
@@ -164,6 +187,15 @@ class OrderConfirmationTests {
         assertThrows(IllegalArgumentException.class,
                 () -> fulfillmentService.requestReturn(orderId, email));
         assertState(orderId, OrderStatus.CONFIRMED, 7);
+    }
+
+    @Test void processingOrderCannotStartShippingWithoutAssignment() {
+        service.confirm(orderId, email);
+        pickingService.startPicking(orderId, email);
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> fulfillmentService.startShipping(orderId, email));
+        assertEquals("Cần phân công shipper trước khi bắt đầu giao hàng.", error.getMessage());
+        assertState(orderId, OrderStatus.PROCESSING, 7);
     }
 
     @Test void staffCannotShipOrderFromAnotherBranch() {

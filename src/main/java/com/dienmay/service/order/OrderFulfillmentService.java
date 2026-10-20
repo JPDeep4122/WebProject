@@ -25,30 +25,31 @@ public class OrderFulfillmentService {
 
     @Transactional
     public void startShipping(Long orderId, String email) {
-        transition(orderId, email, OrderStatus.SHIPPING, false);
+        transition(orderId, email, OrderStatus.SHIPPING, false, true);
     }
 
     @Transactional
     public void markDelivered(Long orderId, String email) {
-        transition(orderId, email, OrderStatus.DELIVERED, false);
+        transition(orderId, email, OrderStatus.DELIVERED, false, false);
     }
 
     @Transactional
     public void cancel(Long orderId, String email) {
-        transition(orderId, email, OrderStatus.CANCELLED, true);
+        transition(orderId, email, OrderStatus.CANCELLED, true, false);
     }
 
     @Transactional
     public void requestReturn(Long orderId, String email) {
-        transition(orderId, email, OrderStatus.RETURN_REQUESTED, false);
+        transition(orderId, email, OrderStatus.RETURN_REQUESTED, false, false);
     }
 
     @Transactional
     public void completeReturn(Long orderId, String email) {
-        transition(orderId, email, OrderStatus.RETURNED, true);
+        transition(orderId, email, OrderStatus.RETURNED, true, false);
     }
 
-    private void transition(Long orderId, String email, OrderStatus target, boolean restoreStock) {
+    private void transition(Long orderId, String email, OrderStatus target,
+            boolean restoreStock, boolean requireAssignment) {
         var actor = users.findByEmail(email)
                 .orElseThrow(() -> new AccessDeniedException("Không có quyền xử lý đơn."));
         boolean admin = actor.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
@@ -70,6 +71,9 @@ public class OrderFulfillmentService {
         if (!stateMachine.canTransition(order.getStatus(), target)) {
             throw new IllegalArgumentException(
                     "Không thể chuyển trạng thái đơn từ " + order.getStatus() + " sang " + target + ".");
+        }
+        if (requireAssignment && order.getDeliveryAssignment() == null) {
+            throw new IllegalArgumentException("Cần phân công shipper trước khi bắt đầu giao hàng.");
         }
 
         if (restoreStock) {

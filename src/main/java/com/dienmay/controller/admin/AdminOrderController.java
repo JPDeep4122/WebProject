@@ -33,6 +33,7 @@ public class AdminOrderController {
     private final com.dienmay.service.order.OrderConfirmationService confirmationService;
     private final com.dienmay.service.order.OrderPickingService pickingService;
     private final com.dienmay.service.order.OrderFulfillmentService fulfillmentService;
+    private final com.dienmay.service.order.DeliveryAssignmentService deliveryAssignmentService;
 
     @org.springframework.web.bind.annotation.PostMapping("/{id}/confirm")
     public String confirm(@org.springframework.web.bind.annotation.PathVariable Long id,
@@ -63,6 +64,19 @@ public class AdminOrderController {
             Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
         return execute(id, principal, flash, fulfillmentService::startShipping,
                 "Đã chuyển đơn sang trạng thái đang giao.");
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/assign")
+    public String assign(@org.springframework.web.bind.annotation.PathVariable Long id,
+            @RequestParam Long shipperId, Principal principal,
+            org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+        try {
+            deliveryAssignmentService.assign(id, shipperId, principal.getName());
+            flash.addFlashAttribute("success", "Đã phân công đơn hàng cho shipper.");
+        } catch (IllegalArgumentException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/orders";
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/{id}/deliver")
@@ -127,6 +141,15 @@ public class AdminOrderController {
         model.addAttribute("selectedBranchId", effectiveBranchId);
         model.addAttribute("branches", admin ? branchRepository.findByActiveTrue()
                 : currentUser.getBranch() == null ? java.util.List.of() : java.util.List.of(currentUser.getBranch()));
+        var shippers = userRepository
+                .findDistinctByRoles_NameAndActiveTrueOrderByFullNameAsc("ROLE_SHIPPER");
+        if (effectiveBranchId != null) {
+            shippers = shippers.stream()
+                    .filter(shipper -> shipper.getBranch() != null
+                            && java.util.Objects.equals(shipper.getBranch().getId(), effectiveBranchId))
+                    .toList();
+        }
+        model.addAttribute("shippers", shippers);
         model.addAttribute("canChooseBranch", admin);
         model.addAttribute("pageSize", safeSize);
         model.addAttribute("orderRealtimeDestination",

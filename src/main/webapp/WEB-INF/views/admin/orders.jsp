@@ -92,7 +92,7 @@
         <div class="card border-0 shadow-sm">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-dark"><tr><th>Mã đơn</th><th>Khách hàng</th><th>Chi nhánh</th><th>Ngày tạo</th><th class="text-end">Thành tiền</th><th>Trạng thái</th></tr></thead>
+                    <thead class="table-dark"><tr><th>Mã đơn</th><th>Khách hàng</th><th>Chi nhánh</th><th>Ngày tạo</th><th class="text-end">Thành tiền</th><th>Giao hàng</th><th>Trạng thái</th></tr></thead>
                     <tbody>
                     <c:forEach items="${ordersPage.content}" var="order">
                         <tr>
@@ -101,6 +101,33 @@
                             <td><c:out value="${order.branch.name}" default="Chưa gán"/></td>
                             <td>${order.createdAt}</td>
                             <td class="text-end"><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫</td>
+                            <td style="min-width: 230px">
+                                <c:choose>
+                                    <c:when test="${not empty order.deliveryAssignment}">
+                                        <div class="fw-semibold"><c:out value="${order.deliveryAssignment.shipper.fullName}"/></div>
+                                        <small class="text-secondary"><c:out value="${order.deliveryAssignment.status}"/></small>
+                                    </c:when>
+                                    <c:otherwise><span class="text-secondary">Chưa phân công</span></c:otherwise>
+                                </c:choose>
+                                <c:if test="${order.status eq 'PROCESSING'}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/assign" class="mt-2">
+                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                                        <div class="input-group input-group-sm">
+                                            <select class="form-select" name="shipperId" required>
+                                                <option value="">Chọn shipper</option>
+                                                <c:forEach items="${shippers}" var="shipper">
+                                                    <c:if test="${not empty shipper.branch and shipper.branch.id eq order.branch.id}">
+                                                        <option value="${shipper.id}" ${not empty order.deliveryAssignment and order.deliveryAssignment.shipper.id eq shipper.id ? 'selected' : ''}>
+                                                            <c:out value="${shipper.fullName}"/>
+                                                        </option>
+                                                    </c:if>
+                                                </c:forEach>
+                                            </select>
+                                            <button class="btn btn-outline-primary">${empty order.deliveryAssignment ? 'Phân công' : 'Đổi'}</button>
+                                        </div>
+                                    </form>
+                                </c:if>
+                            </td>
                             <td><span class="badge text-bg-secondary">${order.status}</span>
                                 <c:if test="${order.status eq 'PENDING'}">
                                     <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/confirm" class="mt-2">
@@ -114,11 +141,14 @@
                                         <button class="btn btn-sm btn-primary">Bắt đầu lấy hàng</button>
                                     </form>
                                 </c:if>
-                                <c:if test="${order.status eq 'PROCESSING'}">
+                                <c:if test="${order.status eq 'PROCESSING' and not empty order.deliveryAssignment}">
                                     <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/start-shipping" class="mt-2">
                                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                         <button class="btn btn-sm btn-primary">Bắt đầu giao</button>
                                     </form>
+                                </c:if>
+                                <c:if test="${order.status eq 'PROCESSING' and empty order.deliveryAssignment}">
+                                    <div class="small text-warning mt-2">Phân công shipper trước khi giao</div>
                                 </c:if>
                                 <c:if test="${order.status eq 'SHIPPING'}">
                                     <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/deliver" class="mt-2">
@@ -149,7 +179,7 @@
                             </td>
                         </tr>
                     </c:forEach>
-                    <c:if test="${empty ordersPage.content}"><tr><td colspan="6" class="text-center text-secondary py-5">Không có đơn hàng phù hợp.</td></tr></c:if>
+                    <c:if test="${empty ordersPage.content}"><tr><td colspan="7" class="text-center text-secondary py-5">Không có đơn hàng phù hợp.</td></tr></c:if>
                     </tbody>
                 </table>
             </div>

@@ -68,8 +68,8 @@ public class AdminUserController {
             String roleName = normalizeRole(role);
             Role selected = roles.findByName(roleName).orElseGet(() -> roles.save(Role.builder().name(roleName).build()));
             user.getRoles().clear(); user.getRoles().add(selected);
-            if ("ROLE_STAFF".equals(roleName)) {
-                if (branchId == null) throw new IllegalArgumentException("Nhân viên phải thuộc một chi nhánh.");
+            if (requiresBranch(roleName)) {
+                if (branchId == null) throw new IllegalArgumentException("Nhân viên và shipper phải thuộc một chi nhánh.");
                 user.setBranch(branches.findById(branchId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chi nhánh.")));
             } else user.setBranch(null);
             users.save(user); flash.addFlashAttribute("success", "Đã cập nhật phân quyền.");
@@ -83,10 +83,11 @@ public class AdminUserController {
         if (request.getPassword()!=null && !request.getPassword().isBlank()) user.setPassword(encoder.encode(request.getPassword()));
         user.setActive(request.getActive()==null || request.getActive());
         String roleName=normalizeRole(request.getRole()); Role role=roles.findByName(roleName).orElseGet(() -> roles.save(Role.builder().name(roleName).build())); user.getRoles().clear(); user.getRoles().add(role);
-        if ("ROLE_STAFF".equals(roleName)) {
+        if (requiresBranch(roleName)) {
             if (request.getBranchId() != null) user.setBranch(branches.findById(request.getBranchId()).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chi nhánh.")));
-            else if (creating || user.getBranch() == null) throw new IllegalArgumentException("Nhân viên phải thuộc một chi nhánh.");
+            else if (creating || user.getBranch() == null) throw new IllegalArgumentException("Nhân viên và shipper phải thuộc một chi nhánh.");
         } else user.setBranch(null);
     }
     private String normalizeRole(String role) { String value=role==null?"ROLE_CUSTOMER":role.trim().toUpperCase(); return value.startsWith("ROLE_")?value:"ROLE_"+value; }
+    private boolean requiresBranch(String roleName) { return "ROLE_STAFF".equals(roleName) || "ROLE_SHIPPER".equals(roleName); }
 }

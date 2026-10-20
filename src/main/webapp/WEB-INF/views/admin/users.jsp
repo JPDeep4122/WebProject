@@ -39,6 +39,8 @@
 									cả</option>
 								<option value="STAFF"
 									${selectedType eq 'STAFF' ? 'selected' : ''}>Nhân viên</option>
+								<option value="SHIPPER"
+									${selectedType eq 'SHIPPER' ? 'selected' : ''}>Shipper</option>
 								<option value="CUSTOMER"
 									${selectedType eq 'CUSTOMER' ? 'selected' : ''}>Khách
 									hàng</option>
@@ -101,11 +103,12 @@
 							<select class="form-select" name="role"><option
 									value="ROLE_CUSTOMER">Khách hàng</option>
 								<option value="ROLE_STAFF">Nhân viên</option>
+								<option value="ROLE_SHIPPER">Shipper</option>
 								<option value="ROLE_ADMIN">Admin</option></select>
 						</div>
 						<div class="col-md-2">
 							<select class="form-select" name="branchId"><option
-									value="">Chi nhánh (chọn cho nhân viên)</option>
+									value="">Chi nhánh (nhân viên/shipper)</option>
 								<c:forEach items="${branches}" var="b">
 									<option value="${b.id}">${b.name}</option>
 								</c:forEach></select>

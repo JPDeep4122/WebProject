@@ -29,17 +29,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	Page<Order> findByUserId(Long userId, Pageable pageable);
 
-	@EntityGraph(attributePaths = {"user", "branch"})
+	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByBranchId(Long branchId, Pageable pageable);
 
-	@EntityGraph(attributePaths = {"user", "branch"})
+	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByBranchIdAndStatus(Long branchId, OrderStatus status, Pageable pageable);
 
-	@EntityGraph(attributePaths = {"user", "branch"})
+	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByStatus(OrderStatus status, Pageable pageable);
 
 	@Override
-	@EntityGraph(attributePaths = {"user", "branch"})
+	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findAll(Pageable pageable);
 
 	List<Order> findByStatus(OrderStatus status);
