@@ -14,7 +14,7 @@
 <div class="d-flex"><jsp:include page="fragments/sidebar.jsp"/>
 <main class="flex-grow-1 bg-light p-4" style="min-width:0">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div><h3 class="mb-1">Yêu cầu trả hàng / hoàn tiền</h3><div class="text-secondary">Tiếp nhận và xét duyệt yêu cầu của khách hàng</div></div>
+        <div><h3 class="mb-1">Yêu cầu trả hàng / hoàn tiền</h3><div class="text-secondary">Xét duyệt, nhận lại hàng, hoàn kho và ghi nhận hoàn tiền</div></div>
         <span class="badge text-bg-primary fs-6">${requestsPage.totalElements} yêu cầu</span>
     </div>
     <c:if test="${not empty success}"><div class="alert alert-success"><c:out value="${success}"/></div></c:if>
@@ -46,7 +46,8 @@
             <td style="min-width:240px"><c:out value="${request.reason}"/></td>
             <td class="text-end text-nowrap"><fmt:formatNumber value="${request.requestedRefundAmount}" type="number" groupingUsed="true"/> ₫</td>
             <td><c:choose><c:when test="${request.status eq 'PENDING'}"><span class="badge text-bg-warning">Chờ duyệt</span></c:when>
-                <c:when test="${request.status eq 'APPROVED'}"><span class="badge text-bg-success">Đã duyệt</span></c:when>
+                <c:when test="${request.status eq 'APPROVED'}"><span class="badge text-bg-primary">Chờ nhận hàng</span></c:when>
+                <c:when test="${request.status eq 'COMPLETED'}"><span class="badge text-bg-success">Đã hoàn tất</span></c:when>
                 <c:otherwise><span class="badge text-bg-danger">Từ chối</span></c:otherwise></c:choose>
                 <c:if test="${not empty request.reviewNote}"><div class="small text-secondary mt-1"><c:out value="${request.reviewNote}"/></div></c:if></td>
             <td><c:if test="${request.status eq 'PENDING'}">
@@ -60,7 +61,20 @@
                     <input class="form-control form-control-sm mb-2" name="reviewNote" maxlength="500" placeholder="Lý do từ chối" required>
                     <button class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Từ chối yêu cầu trả hàng này?');"><i class="bi bi-x-circle"></i> Từ chối</button>
                 </form></c:if>
-                <c:if test="${request.status ne 'PENDING'}"><span class="small text-secondary">Đã xử lý bởi <c:out value="${request.reviewedBy.fullName}"/></span></c:if></td>
+                <c:if test="${request.status eq 'APPROVED'}">
+                    <form method="post" action="${pageContext.request.contextPath}/admin/returns/${request.id}/complete">
+                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"><input type="hidden" name="branchId" value="${selectedBranchId}">
+                        <input class="form-control form-control-sm mb-2" name="completionNote" maxlength="500" placeholder="Ghi chú khi nhận lại hàng">
+                        <button class="btn btn-sm btn-success w-100" onclick="return confirm('Xác nhận đã nhận hàng, hoàn kho và hoàn tiền?');"><i class="bi bi-box-arrow-in-down"></i> Hoàn tất trả hàng</button>
+                    </form>
+                    <div class="small text-secondary mt-2">Đã duyệt bởi <c:out value="${request.reviewedBy.fullName}"/></div>
+                </c:if>
+                <c:if test="${request.status eq 'REJECTED'}"><span class="small text-secondary">Đã từ chối bởi <c:out value="${request.reviewedBy.fullName}"/></span></c:if>
+                <c:if test="${request.status eq 'COMPLETED'}">
+                    <div class="small text-success fw-semibold">Đã hoàn <fmt:formatNumber value="${request.refundedAmount}" type="number" groupingUsed="true"/> ₫</div>
+                    <div class="small text-secondary">Hoàn tất bởi <c:out value="${request.completedBy.fullName}"/> lúc ${request.completedAt}</div>
+                    <c:if test="${not empty request.completionNote}"><div class="small text-secondary mt-1"><c:out value="${request.completionNote}"/></div></c:if>
+                </c:if></td>
         </tr></c:forEach>
         <c:if test="${empty requestsPage.content}"><tr><td colspan="7" class="text-center text-secondary py-5"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Không có yêu cầu phù hợp.</td></tr></c:if></tbody>
     </table></div></div>

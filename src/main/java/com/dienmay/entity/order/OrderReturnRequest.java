@@ -66,6 +66,19 @@ public class OrderReturnRequest {
     @Column(name = "review_note", length = 500)
     private String reviewNote;
 
+    @Column(name = "refunded_amount", precision = 15, scale = 2)
+    private BigDecimal refundedAmount;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "completed_by")
+    private User completedBy;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "completion_note", length = 500)
+    private String completionNote;
+
     @PrePersist
     void onCreate() {
         if (status == null) {

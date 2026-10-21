@@ -2,9 +2,11 @@ package com.dienmay.service.order;
 
 import java.time.LocalDateTime;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,14 +16,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.dienmay.dto.order.ReturnRequestOverview;
 import com.dienmay.entity.auth.User;
+import com.dienmay.entity.branch.BranchInventory;
+import com.dienmay.entity.branch.InventoryAdjustment;
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderReturnRequest;
 import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.entity.order.ReturnRequestStatus;
+import com.dienmay.entity.payment.Payment;
+import com.dienmay.entity.payment.PaymentMethod;
+import com.dienmay.entity.payment.PaymentStatus;
 import com.dienmay.repository.auth.UserRepository;
+import com.dienmay.repository.branch.BranchInventoryRepository;
 import com.dienmay.repository.branch.BranchRepository;
+import com.dienmay.repository.branch.InventoryAdjustmentRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.order.OrderReturnRequestRepository;
+import com.dienmay.repository.payment.PaymentRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,6 +47,9 @@ public class ReturnRequestService {
     private final OrderRepository orders;
     private final UserRepository users;
     private final BranchRepository branches;
+    private final BranchInventoryRepository inventories;
+    private final InventoryAdjustmentRepository adjustments;
+    private final PaymentRepository payments;
     private final OrderStateMachine stateMachine;
 
     @Transactional
@@ -127,6 +140,100 @@ public class ReturnRequestService {
         request.setReviewNote(normalizedNote);
     }
 
+    @Transactional
+    public void complete(Long requestId, String completionNote, String actorEmail) {
+        User actor = requireManager(actorEmail);
+        OrderReturnRequest request = returnRequests.findByIdForUpdate(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu trả hàng."));
+        if (request.getStatus() != ReturnRequestStatus.APPROVED) {
+            throw new IllegalArgumentException("Chỉ yêu cầu đã duyệt mới có thể hoàn tất trả hàng.");
+        }
+        authorizeBranch(actor, request.getOrder());
+
+        Order order = orders.findForUpdate(request.getOrder().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
+        if (order.getStatus() != OrderStatus.RETURN_REQUESTED) {
+            throw new IllegalArgumentException("Đơn hàng không ở trạng thái chờ nhận hàng trả lại.");
+        }
+        if (order.getBranch() == null) {
+            throw new IllegalArgumentException("Đơn hàng chưa được gán chi nhánh.");
+        }
+        if (request.getRequestedRefundAmount() == null
+                || request.getRequestedRefundAmount().signum() < 0) {
+            throw new IllegalArgumentException("Số tiền hoàn của yêu cầu không hợp lệ.");
+        }
+
+        String normalizedNote = normalizeCompletionNote(completionNote);
+        Payment payment = validatePaymentForRefund(order);
+        restoreInventory(order, actor);
+        payment.setPaymentStatus(PaymentStatus.REFUNDED);
+        stateMachine.transition(order, OrderStatus.RETURNED);
+
+        request.setStatus(ReturnRequestStatus.COMPLETED);
+        request.setRefundedAmount(request.getRequestedRefundAmount());
+        request.setCompletedBy(actor);
+        request.setCompletedAt(LocalDateTime.now());
+        request.setCompletionNote(normalizedNote);
+    }
+
+    private void restoreInventory(Order order, User actor) {
+        if (order.getOrderItems().isEmpty()) {
+            throw new IllegalArgumentException("Đơn hàng không có sản phẩm để hoàn kho.");
+        }
+        var quantities = new TreeMap<Long, Integer>();
+        for (var item : order.getOrderItems()) {
+            if (item.getProduct() == null || item.getProduct().getId() == null
+                    || item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Sản phẩm hoặc số lượng trong đơn không hợp lệ.");
+            }
+            quantities.merge(item.getProduct().getId(), item.getQuantity(), Math::addExact);
+        }
+
+        Long branchId = order.getBranch().getId();
+        var locked = new LinkedHashMap<Long, BranchInventory>();
+        for (Long productId : quantities.keySet()) {
+            BranchInventory inventory = inventories.findForUpdate(branchId, productId)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Chi nhánh chưa có tồn kho cho sản phẩm #" + productId));
+            Math.addExact(inventory.getStockQuantity(), quantities.get(productId));
+            locked.put(productId, inventory);
+        }
+
+        for (var entry : locked.entrySet()) {
+            BranchInventory inventory = entry.getValue();
+            int previousStock = inventory.getStockQuantity();
+            int restoredStock = Math.addExact(previousStock, quantities.get(entry.getKey()));
+            inventory.setStockQuantity(restoredStock);
+            inventory.setAvailableQuantity(restoredStock - inventory.getReservedQuantity());
+            adjustments.save(InventoryAdjustment.builder()
+                    .inventory(inventory)
+                    .branch(inventory.getBranch())
+                    .product(inventory.getProduct())
+                    .adjustedBy(actor)
+                    .previousStock(previousStock)
+                    .newStock(restoredStock)
+                    .reservedQuantity(inventory.getReservedQuantity())
+                    .reason("Hoàn kho từ đơn trả hàng " + order.getOrderCode())
+                    .build());
+        }
+    }
+
+    private Payment validatePaymentForRefund(Order order) {
+        Payment payment = payments.findByOrderIdForUpdate(order.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Đơn hàng chưa có thông tin thanh toán."));
+        PaymentStatus currentStatus = payment.getPaymentStatus();
+        if (currentStatus == PaymentStatus.REFUNDED) {
+            throw new IllegalArgumentException("Khoản thanh toán đã được hoàn tiền.");
+        }
+        if (currentStatus == PaymentStatus.FAILED
+                || (currentStatus == PaymentStatus.PENDING
+                        && payment.getPaymentMethod() != PaymentMethod.COD)) {
+            throw new IllegalArgumentException("Thanh toán chưa thành công nên chưa thể ghi nhận hoàn tiền.");
+        }
+        return payment;
+    }
+
     private User requireActiveUser(String email) {
         User user = users.findByEmail(email)
                 .orElseThrow(() -> new AccessDeniedException("Không tìm thấy tài khoản đang đăng nhập."));
@@ -178,6 +285,14 @@ public class ReturnRequestService {
         }
         if (normalized.length() > 500) {
             throw new IllegalArgumentException("Ghi chú xét duyệt tối đa 500 ký tự.");
+        }
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private String normalizeCompletionNote(String note) {
+        String normalized = note == null ? "" : note.trim();
+        if (normalized.length() > 500) {
+            throw new IllegalArgumentException("Ghi chú hoàn tất tối đa 500 ký tự.");
         }
         return normalized.isBlank() ? null : normalized;
     }

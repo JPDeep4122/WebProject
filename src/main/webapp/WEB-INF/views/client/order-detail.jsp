@@ -136,14 +136,17 @@
 		</div>
 	</c:if>
 	<c:if test="${not empty returnRequest}">
-		<div class="alert ${returnRequest.status eq 'APPROVED' ? 'alert-success' : (returnRequest.status eq 'REJECTED' ? 'alert-danger' : 'alert-warning')} rounded-4 mb-4">
+		<div class="alert ${returnRequest.status eq 'COMPLETED' ? 'alert-success' : (returnRequest.status eq 'REJECTED' ? 'alert-danger' : (returnRequest.status eq 'APPROVED' ? 'alert-info' : 'alert-warning'))} rounded-4 mb-4">
 			<div class="fw-bold"><i class="bi bi-arrow-counterclockwise me-2"></i>
 				<c:choose><c:when test="${returnRequest.status eq 'PENDING'}">Yêu cầu trả hàng đang chờ duyệt</c:when>
-				<c:when test="${returnRequest.status eq 'APPROVED'}">Yêu cầu trả hàng đã được duyệt</c:when>
+				<c:when test="${returnRequest.status eq 'APPROVED'}">Yêu cầu đã được duyệt, đang chờ nhận lại hàng</c:when>
+				<c:when test="${returnRequest.status eq 'COMPLETED'}">Trả hàng và hoàn tiền đã hoàn tất</c:when>
 				<c:otherwise>Yêu cầu trả hàng đã bị từ chối</c:otherwise></c:choose>
 			</div>
 			<div class="small mt-1">Lý do: <c:out value="${returnRequest.reason}"/></div>
 			<c:if test="${not empty returnRequest.reviewNote}"><div class="small mt-1">Phản hồi: <c:out value="${returnRequest.reviewNote}"/></div></c:if>
+			<c:if test="${returnRequest.status eq 'COMPLETED'}"><div class="small mt-1">Số tiền đã hoàn: <fmt:formatNumber value="${returnRequest.refundedAmount}" type="number" groupingUsed="true"/> ₫</div></c:if>
+			<c:if test="${not empty returnRequest.completionNote}"><div class="small mt-1">Ghi chú hoàn tất: <c:out value="${returnRequest.completionNote}"/></div></c:if>
 		</div>
 	</c:if>
 	<c:if test="${not empty errorMessage}">

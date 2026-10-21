@@ -17,7 +17,7 @@ import com.dienmay.entity.order.ReturnRequestStatus;
 public interface OrderReturnRequestRepository extends JpaRepository<OrderReturnRequest, Long> {
     boolean existsByOrderIdAndStatusIn(Long orderId, Collection<ReturnRequestStatus> statuses);
 
-    @EntityGraph(attributePaths = {"order", "requestedBy", "reviewedBy"})
+    @EntityGraph(attributePaths = {"order", "requestedBy", "reviewedBy", "completedBy"})
     Optional<OrderReturnRequest> findFirstByOrderIdOrderByRequestedAtDesc(Long orderId);
 
     @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
@@ -25,7 +25,7 @@ public interface OrderReturnRequestRepository extends JpaRepository<OrderReturnR
     @Query("select request from OrderReturnRequest request where request.id = :id")
     Optional<OrderReturnRequest> findByIdForUpdate(@Param("id") Long id);
 
-    @EntityGraph(attributePaths = {"order", "order.branch", "order.user", "order.payment", "requestedBy", "reviewedBy"})
+    @EntityGraph(attributePaths = {"order", "order.branch", "order.user", "order.payment", "requestedBy", "reviewedBy", "completedBy"})
     @Query("select request from OrderReturnRequest request "
             + "where (:branchId is null or request.order.branch.id = :branchId) "
             + "and (:status is null or request.status = :status)")

@@ -18,9 +18,17 @@ import org.springframework.security.access.AccessDeniedException;
 import com.dienmay.entity.auth.Role;
 import com.dienmay.entity.auth.User;
 import com.dienmay.entity.branch.Branch;
+import com.dienmay.entity.branch.BranchInventory;
 import com.dienmay.entity.order.Order;
+import com.dienmay.entity.order.OrderItem;
 import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.entity.order.ReturnRequestStatus;
+import com.dienmay.entity.payment.Payment;
+import com.dienmay.entity.payment.PaymentMethod;
+import com.dienmay.entity.payment.PaymentStatus;
+import com.dienmay.entity.product.Product;
+import com.dienmay.repository.branch.BranchInventoryRepository;
+import com.dienmay.repository.branch.InventoryAdjustmentRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.order.OrderReturnRequestRepository;
 import com.dienmay.service.order.OrderStateMachine;
@@ -34,6 +42,8 @@ class ReturnRequestServiceTests {
     @Autowired ReturnRequestService service;
     @Autowired OrderReturnRequestRepository requests;
     @Autowired OrderRepository orders;
+    @Autowired BranchInventoryRepository inventories;
+    @Autowired InventoryAdjustmentRepository adjustments;
     @Autowired EntityManager em;
 
     Branch firstBranch;
@@ -146,6 +156,78 @@ class ReturnRequestServiceTests {
                 requests.findById(request.getId()).orElseThrow().getStatus());
     }
 
+    @Test
+    void completionRestoresInventoryRefundsPaymentAndRecordsAudit() {
+        var request = service.submit(firstOrder.getOrderCode(),
+                "Sản phẩm bị lỗi màn hình", customer.getEmail());
+        service.review(request.getId(), ReturnRequestStatus.APPROVED,
+                "Đủ điều kiện tiếp nhận", firstStaff.getEmail());
+
+        service.complete(request.getId(), "Đã nhận đủ sản phẩm và phụ kiện",
+                firstStaff.getEmail());
+        em.flush();
+        em.clear();
+
+        var savedRequest = requests.findById(request.getId()).orElseThrow();
+        var savedOrder = orders.findById(firstOrder.getId()).orElseThrow();
+        Long productId = firstOrder.getOrderItems().get(0).getProduct().getId();
+        var inventory = inventories.findByBranchIdAndProductId(firstBranch.getId(), productId)
+                .orElseThrow();
+
+        assertEquals(ReturnRequestStatus.COMPLETED, savedRequest.getStatus());
+        assertEquals(firstStaff.getId(), savedRequest.getCompletedBy().getId());
+        assertEquals("Đã nhận đủ sản phẩm và phụ kiện", savedRequest.getCompletionNote());
+        assertEquals(0, new BigDecimal("500000").compareTo(savedRequest.getRefundedAmount()));
+        assertEquals(OrderStatus.RETURNED, savedOrder.getStatus());
+        assertEquals(PaymentStatus.REFUNDED, savedOrder.getPayment().getPaymentStatus());
+        assertEquals(9, inventory.getStockQuantity());
+        assertEquals(8, inventory.getAvailableQuantity());
+        assertEquals(1, adjustments.count());
+
+        assertThrows(IllegalArgumentException.class, () -> service.complete(
+                request.getId(), null, firstStaff.getEmail()));
+        assertEquals(9, inventories.findById(inventory.getId()).orElseThrow().getStockQuantity());
+        assertEquals(1, adjustments.count());
+    }
+
+    @Test
+    void onlinePaymentMustBeSuccessfulBeforeCompletingReturn() {
+        var persistedOrder = orders.findById(firstOrder.getId()).orElseThrow();
+        persistedOrder.getPayment().setPaymentMethod(PaymentMethod.VNPAY);
+        persistedOrder.getPayment().setPaymentStatus(PaymentStatus.PENDING);
+        var request = service.submit(firstOrder.getOrderCode(),
+                "Sản phẩm bị lỗi màn hình", customer.getEmail());
+        service.review(request.getId(), ReturnRequestStatus.APPROVED,
+                null, firstStaff.getEmail());
+
+        assertThrows(IllegalArgumentException.class, () -> service.complete(
+                request.getId(), null, firstStaff.getEmail()));
+        em.flush();
+        em.clear();
+
+        var unchangedOrder = orders.findById(firstOrder.getId()).orElseThrow();
+        Long productId = firstOrder.getOrderItems().get(0).getProduct().getId();
+        assertEquals(OrderStatus.RETURN_REQUESTED, unchangedOrder.getStatus());
+        assertEquals(PaymentStatus.PENDING, unchangedOrder.getPayment().getPaymentStatus());
+        assertEquals(ReturnRequestStatus.APPROVED,
+                requests.findById(request.getId()).orElseThrow().getStatus());
+        assertEquals(7, inventories.findByBranchIdAndProductId(firstBranch.getId(), productId)
+                .orElseThrow().getStockQuantity());
+        assertEquals(0, adjustments.count());
+    }
+
+    @Test
+    void staffCannotCompleteReturnFromAnotherBranch() {
+        var request = service.submit(secondOrder.getOrderCode(),
+                "Sản phẩm bị lỗi nguồn điện", otherCustomer.getEmail());
+        service.review(request.getId(), ReturnRequestStatus.APPROVED, null, admin.getEmail());
+
+        assertThrows(AccessDeniedException.class, () -> service.complete(
+                request.getId(), null, firstStaff.getEmail()));
+        assertEquals(OrderStatus.RETURN_REQUESTED,
+                orders.findById(secondOrder.getId()).orElseThrow().getStatus());
+    }
+
     private Branch branch(String prefix) {
         var branch = Branch.builder().name(prefix + " " + UUID.randomUUID()).address("Address").build();
         em.persist(branch);
@@ -166,12 +248,34 @@ class ReturnRequestServiceTests {
     }
 
     private Order order(User customer, Branch branch, String amount) {
+        var product = Product.builder()
+                .name("Product " + UUID.randomUUID())
+                .slug(UUID.randomUUID().toString())
+                .sku(UUID.randomUUID().toString())
+                .originalPrice(new BigDecimal(amount))
+                .build();
+        em.persist(product);
         var order = Order.builder().orderCode("ORD-" + UUID.randomUUID())
                 .user(customer).branch(branch).status(OrderStatus.DELIVERED)
                 .totalAmount(new BigDecimal(amount)).finalAmount(new BigDecimal(amount))
                 .recipientName("Recipient").recipientPhone("0123456789")
                 .shippingAddress("Delivery address").build();
         em.persist(order);
+        var item = OrderItem.builder()
+                .order(order).product(product).quantity(2)
+                .price(new BigDecimal(amount).divide(BigDecimal.valueOf(2)))
+                .build();
+        order.getOrderItems().add(item);
+        em.persist(item);
+        var payment = Payment.builder()
+                .order(order).paymentMethod(PaymentMethod.COD)
+                .paymentStatus(PaymentStatus.SUCCESS).amount(new BigDecimal(amount))
+                .build();
+        order.setPayment(payment);
+        em.persist(payment);
+        em.persist(BranchInventory.builder()
+                .branch(branch).product(product).stockQuantity(7)
+                .reservedQuantity(1).availableQuantity(6).build());
         return order;
     }
 }

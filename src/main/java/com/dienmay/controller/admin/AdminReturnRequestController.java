@@ -68,6 +68,24 @@ public class AdminReturnRequestController {
         return "redirect:/admin/returns";
     }
 
+    @PostMapping("/{id}/complete")
+    public String complete(@PathVariable Long id,
+            @RequestParam(required = false) String completionNote,
+            @RequestParam(required = false) Long branchId,
+            Principal principal, RedirectAttributes flash) {
+        try {
+            returnRequestService.complete(id, completionNote, principal.getName());
+            flash.addFlashAttribute("success",
+                    "Đã hoàn tất trả hàng, hoàn kho và ghi nhận hoàn tiền.");
+        } catch (IllegalArgumentException | AccessDeniedException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        if (branchId != null) {
+            flash.addAttribute("branchId", branchId);
+        }
+        return "redirect:/admin/returns";
+    }
+
     private ReturnRequestStatus parseStatus(String status) {
         if (status == null || status.isBlank()) {
             return null;
