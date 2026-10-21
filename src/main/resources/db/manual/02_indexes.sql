@@ -1,0 +1,22 @@
+-- Common lookup and join indexes for the schema in 01_schema.sql.
+CREATE INDEX ix_account_status ON tai_khoan(status);
+CREATE INDEX ix_staff_branch_status ON nhan_vien_chi_nhanh(branch_id, status);
+CREATE INDEX ix_product_category_status ON san_pham(category_id, status);
+CREATE INDEX ix_product_brand_status ON san_pham(brand_id, status);
+CREATE INDEX ix_variant_product ON bien_the_san_pham(product_id);
+CREATE INDEX ix_product_image_product_order ON anh_san_pham(product_id, sort_order);
+CREATE UNIQUE INDEX uq_primary_image_per_product ON anh_san_pham(product_id) WHERE is_primary;
+CREATE INDEX ix_inventory_variant ON ton_kho_chi_nhanh(variant_id);
+CREATE INDEX ix_promotion_window ON khuyen_mai(status, starts_at, ends_at);
+CREATE INDEX ix_cart_account ON gio_hang(account_id);
+CREATE INDEX ix_cart_item_variant ON chi_tiet_gio_hang(variant_id);
+CREATE INDEX ix_address_account ON dia_chi_giao_hang(account_id);
+CREATE INDEX ix_order_account_created ON hoa_don(account_id, created_at DESC);
+CREATE INDEX ix_order_status_created ON hoa_don(status, created_at DESC);
+CREATE INDEX ix_order_item_variant ON chi_tiet_hoa_don(variant_id);
+CREATE INDEX ix_promotion_use_account ON khuyen_mai_da_su_dung(account_id, used_at DESC);
+CREATE INDEX ix_payment_order_created ON thanh_toan(order_id, created_at DESC);
+CREATE INDEX ix_shipping_status_assigned ON van_chuyen(status, assigned_at);
+CREATE INDEX ix_review_product_status_created ON danh_gia(product_id, status, created_at DESC);
+CREATE INDEX ix_audit_account_created ON nhat_ky_kiem_toan(account_id, created_at DESC);
+CREATE INDEX ix_audit_entity ON nhat_ky_kiem_toan(entity_type, entity_id);

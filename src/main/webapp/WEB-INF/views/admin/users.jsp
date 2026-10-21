@@ -1,0 +1,176 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="jakarta.tags.core"%>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions"%>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quản lý tài khoản</title>
+<link
+	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+	rel="stylesheet">
+<jsp:include page="/WEB-INF/views/shared/security.jsp"/>
+</head>
+<body>
+	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
+			class="flex-grow-1 bg-light p-4">
+			<h3>Quản lý tài khoản</h3>
+			<c:if test="${not empty success}">
+				<div class="alert alert-success">${success}</div>
+			</c:if>
+			<c:if test="${not empty error}">
+				<div class="alert alert-danger">${error}</div>
+			</c:if>
+			<div class="card mb-3">
+				<div class="card-header">Tìm kiếm và lọc</div>
+				<div class="card-body">
+					<form method="get" action="/admin/users"
+						class="row g-2 align-items-end">
+						<div class="col-md-2">
+							<label class="form-label">ID tài khoản</label><input
+								class="form-control" type="number" name="id"
+								value="${selectedId}" placeholder="Ví dụ: 15">
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">Loại tài khoản</label><select
+								class="form-select" name="type"><option value="">Tất
+									cả</option>
+								<option value="STAFF"
+									${selectedType eq 'STAFF' ? 'selected' : ''}>Nhân viên</option>
+								<option value="SHIPPER"
+									${selectedType eq 'SHIPPER' ? 'selected' : ''}>Shipper</option>
+								<option value="CUSTOMER"
+									${selectedType eq 'CUSTOMER' ? 'selected' : ''}>Khách
+									hàng</option>
+								<option value="ADMIN"
+									${selectedType eq 'ADMIN' ? 'selected' : ''}>Quản trị
+									viên</option></select>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">Sắp xếp theo</label><select
+								class="form-select" name="sort"><option value="id">ID</option>
+								<option value="fullName"
+									${selectedSort eq 'fullName' ? 'selected' : ''}>Họ tên</option>
+								<option value="email"
+									${selectedSort eq 'email' ? 'selected' : ''}>Email</option>
+								<option value="createdAt"
+									${selectedSort eq 'createdAt' ? 'selected' : ''}>Ngày
+									tạo</option>
+								<option value="active"
+									${selectedSort eq 'active' ? 'selected' : ''}>Trạng
+									thái</option></select>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">Thứ tự</label><select
+								class="form-select" name="direction"><option
+									value="asc">Tăng dần</option>
+								<option value="desc"
+									${selectedDirection eq 'desc' ? 'selected' : ''}>Giảm
+									dần</option></select>
+						</div>
+						<div class="col-md-2">
+							<button class="btn btn-primary">Lọc tài khoản</button>
+							<a class="btn btn-outline-secondary" href="/admin/users">Đặt
+								lại</a>
+						</div>
+					</form>
+				</div>
+			</div>
+			<div class="card mb-3">
+				<div class="card-header">Mở tài khoản và phân quyền</div>
+				<div class="card-body">
+					<form method="post" action="/admin/users" class="row g-2">
+						<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+						<div class="col-md-3">
+							<input class="form-control" name="email" type="email"
+								placeholder="Email" required>
+						</div>
+						<div class="col-md-2">
+							<input class="form-control" name="fullName" placeholder="Họ tên"
+								required>
+						</div>
+						<div class="col-md-2">
+							<input class="form-control" name="password" type="password"
+								placeholder="Mật khẩu" minlength="6" required>
+						</div>
+						<div class="col-md-2">
+							<input class="form-control" name="phoneNumber"
+								placeholder="Số điện thoại">
+						</div>
+						<div class="col-md-1">
+							<select class="form-select" name="role"><option
+									value="ROLE_CUSTOMER">Khách hàng</option>
+								<option value="ROLE_STAFF">Nhân viên</option>
+								<option value="ROLE_SHIPPER">Shipper</option>
+								<option value="ROLE_ADMIN">Admin</option></select>
+						</div>
+						<div class="col-md-2">
+							<select class="form-select" name="branchId"><option
+									value="">Chi nhánh (nhân viên/shipper)</option>
+								<c:forEach items="${branches}" var="b">
+									<option value="${b.id}">${b.name}</option>
+								</c:forEach></select>
+						</div>
+						<div class="col-12">
+							<button class="btn btn-success">Mở tài khoản</button>
+						</div>
+					</form>
+				</div>
+			</div>
+			<div class="card">
+				<div class="table-responsive">
+					<table class="table table-striped align-middle mb-0">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Tài khoản</th>
+								<th>Họ tên</th>
+								<th>Vai trò</th>
+								<th>Chi nhánh</th>
+								<th>Trạng thái</th>
+								<th>Đổi thông tin</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							<c:forEach items="${users}" var="u">
+								<tr>
+									<td>${u.id}</td>
+									<td>${u.email}<br> <small>${u.phoneNumber}</small></td>
+									<td>${u.fullName}</td>
+									<td><c:forEach items="${u.roles}" var="r">
+											<span class="badge bg-secondary">${r.name}</span>
+										</c:forEach></td>
+									<td>${u.branch.name}</td>
+									<td><span
+										class="badge ${u.active ? 'bg-success' : 'bg-danger'}">${u.active ? 'Đang hoạt động' : 'Đã khóa'}</span></td>
+									<td><form method="post"
+											action="/admin/users/${u.id}/update" class="d-flex gap-1">
+										<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+											<input type="hidden" name="email"
+												value="${fn:escapeXml(u.email)}"> <input
+												class="form-control form-control-sm" name="fullName"
+												value="${fn:escapeXml(u.fullName)}" required
+												style="width: 130px"> <input type="hidden"
+												name="role" value="${u.roles.iterator().next().name}">
+											<input type="hidden" name="active" value="${u.active}">
+											<button class="btn btn-sm btn-outline-primary">Lưu
+												tên</button>
+										</form></td>
+									<td><form method="post"
+											action="/admin/users/${u.id}/toggle">
+										<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+											<button class="btn btn-sm btn-outline-warning">${u.active ? 'Khóa' : 'Mở khóa'}</button>
+										</form></td>
+								</tr>
+							</c:forEach>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</main>
+	</div>
+</body>
+</html>
