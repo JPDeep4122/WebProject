@@ -2,6 +2,7 @@ package com.dienmay.controller.admin;
 
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,7 +12,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.dienmay.dto.order.OrderStatusSnapshot;
 import com.dienmay.entity.auth.User;
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
@@ -144,6 +147,30 @@ public class AdminOrderController {
                         : effectiveBranchId == null ? ""
                         : OrderStatusWebSocketNotifier.branchDestination(effectiveBranchId));
         return "admin/orders";
+    }
+
+    @GetMapping("/status-snapshot")
+    @ResponseBody
+    public List<OrderStatusSnapshot> statusSnapshot(
+            @RequestParam(required = false) Long branchId,
+            Principal principal) {
+        if (principal == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập.");
+        }
+        User currentUser = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.UNAUTHORIZED,
+                        "Không tìm thấy tài khoản đang đăng nhập."));
+        boolean admin = currentUser.getRoles().stream()
+                .anyMatch(role -> role.getName() != null
+                        && role.getName().toUpperCase().endsWith("ADMIN"));
+        Long effectiveBranchId = admin ? branchId
+                : currentUser.getBranch() == null ? null : currentUser.getBranch().getId();
+        if (!admin && effectiveBranchId == null) return List.of();
+        var pageable = PageRequest.of(0, 500, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        return orderService.getOrdersForBranch(effectiveBranchId, null, pageable).stream()
+                .map(OrderStatusSnapshot::from).toList();
     }
 
     private OrderStatus parseStatus(String status) {

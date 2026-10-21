@@ -10,9 +10,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.dienmay.dto.cart.AddToCartRequest;
+import com.dienmay.dto.order.OrderStatusSnapshot;
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderItem;
 import com.dienmay.entity.order.OrderStatus;
@@ -67,6 +69,23 @@ public class OrderController {
 		model.addAttribute("countCancelled", countCancelled);
 
 		return "client/order-history";
+	}
+
+	@GetMapping("/status-snapshot")
+	@ResponseBody
+	public List<OrderStatusSnapshot> statusSnapshot(
+			@RequestParam(required = false) String orderCode,
+			Principal principal) {
+		if (principal == null) {
+			throw new org.springframework.web.server.ResponseStatusException(
+					org.springframework.http.HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập.");
+		}
+		if (orderCode != null && !orderCode.isBlank()) {
+			return List.of(OrderStatusSnapshot.from(
+					orderService.getOrderDetail(orderCode, principal.getName())));
+		}
+		return orderService.getOrdersByUser(principal.getName(), null).stream()
+				.map(OrderStatusSnapshot::from).toList();
 	}
 
 	// 2. CHI TIẾT ĐƠN HÀNG

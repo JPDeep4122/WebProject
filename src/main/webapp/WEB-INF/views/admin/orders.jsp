@@ -194,9 +194,15 @@
     </main>
 </div>
 <c:if test="${not empty orderRealtimeDestination}">
+    <c:url var="orderStatusPollUrl" value="/admin/orders/status-snapshot">
+        <c:if test="${not empty selectedBranchId}">
+            <c:param name="branchId" value="${selectedBranchId}"/>
+        </c:if>
+    </c:url>
     <div id="orderRealtime"
          data-context-path="${pageContext.request.contextPath}"
-         data-destination="${orderRealtimeDestination}"></div>
+         data-destination="${orderRealtimeDestination}"
+         data-poll-url="${orderStatusPollUrl}"></div>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <script src="${pageContext.request.contextPath}/js/order-realtime.js"></script>

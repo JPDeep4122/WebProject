@@ -45,7 +45,12 @@ import com.dienmay.service.order.OrderStatusChangedEvent;
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "dienmay.app.jwtSecret=integration-test-secret-key-that-is-long-enough-for-hmac-sha",
-        "dienmay.app.jwtExpirationMs=60000"
+        "dienmay.app.jwtExpirationMs=60000",
+        "vnpay.tmn-code=test-merchant",
+        "vnpay.hash-secret=test-hash-secret",
+        "cloudinary.cloud-name=test-cloud",
+        "cloudinary.api-key=test-key",
+        "cloudinary.api-secret=test-secret"
 })
 class OrderWebSocketIntegrationTests {
     @LocalServerPort int port;
