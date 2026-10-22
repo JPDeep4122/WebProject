@@ -23,35 +23,47 @@
 			</div>
 			<div class="col-lg-2 col-md-3 col-6 mb-4">
 				<h6 class="fw-bold mb-3">Về chúng tôi</h6>
+
 				<ul class="list-unstyled small text-muted">
-					<li class="mb-2"><a href="#"
-						class="text-decoration-none text-muted">Giới thiệu công ty</a></li>
-					<li class="mb-2"><a href="#"
-						class="text-decoration-none text-muted">Hệ thống chi nhánh</a></li>
-					<li class="mb-2"><a href="#"
-						class="text-decoration-none text-muted">Chính sách bảo hành</a></li>
+					<li class="mb-2"><a
+						href="${pageContext.request.contextPath}/info/about"
+						class="text-decoration-none text-muted"> Giới thiệu công ty </a></li>
+
+					<li class="mb-2"><a
+						href="${pageContext.request.contextPath}/info/branches"
+						class="text-decoration-none text-muted"> Hệ thống chi nhánh </a></li>
+
+					<li class="mb-2"><a
+						href="${pageContext.request.contextPath}/info/warranty"
+						class="text-decoration-none text-muted"> Thông tin bảo hành </a></li>
 				</ul>
 			</div>
+
 			<div class="col-lg-2 col-md-3 col-6 mb-4">
 				<h6 class="fw-bold mb-3">Hỗ trợ khách hàng</h6>
+
 				<ul class="list-unstyled small text-muted">
-					<li class="mb-2"><a href="#"
-						class="text-decoration-none text-muted">Hướng dẫn mua hàng</a></li>
-					<li class="mb-2"><a href="#"
-						class="text-decoration-none text-muted">Chính sách đổi trả</a></li>
-					<li class="mb-2"><a href="#"
-						class="text-decoration-none text-muted">Tra cứu đơn hàng</a></li>
+					<li class="mb-2"><a
+						href="${pageContext.request.contextPath}/info/shopping-guide"
+						class="text-decoration-none text-muted"> Hướng dẫn mua hàng </a></li>
+
+					<li class="mb-2"><a
+						href="${pageContext.request.contextPath}/info/returns"
+						class="text-decoration-none text-muted"> Hướng dẫn trả hàng </a></li>
+
+					<li class="mb-2"><a
+						href="${pageContext.request.contextPath}/orders/tracking"
+						class="text-decoration-none text-muted"> Tra cứu đơn hàng </a></li>
 				</ul>
 			</div>
 			<div class="col-lg-4 col-md-12 mb-4">
-				<h6 class="fw-bold mb-3">Đăng ký nhận ưu đãi</h6>
-				<p class="text-muted small">Nhận ngay voucher giảm giá 10% cho
-					đơn hàng điện máy đầu tiên.</p>
-				<div class="input-group mb-3">
-					<input type="email" class="form-control"
-						placeholder="Email của bạn...">
-					<button class="btn btn-primary" type="button">Đăng ký</button>
-				</div>
+				<h6 class="fw-bold mb-3">Trở thành thành viên TECHSEVEN</h6>
+
+				<p class="text-muted small">Đăng ký tài khoản để theo dõi đơn
+					hàng của bạn.</p>
+
+				<a href="${pageContext.request.contextPath}/login?view=register"
+					class="btn btn-primary"> Đăng ký tài khoản </a>
 			</div>
 		</div>
 		<hr class="text-muted">
@@ -267,6 +279,7 @@
               <h6 class="dropdown-header small text-muted" data-user-email></h6>
           </li>
                 <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="${pageContext.request.contextPath}/account/profile"><i class="bi bi-person-circle me-2"></i>Hồ sơ của tôi</a></li>
                 <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders"><i class="bi bi-bag-check me-2"></i>Đơn hàng của tôi</a></li>
                 <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders/tracking"><i class="bi bi-search me-2"></i>Tra cứu đơn vãng lai</a></li>
                 <li><a class="dropdown-item" href="${CONTEXT_PATH}/vouchers"><i class="bi bi-ticket-perforated me-2"></i>Kho Voucher</a></li>
@@ -280,6 +293,25 @@
 
           container.querySelector('[data-user-email]').textContent =
               user.email || '';
+          const isAdmin = Array.isArray(user.roles)
+          && user.roles.includes('ROLE_ADMIN');
+
+      if (isAdmin) {
+          const adminItem = document.createElement('li');
+          const adminLink = document.createElement('a');
+
+          adminLink.className = 'dropdown-item fw-bold text-primary';
+          adminLink.href = CONTEXT_PATH + '/admin';
+          adminLink.innerHTML =
+              '<i class="bi bi-speedometer2 me-2"></i>Trang quản trị';
+
+          adminItem.appendChild(adminLink);
+
+          const menu = container.querySelector('.dropdown-menu');
+          const divider = menu.querySelector('.dropdown-divider');
+
+          menu.insertBefore(adminItem, divider.closest('li'));
+      }
         } else {
           document.cookie = "accessToken=; path=/; max-age=0";
           container.innerHTML = `

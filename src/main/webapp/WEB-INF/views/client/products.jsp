@@ -176,10 +176,25 @@
 
 									<!-- Đánh giá sao và Đã bán -->
 									<div class="d-flex align-items-center gap-2 mb-2">
-										<span
-											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
-											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
-										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+
+										<c:choose>
+											<c:when test="${prod.reviewCount gt 0}">
+												<span class="badge bg-warning-subtle text-warning-emphasis">
+													<i class="bi bi-star-fill text-warning"></i> <fmt:formatNumber
+														value="${prod.rating}" minFractionDigits="1"
+														maxFractionDigits="1" /> (<c:out
+														value="${prod.reviewCount}" />)
+												</span>
+											</c:when>
+
+											<c:otherwise>
+												<span class="small text-muted"> Chưa có đánh giá </span>
+											</c:otherwise>
+										</c:choose>
+
+										<small class="text-muted"> Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}
+										</small>
+
 									</div>
 
 									<!-- Nút thao tác -->

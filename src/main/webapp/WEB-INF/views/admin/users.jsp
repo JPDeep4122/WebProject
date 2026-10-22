@@ -11,7 +11,7 @@
 <link
 	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
 	rel="stylesheet">
-<jsp:include page="/WEB-INF/views/shared/security.jsp"/>
+<jsp:include page="/WEB-INF/views/shared/security.jsp" />
 </head>
 <body>
 	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
@@ -82,7 +82,8 @@
 				<div class="card-header">Mở tài khoản và phân quyền</div>
 				<div class="card-body">
 					<form method="post" action="/admin/users" class="row g-2">
-						<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+						<input type="hidden" name="${_csrf.parameterName}"
+							value="${_csrf.token}">
 						<div class="col-md-3">
 							<input class="form-control" name="email" type="email"
 								placeholder="Email" required>
@@ -148,20 +149,25 @@
 										class="badge ${u.active ? 'bg-success' : 'bg-danger'}">${u.active ? 'Đang hoạt động' : 'Đã khóa'}</span></td>
 									<td><form method="post"
 											action="/admin/users/${u.id}/update" class="d-flex gap-1">
-										<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-											<input type="hidden" name="email"
-												value="${fn:escapeXml(u.email)}"> <input
+											<input type="hidden" name="${_csrf.parameterName}"
+												value="${_csrf.token}"> <input type="hidden"
+												name="email" value="${fn:escapeXml(u.email)}"> <input
 												class="form-control form-control-sm" name="fullName"
 												value="${fn:escapeXml(u.fullName)}" required
 												style="width: 130px"> <input type="hidden"
 												name="role" value="${u.roles.iterator().next().name}">
 											<input type="hidden" name="active" value="${u.active}">
+											<input type="password" class="form-control form-control-sm"
+												placeholder="Mật khẩu mới" autocomplete="new-password"
+												minlength="6" maxlength="100"
+												oninput="this.name = this.value ? 'password' : ''">
 											<button class="btn btn-sm btn-outline-primary">Lưu
 												tên</button>
 										</form></td>
 									<td><form method="post"
 											action="/admin/users/${u.id}/toggle">
-										<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+											<input type="hidden" name="${_csrf.parameterName}"
+												value="${_csrf.token}">
 											<button class="btn btn-sm btn-outline-warning">${u.active ? 'Khóa' : 'Mở khóa'}</button>
 										</form></td>
 								</tr>

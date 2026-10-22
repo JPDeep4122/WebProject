@@ -88,6 +88,96 @@ public class CartServiceImpl implements CartService {
 	}
 
 	@Override
+	public CartResponse buyNow(
+	        AddToCartRequest request,
+	        String userEmail,
+	        HttpSession session) {
+
+	    if (request.getProductId() == null
+	            || request.getProductId() <= 0) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "Sản phẩm không hợp lệ.");
+	    }
+
+	    Integer quantity = request.getQuantity();
+
+	    if (quantity == null || quantity < 1) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "Số lượng phải lớn hơn hoặc bằng 1.");
+	    }
+
+	    Product product = productRepository
+	            .findById(request.getProductId())
+	            .orElseThrow(() -> new ResponseStatusException(
+	                    HttpStatus.NOT_FOUND,
+	                    "Không tìm thấy sản phẩm."));
+
+	    if (!product.isActive()) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "Sản phẩm đã ngừng kinh doanh.");
+	    }
+
+	    BigDecimal price = product.getDiscountPrice() != null
+	            ? product.getDiscountPrice()
+	            : product.getPrice();
+
+	    if (price == null || price.signum() < 0) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "Sản phẩm chưa có giá bán hợp lệ.");
+	    }
+
+	    long availableQuantity = product.getBranchInventories()
+	            .stream()
+	            .filter(stock -> stock.getBranch() != null
+	                    && stock.getBranch().isActive())
+	            .mapToLong(stock -> stock.getAvailableQuantity() == null
+	                    ? 0L
+	                    : Math.max(0, stock.getAvailableQuantity()))
+	            .sum();
+
+	    if (quantity > availableQuantity) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "Số lượng yêu cầu vượt quá tồn kho hiện tại.");
+	    }
+
+	    Cart cart = getOrCreateCart(userEmail, session);
+
+	    CartItem target = cart.getItems().stream()
+	            .filter(item -> product.getId()
+	                    .equals(item.getProduct().getId()))
+	            .findFirst()
+	            .orElse(null);
+
+	    // Giữ các món khác trong giỏ, chỉ bỏ chọn.
+	    for (CartItem item : cart.getItems()) {
+	        item.setSelected(false);
+	    }
+
+	    if (target == null) {
+	        target = CartItem.builder()
+	                .cart(cart)
+	                .product(product)
+	                .quantity(quantity)
+	                .selected(true)
+	                .build();
+
+	        cart.getItems().add(target);
+	    } else {
+	        target.setQuantity(quantity);
+	        target.setSelected(true);
+	    }
+
+	    cartRepository.saveAndFlush(cart);
+
+	    return toCartResponse(cart);
+	}
+	
+	@Override
 	public CartResponse updateQuantity(Long cartItemId, int quantity, String userEmail, HttpSession session) {
 
 		Cart cart = getOrCreateCart(userEmail, session);

@@ -25,13 +25,18 @@
 		<i class="bi bi-credit-card-2-front me-2"></i>TIẾN HÀNH THANH TOÁN
 	</h3>
 
+	<c:if test="${not empty checkoutError}">
+		<div class="alert alert-danger" role="alert">
+			<c:out value="${checkoutError}" />
+		</div>
+	</c:if>
+
 	<form action="${pageContext.request.contextPath}/checkout/place-order"
 		method="post" id="checkoutForm">
-		
-		<input type="hidden"
-           name="${_csrf.parameterName}"
-           value="${_csrf.token}">
-		
+
+		<input type="hidden" name="${_csrf.parameterName}"
+			value="${_csrf.token}">
+
 		<div class="row g-4">
 
 			<!-- CỘT TRÁI: THÔNG TIN GIAO HÀNG & PHƯƠNG THỨC THANH TOÁN -->
@@ -71,14 +76,17 @@
 							<label class="form-label small fw-bold">Họ và tên người
 								nhận <span class="text-danger">*</span>
 							</label> <input type="text" name="recipientName" id="recipientName"
-								class="form-control rounded-3" required
-								placeholder="Nguyễn Văn A">
+								class="form-control rounded-3"
+								value="${fn:escapeXml(orderForm.recipientName)}" maxlength="100"
+								required placeholder="Nguyễn Văn A">
 						</div>
 						<div class="col-md-6">
 							<label class="form-label small fw-bold">Số điện thoại <span
 								class="text-danger">*</span></label> <input type="tel"
 								name="recipientPhone" id="recipientPhone"
-								class="form-control rounded-3" required placeholder="0901234567">
+								class="form-control rounded-3"
+								value="${fn:escapeXml(orderForm.recipientPhone)}" maxlength="20"
+								required placeholder="0901234567">
 						</div>
 						<div class="col-12">
 							<label class="form-label small fw-bold">Địa chỉ chi tiết
@@ -86,13 +94,15 @@
 							</label>
 							<textarea name="shippingAddress" id="shippingAddress" rows="2"
 								class="form-control rounded-3" required
-								placeholder="Số 123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM"></textarea>
+								placeholder="Số 123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM"><c:out
+									value="${orderForm.shippingAddress}" /></textarea>
 						</div>
 						<div class="col-12">
 							<label class="form-label small fw-bold">Tỉnh / thành phố
 								<span class="text-danger">*</span>
 							</label> <input type="text" name="province" id="shippingProvince"
-								class="form-control rounded-3" required
+								class="form-control rounded-3"
+								value="${fn:escapeXml(orderForm.province)}" required
 								placeholder="Ví dụ: Thành phố Hồ Chí Minh"> <small
 								class="text-muted">Nhập tỉnh/thành để xác định miễn phí
 								cùng tỉnh hoặc tính tuyến đường liên tỉnh.</small>
@@ -101,6 +111,7 @@
 							<label class="form-label small fw-bold">Ghi chú đơn hàng
 								(Tùy chọn)</label> <input type="text" name="note"
 								class="form-control rounded-3"
+								value="${fn:escapeXml(orderForm.note)}"
 								placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi đến...">
 						</div>
 					</div>
@@ -116,46 +127,44 @@
 					<div class="d-flex flex-column gap-3">
 						<!-- COD -->
 						<label
-							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option active-payment">
+							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option ${orderForm.paymentMethod eq 'COD' ? 'active-payment' : ''}">
 							<div class="d-flex align-items-center gap-3">
+
 								<input class="form-check-input mt-0" type="radio"
-									name="paymentMethod" value="COD" checked>
+									name="paymentMethod" value="COD"
+									${orderForm.paymentMethod eq 'COD' ? 'checked' : ''}>
+
 								<div>
-									<b class="text-dark">Thanh toán khi nhận hàng (COD)</b>
+									<b class="text-dark"> Thanh toán khi nhận hàng (COD) </b>
+
 									<div class="text-muted small">Nhận hàng, kiểm tra hàng
 										rồi mới thanh toán tiền mặt cho shipper</div>
 								</div>
+
 							</div> <i class="bi bi-cash-stack fs-3 text-success"></i>
 						</label>
 
 						<!-- VNPAY -->
 						<label
-							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option">
+							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option ${orderForm.paymentMethod eq 'VNPAY' ? 'active-payment' : ''}">
 							<div class="d-flex align-items-center gap-3">
+
 								<input class="form-check-input mt-0" type="radio"
-									name="paymentMethod" value="VNPAY">
+									name="paymentMethod" value="VNPAY"
+									${orderForm.paymentMethod eq 'VNPAY' ? 'checked' : ''}>
+
 								<div>
-									<b class="text-dark">Thanh toán qua Cổng VNPAY (QR / Thẻ
-										ATM)</b>
+									<b class="text-dark"> Thanh toán qua Cổng VNPAY (QR / Thẻ
+										ATM) </b>
+
 									<div class="text-muted small">Quét mã QR qua ứng dụng
 										ngân hàng hoặc thẻ ATM nội địa</div>
 								</div>
-							</div> <span class="badge bg-primary px-3 py-2 fw-bold">VNPAY</span>
+
+							</div> <span class="badge bg-primary px-3 py-2 fw-bold"> VNPAY </span>
 						</label>
 
-						<!-- MOMO -->
-						<label
-							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option">
-							<div class="d-flex align-items-center gap-3">
-								<input class="form-check-input mt-0" type="radio"
-									name="paymentMethod" value="MOMO">
-								<div>
-									<b class="text-dark">Ví điện tử MoMo</b>
-									<div class="text-muted small">Thanh toán siêu tốc qua ứng
-										dụng MoMo</div>
-								</div>
-							</div> <span class="badge bg-danger px-3 py-2 fw-bold">MOMO</span>
-						</label>
+						
 					</div>
 				</div>
 
@@ -325,6 +334,10 @@
   }
   document.getElementById('shippingAddress').addEventListener('change', requestShippingQuote);
   document.getElementById('shippingProvince').addEventListener('change', requestShippingQuote);
+  if (document.getElementById('shippingAddress').value.trim()
+	        && document.getElementById('shippingProvince').value.trim()) {
+	    requestShippingQuote();
+	}
 
   // 2. Hiệu ứng chọn phương thức thanh toán
   document.querySelectorAll('.payment-option input[type="radio"]').forEach(radio => {

@@ -13,6 +13,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.dienmay.security.jwt.AuthTokenFilter;
@@ -52,10 +54,17 @@ public class SecurityConfig {
                 .requestMatchers("/admin/products/**", "/admin/orders/**", "/admin/inventory/**", "/admin/returns/**", "/admin").hasAnyRole("ADMIN", "STAFF")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/shipper", "/shipper/**").hasRole("SHIPPER")
+                .requestMatchers("/account", "/account/**").authenticated()
                 .requestMatchers("/api/auth/**", "/api/test/**", "/", "/products/**", "/cart/**", "/checkout/**", "/login", "/register", "/css/**", "/js/**", "/images/**", "/static/**", "/favicon.ico").permitAll()
                 .anyRequest().permitAll()
             );
 
+        http.exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
+                new LoginUrlAuthenticationEntryPoint("/login?redirect=/account/profile"),
+                request -> {
+                    String path = request.getRequestURI().substring(request.getContextPath().length());
+                    return path.equals("/account") || path.startsWith("/account/");
+                }).defaultAuthenticationEntryPointFor(new Http403ForbiddenEntryPoint(), request -> true));
         http.userDetailsService(userDetailsService);
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 

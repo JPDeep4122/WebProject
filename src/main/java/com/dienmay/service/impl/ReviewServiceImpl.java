@@ -130,14 +130,6 @@ public class ReviewServiceImpl implements ReviewService {
             }
         }
 
-        // 6. Cập nhật lại điểm đánh giá trung bình cho Product
-        Double avg = reviewRepository.calculateAverageRating(product.getId());
-        if (avg != null) {
-            double rounded = Math.round(avg * 10.0) / 10.0;
-            product.setRating(rounded);
-            productRepository.save(product);
-        }
-
         return mapToResponse(savedReview);
     }
 

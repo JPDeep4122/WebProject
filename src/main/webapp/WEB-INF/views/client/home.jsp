@@ -178,10 +178,25 @@
 											style="height: 48px;" title="${prod.name}">${prod.name}</h6>
 									</a>
 									<div class="d-flex align-items-center gap-2 mb-2">
-										<span
-											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
-											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
-										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+
+										<c:choose>
+											<c:when test="${prod.reviewCount gt 0}">
+												<span class="badge bg-warning-subtle text-warning-emphasis">
+													<i class="bi bi-star-fill text-warning"></i> <fmt:formatNumber
+														value="${prod.rating}" minFractionDigits="1"
+														maxFractionDigits="1" /> (<c:out
+														value="${prod.reviewCount}" />)
+												</span>
+											</c:when>
+
+											<c:otherwise>
+												<span class="small text-muted"> Chưa có đánh giá </span>
+											</c:otherwise>
+										</c:choose>
+
+										<small class="text-muted"> Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}
+										</small>
+
 									</div>
 									<div class="mt-auto pt-2">
 										<div class="d-flex align-items-baseline gap-2">
@@ -219,6 +234,10 @@
 
 			<!-- TAB 2: BÁN CHẠY -->
 			<div class="tab-pane fade" id="tab-bestseller" role="tabpanel">
+				<c:if test="${empty topBestseller}">
+					<p class="text-muted py-4 text-center">Chưa có sản phẩm ghi
+						nhận giao hàng thành công.</p>
+				</c:if>
 				<div
 					class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
 					<c:forEach items="${topBestseller}" var="prod" varStatus="loop">
@@ -242,10 +261,25 @@
 											style="height: 48px;" title="${prod.name}">${prod.name}</h6>
 									</a>
 									<div class="d-flex align-items-center gap-2 mb-2">
-										<span
-											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
-											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
-										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+
+										<c:choose>
+											<c:when test="${prod.reviewCount gt 0}">
+												<span class="badge bg-warning-subtle text-warning-emphasis">
+													<i class="bi bi-star-fill text-warning"></i> <fmt:formatNumber
+														value="${prod.rating}" minFractionDigits="1"
+														maxFractionDigits="1" /> (<c:out
+														value="${prod.reviewCount}" />)
+												</span>
+											</c:when>
+
+											<c:otherwise>
+												<span class="small text-muted"> Chưa có đánh giá </span>
+											</c:otherwise>
+										</c:choose>
+
+										<small class="text-muted"> Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}
+										</small>
+
 									</div>
 									<div class="mt-auto pt-2">
 										<div class="d-flex align-items-baseline gap-2">
@@ -283,6 +317,10 @@
 
 			<!-- TAB 3: ĐÁNH GIÁ CAO -->
 			<div class="tab-pane fade" id="tab-rating" role="tabpanel">
+				<c:if test="${empty topRating}">
+					<p class="text-muted py-4 text-center">Chưa có sản phẩm đạt từ
+						4 sao với đánh giá thực tế.</p>
+				</c:if>
 				<div
 					class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
 					<c:forEach items="${topRating}" var="prod" varStatus="loop">
@@ -306,10 +344,25 @@
 											style="height: 48px;" title="${prod.name}">${prod.name}</h6>
 									</a>
 									<div class="d-flex align-items-center gap-2 mb-2">
-										<span
-											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
-											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
-										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+
+										<c:choose>
+											<c:when test="${prod.reviewCount gt 0}">
+												<span class="badge bg-warning-subtle text-warning-emphasis">
+													<i class="bi bi-star-fill text-warning"></i> <fmt:formatNumber
+														value="${prod.rating}" minFractionDigits="1"
+														maxFractionDigits="1" /> (<c:out
+														value="${prod.reviewCount}" />)
+												</span>
+											</c:when>
+
+											<c:otherwise>
+												<span class="small text-muted"> Chưa có đánh giá </span>
+											</c:otherwise>
+										</c:choose>
+
+										<small class="text-muted"> Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}
+										</small>
+
 									</div>
 									<div class="mt-auto pt-2">
 										<div class="d-flex align-items-baseline gap-2">
@@ -347,6 +400,10 @@
 
 			<!-- TAB 4: YÊU THÍCH -->
 			<div class="tab-pane fade" id="tab-favorite" role="tabpanel">
+				<c:if test="${empty topFavorite}">
+					<p class="text-muted py-4 text-center">Chưa có dữ liệu sản phẩm
+						được yêu thích.</p>
+				</c:if>
 				<div
 					class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 product-grid">
 					<c:forEach items="${topFavorite}" var="prod" varStatus="loop">
@@ -370,10 +427,25 @@
 											style="height: 48px;" title="${prod.name}">${prod.name}</h6>
 									</a>
 									<div class="d-flex align-items-center gap-2 mb-2">
-										<span
-											class="badge bg-warning-subtle text-warning-emphasis fw-bold">
-											<i class="bi bi-star-fill text-warning"></i> ${prod.rating != null ? prod.rating : 5.0}
-										</span> <small class="text-muted">Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}</small>
+
+										<c:choose>
+											<c:when test="${prod.reviewCount gt 0}">
+												<span class="badge bg-warning-subtle text-warning-emphasis">
+													<i class="bi bi-star-fill text-warning"></i> <fmt:formatNumber
+														value="${prod.rating}" minFractionDigits="1"
+														maxFractionDigits="1" /> (<c:out
+														value="${prod.reviewCount}" />)
+												</span>
+											</c:when>
+
+											<c:otherwise>
+												<span class="small text-muted"> Chưa có đánh giá </span>
+											</c:otherwise>
+										</c:choose>
+
+										<small class="text-muted"> Đã bán ${prod.soldQuantity != null ? prod.soldQuantity : 0}
+										</small>
+
 									</div>
 									<div class="mt-auto pt-2">
 										<div class="d-flex align-items-baseline gap-2">

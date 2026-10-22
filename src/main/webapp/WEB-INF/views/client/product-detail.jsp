@@ -131,21 +131,24 @@
 							onclick="changeQty(-1)">-</button>
 						<input type="number" id="buyQty"
 							class="form-control text-center fw-bold" value="1" min="1"
-							max="${totalStock > 0 ? totalStock : 1}">
+							step="1" max="${totalStock > 0 ? totalStock : 1}" required>
 						<button class="btn btn-outline-secondary" type="button"
 							onclick="changeQty(1)">+</button>
 					</div>
 					<button
 						class="btn btn-outline-primary btn-lg flex-grow-1 rounded-pill fw-bold"
 						type="button"
-						onclick="addToCart(${product.id}, document.getElementById('buyQty').value, this)">
+						onclick="addSelectedProductToCart(${product.id}, this)"
+						${totalStock <= 0 ? 'disabled' : ''}>
 						<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ hàng
 					</button>
 					<button
 						class="btn btn-danger btn-lg flex-grow-1 rounded-pill fw-bold"
-						type="button">MUA NGAY</button>
+						type="button" onclick="buyNow(${product.id}, this)"
+						${totalStock <= 0 ? 'disabled' : ''}>MUA NGAY</button>
 				</div>
-
+				<div id="buyNowError" class="alert alert-danger mt-3 d-none"
+					role="alert"></div>
 			</div>
 		</div>
 
@@ -224,20 +227,35 @@
 
 		<div class="row g-4 align-items-center mb-4 p-3 bg-light rounded-4">
 			<div class="col-md-4 text-center border-end-md">
-				<div class="display-4 fw-bold text-warning mb-1">
-					<fmt:formatNumber
-						value="${product.rating != null ? product.rating : 0.0}"
-						maxFractionDigits="1" minFractionDigits="1" />
-					<span class="fs-4 text-muted fw-normal">/5</span>
-				</div>
-				<div class="text-warning fs-5 mb-2">
-					<c:forEach begin="1" end="5" var="s">
-						<i
-							class="bi ${s <= (product.rating != null ? product.rating : 0) ? 'bi-star-fill' : 'bi-star'}"></i>
-					</c:forEach>
-				</div>
-				<div class="text-muted small fw-semibold">${reviewStats != null ? reviewStats.totalReviews : 0}
-					lượt đánh giá thực tế</div>
+				<c:choose>
+					<c:when test="${reviewStats.totalReviews gt 0}">
+						<div class="display-4 fw-bold text-warning mb-1">
+							<fmt:formatNumber value="${reviewStats.averageRating}"
+								minFractionDigits="1" maxFractionDigits="1" />
+
+							<span class="fs-4 text-muted fw-normal">/5</span>
+						</div>
+
+						<div class="text-warning fs-5 mb-2">
+							<c:forEach begin="1" end="5" var="s">
+								<i
+									class="bi ${s <= reviewStats.averageRating
+                            ? 'bi-star-fill' : 'bi-star'}"></i>
+							</c:forEach>
+						</div>
+
+						<div class="text-muted small fw-semibold">
+							<c:out value="${reviewStats.totalReviews}" />
+							lượt đánh giá thực tế
+						</div>
+					</c:when>
+
+					<c:otherwise>
+						<p class="fw-semibold mb-1">Chưa có đánh giá</p>
+						<p class="text-muted small mb-0">Chưa có khách hàng gửi đánh
+							giá cho sản phẩm này.</p>
+					</c:otherwise>
+				</c:choose>
 			</div>
 
 			<div class="col-md-8">
@@ -607,13 +625,144 @@
 <jsp:include page="fragments/footer.jsp" />
 
 <script>
-  function changeQty(delta) {
+function changeQty(delta) {
     const input = document.getElementById('buyQty');
-    let val = parseInt(input.value) + delta;
-    if (val < 1) val = 1;
-    input.value = val;
+    const current = Number(input.value);
+    const maximum = Number(input.max);
+
+    input.value = Math.min(
+        maximum,
+        Math.max(
+            1,
+            (Number.isFinite(current) ? current : 1) + delta
+        )
+    );
+
+    validateQuantity();
+}
+
+function addSelectedProductToCart(productId, button) {
+    const errorBox = document.getElementById('buyNowError');
+
+    if (errorBox) {
+        errorBox.textContent = '';
+        errorBox.classList.add('d-none');
+    }
+
+    validateQuantity();
+
+    if (!quantityInput.reportValidity()) {
+        return;
+    }
+
+    addToCart(
+        productId,
+        Number(quantityInput.value),
+        button
+    );
+}
+  
+  const quantityInput = document.getElementById('buyQty');
+
+  function validateQuantity() {
+      quantityInput.setCustomValidity('');
+
+      if (quantityInput.validity.rangeOverflow) {
+          quantityInput.setCustomValidity(
+              'Sản phẩm hiện chỉ còn ' + quantityInput.max
+              + ' sản phẩm. Vui lòng giảm số lượng.'
+          );
+      } else if (!quantityInput.validity.valid) {
+          quantityInput.setCustomValidity(
+              'Vui lòng nhập số lượng nguyên từ 1 đến '
+              + quantityInput.max + '.'
+          );
+      }
   }
 
-  
+  quantityInput.addEventListener('input', validateQuantity);
+  validateQuantity();
+
+  async function buyNow(productId, button) {
+	    if (button.disabled) return;
+
+	    const input = document.getElementById('buyQty');
+	    const errorBox = document.getElementById('buyNowError');
+
+	    errorBox.classList.add('d-none');
+	    errorBox.textContent = '';
+
+	    validateQuantity();
+
+	    if (!quantityInput.reportValidity()) {
+	        return;
+	    }
+
+	    const quantity = Number(input.value);
+
+	    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+	        errorBox.textContent = 'Vui lòng nhập số lượng nguyên lớn hơn 0.';
+	        errorBox.classList.remove('d-none');
+	        return;
+	    }
+
+	    const originalText = button.textContent;
+	    let redirecting = false;
+
+	    button.disabled = true;
+	    button.textContent = 'Đang chuyển đến thanh toán...';
+
+	    try {
+	        const token = localStorage.getItem('accessToken')
+	                || localStorage.getItem('jwtToken');
+
+	        const headers = {
+	            'Content-Type': 'application/json'
+	        };
+
+	        if (token) {
+	            headers.Authorization = 'Bearer ' + token;
+	        }
+
+	        const response = await csrfFetch(
+	            '${pageContext.request.contextPath}/api/cart/buy-now',
+	            {
+	                method: 'POST',
+	                headers: headers,
+	                body: JSON.stringify({
+	                    productId: productId,
+	                    quantity: quantity
+	                })
+	            }
+	        );
+
+	        const result = await response.json().catch(() => null);
+
+	        if (!response.ok || !result?.success) {
+	            throw new Error(
+	                result?.message
+	                || 'Không thể mua ngay. Vui lòng tải lại trang và thử lại.'
+	            );
+	        }
+
+	        window.location.assign(
+	            '${pageContext.request.contextPath}/checkout'
+	        );
+
+	        redirecting = true;
+
+	    } catch (error) {
+	        errorBox.textContent =
+	                error.message || 'Không thể kết nối đến máy chủ.';
+
+	        errorBox.classList.remove('d-none');
+
+	    } finally {
+	        if (!redirecting) {
+	            button.disabled = false;
+	            button.textContent = originalText;
+	        }
+	    }
+	}  
 
 </script>

@@ -25,6 +25,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 
 @Entity
 @Table(name = "products")
@@ -46,7 +47,7 @@ public class Product {
 	private String slug;
 
 	@Column(nullable = false, unique = true, length = 50)
-	private String sku;				 	// Mã sản phẩm: TV-SONY-55X80L
+	private String sku; // Mã sản phẩm: TV-SONY-55X80L
 
 	@Column(columnDefinition = "TEXT")
 	private String shortDescription;
@@ -58,13 +59,13 @@ public class Product {
 	private String specifications;
 
 	@Column(nullable = false, precision = 18, scale = 2)
-	private BigDecimal originalPrice; 	// Giá gốc niêm yết
+	private BigDecimal originalPrice; // Giá gốc niêm yết
 
 	@Column(precision = 18, scale = 2)
-	private BigDecimal discountPrice; 	// Giá khuyến mãi bán ra
+	private BigDecimal discountPrice; // Giá khuyến mãi bán ra
 
 	@Column(length = 500)
-	private String mainImageUrl; 		// Link ảnh đại diện (Cloudinary / Web)
+	private String mainImageUrl; // Link ảnh đại diện (Cloudinary / Web)
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "category_id")
@@ -77,35 +78,35 @@ public class Product {
 	@Builder.Default
 	private boolean active = true;
 	@Builder.Default
-	private boolean featured = false; 	// Sản phẩm nổi bật trang chủ
+	private boolean featured = false; // Sản phẩm nổi bật trang chủ
 
 	@OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
 	@Builder.Default
 	private List<ProductImage> images = new ArrayList<>();
 
-	@OneToMany(
-	        mappedBy = "product",
-	        cascade = CascadeType.ALL,
-	        orphanRemoval = true)
+	@OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
 	@Builder.Default
 	private List<BranchInventory> branchInventories = new ArrayList<>();
-	
-	@Column(name = "price", precision = 18, scale = 2)
-    private BigDecimal price; 			// Giá bán hiện tại
-	
-	 @Column(name = "sold_quantity")
-	 @Builder.Default
-	 private Integer soldQuantity = 0; 	// Số lượng đã bán (Tab Bán chạy)
 
-	 @Column(name = "rating")
-	 @Builder.Default
-	 private Double rating = 0.0;		// Điểm đánh giá trung bình từ 1 - 5
-	 
-	 @Column(name = "favorite_count")
-	 @Builder.Default
-	 private Integer favoriteCount = 0; // Lượt yêu thích (Tab Yêu thích)
-	 
-	 @CreationTimestamp
-	 @Column(name = "created_at", updatable = false)
-	 private LocalDateTime createdAt; // Ngày tạo (Tab Mới nhất)
+	@Column(name = "price", precision = 18, scale = 2)
+	private BigDecimal price; // Giá bán hiện tại
+
+	@Formula("(select coalesce(sum(oi.quantity), 0) " + "from order_items oi " + "join orders o on o.id = oi.order_id "
+			+ "where oi.product_id = id " + "and o.status in ('DELIVERED', 'RETURN_REQUESTED'))")
+	private Integer soldQuantity;
+
+	@Formula("(select coalesce(round(avg(cast(r.rating as numeric)), 1), 0) " + "from reviews r "
+			+ "where r.product_id = id and r.active = true)")
+	private Double rating;
+
+	@Formula("(select count(*) " + "from reviews r " + "where r.product_id = id and r.active = true)")
+	private Long reviewCount;
+
+	@Column(name = "favorite_count")
+	@Builder.Default
+	private Integer favoriteCount = 0; // Lượt yêu thích (Tab Yêu thích)
+
+	@CreationTimestamp
+	@Column(name = "created_at", updatable = false)
+	private LocalDateTime createdAt; // Ngày tạo (Tab Mới nhất)
 }

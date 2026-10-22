@@ -318,8 +318,8 @@ to {
 </style>
 <link rel="stylesheet"
 	href="${pageContext.request.contextPath}/css/storefront.css">
-	
-<jsp:include page="/WEB-INF/views/shared/security.jsp"/>
+
+<jsp:include page="/WEB-INF/views/shared/security.jsp" />
 </head>
 <body>
 
@@ -767,7 +767,18 @@ to {
             headers: headers,
             body: JSON.stringify({ productId: productId, quantity: quantity })
         })
-        .then(res => res.json())
+        .then(async response => {
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok || !result?.success) {
+        throw new Error(
+            result?.message
+            || 'Không thể thêm sản phẩm vào giỏ hàng.'
+        );
+    }
+
+    return result;
+})
         .then(res => {
             if (res.success) {
                 if (document.getElementById('cartBadge')) {
@@ -791,6 +802,19 @@ to {
         })
         .catch(err => {
             console.error(err);
+
+            const message = err.message
+                    || 'Không thể kết nối đến máy chủ.';
+
+            const errorBox = document.getElementById('buyNowError');
+
+            if (errorBox) {
+                errorBox.textContent = message;
+                errorBox.classList.remove('d-none');
+            } else {
+                window.alert(message);
+            }
+
             if (btnElement) {
                 btnElement.innerHTML = originalHtml;
                 btnElement.disabled = false;

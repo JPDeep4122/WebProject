@@ -268,7 +268,7 @@
         e.preventDefault();
         hideAlert();
         const email = document.getElementById('pageLoginEmail').value.trim();
-        const password = document.getElementById('pageLoginPassword').value.trim();
+        const password = document.getElementById('pageLoginPassword').value;
         const btn = this.querySelector('button[type="submit"]');
 
         btn.disabled = true;
@@ -461,7 +461,15 @@
             btn.innerText = 'LƯU MẬT KHẨU MỚI';
         }
     });
+    
+    document.addEventListener('DOMContentLoaded', function () {
+        if (new URLSearchParams(location.search).get('view') === 'register') {
+            switchView('register');
+        }
+    });
+    
 </script>
 
 <!-- 4. Nhúng Footer -->
+
 <jsp:include page="fragments/footer.jsp" />
