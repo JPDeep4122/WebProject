@@ -1,6 +1,7 @@
 package com.dienmay.controller.client;
 
 import java.security.Principal;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -103,5 +104,35 @@ public class CartApiController {
                 .success(true)
                 .data(count)
                 .build());
+    }
+    
+    @PostMapping("/buy-now")
+    public ResponseEntity<ApiResponse<CartResponse>> buyNow(
+            @Valid @RequestBody AddToCartRequest request,
+            Principal principal,
+            HttpSession session) {
+
+        String email = principal != null
+                ? principal.getName()
+                : null;
+
+        try {
+            CartResponse cart =
+                    cartService.buyNow(request, email, session);
+
+            return ResponseEntity.ok(
+                    ApiResponse.<CartResponse>builder()
+                            .success(true)
+                            .message("Đã chuẩn bị sản phẩm để thanh toán.")
+                            .data(cart)
+                            .build());
+
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode())
+                    .body(ApiResponse.<CartResponse>builder()
+                            .success(false)
+                            .message(ex.getReason())
+                            .build());
+        }
     }
 }

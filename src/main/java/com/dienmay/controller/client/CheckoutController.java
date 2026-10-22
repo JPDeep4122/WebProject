@@ -6,19 +6,20 @@ import java.security.Principal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import com.dienmay.dto.checkout.CheckoutPageDto;
 import com.dienmay.dto.checkout.PlaceOrderRequest;
-import com.dienmay.dto.checkout.VoucherResponse;
 import com.dienmay.dto.checkout.ShippingQuoteRequest;
 import com.dienmay.dto.checkout.ShippingQuoteResponse;
+import com.dienmay.dto.checkout.VoucherResponse;
 import com.dienmay.dto.common.ApiResponse;
 import com.dienmay.entity.order.Order;
 import com.dienmay.service.checkout.CheckoutService;
@@ -27,9 +28,12 @@ import com.dienmay.service.payment.VnPayService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Controller
+@Slf4j
 @RequiredArgsConstructor
 public class CheckoutController {
 
@@ -47,6 +51,7 @@ public class CheckoutController {
         }
 
         model.addAttribute("checkoutData", checkoutData);
+        model.addAttribute("orderForm", new PlaceOrderRequest());
         return "client/checkout";
     }
 
@@ -80,20 +85,61 @@ public class CheckoutController {
     // ĐẶT HÀNG & RẼ NHÁNH VNPAY HOẶC COD
     @PostMapping("/checkout/place-order")
     public String placeOrder(
-            @ModelAttribute PlaceOrderRequest request, 
-            Principal principal, 
+            @Valid @ModelAttribute("orderForm") PlaceOrderRequest request,
+            BindingResult bindingResult,
+            Principal principal,
             HttpSession session,
-            HttpServletRequest servletRequest) {
-        String email = (principal != null) ? principal.getName() : null;
-        Order order = checkoutService.placeOrder(request, email, session);
+            HttpServletRequest servletRequest,
+            Model model) {
 
-        // NẾU CHỌN THANH TOÁN VNPAY -> TẠO LINK VÀ CHUYỂN HƯỚNG SANG CỔNG VNPAY
+        String email = principal != null ? principal.getName() : null;
+
+        CheckoutPageDto checkoutData =
+                checkoutService.getCheckoutData(email, session);
+
+        if (checkoutData.getItems() == null
+                || checkoutData.getItems().isEmpty()) {
+            return "redirect:/cart";
+        }
+
+        model.addAttribute("checkoutData", checkoutData);
+
+        if (bindingResult.hasErrors()) {
+            model.addAttribute(
+                    "checkoutError",
+                    bindingResult.getAllErrors()
+                            .getFirst()
+                            .getDefaultMessage());
+
+            return "client/checkout";
+        }
+
+        Order order;
+
+        try {
+            order = checkoutService.placeOrder(request, email, session);
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("checkoutError", ex.getMessage());
+            return "client/checkout";
+        } catch (IllegalStateException ex) {
+            log.warn("Không thể hoàn tất bước tạo đơn hàng", ex);
+
+            model.addAttribute(
+                    "checkoutError",
+                    "Hiện chưa thể xử lý đơn hàng. "
+                            + "Vui lòng kiểm tra thông tin giao hàng "
+                            + "hoặc thử lại sau.");
+
+            return "client/checkout";
+        }
+
         if ("VNPAY".equalsIgnoreCase(request.getPaymentMethod())) {
-            String vnpayUrl = vnPayService.createPaymentUrl(order, servletRequest);
+            String vnpayUrl =
+                    vnPayService.createPaymentUrl(order, servletRequest);
+
             return "redirect:" + vnpayUrl;
         }
 
-        // Mặc định COD: sang trang chúc mừng
         return "redirect:/order-success/" + order.getOrderCode();
     }
 
