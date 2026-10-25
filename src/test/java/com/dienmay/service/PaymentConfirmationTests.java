@@ -84,7 +84,7 @@ class PaymentConfirmationTests {
         assertEquals("02", service.processIpn(params).get("RspCode"));
         assertEquals(PaymentStatus.SUCCESS, payment.getPaymentStatus());
         verify(payments, times(1)).save(payment);
-    }
+    }	
 
     private void sign(Map<String, String> params) {
         var fields = new HashMap<>(params);
