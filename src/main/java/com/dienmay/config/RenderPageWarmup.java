@@ -47,7 +47,7 @@ public class RenderPageWarmup implements ApplicationRunner {
                             + ": HTTP " + response.statusCode());
                 }
                 if (!response.headers().firstValue("Content-Type").orElse("").startsWith("text/html")
-                        || !response.body().contains("Điện Máy UTE")
+                        || !response.body().contains("TECHSEVEN")
                         || !response.body().contains("</html>")) {
                     throw new IllegalStateException("Page warmup did not render expected HTML for " + path);
                 }
