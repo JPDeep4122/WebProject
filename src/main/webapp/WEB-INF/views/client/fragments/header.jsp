@@ -7,6 +7,8 @@
 <title>TECH7 - SHOP ĐIỆN MÁY UY TÍNN</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml"
+	href="${pageContext.request.contextPath}/images/brand/techseven-icon.svg">
 
 <!-- Bootstrap 5 & Bootstrap Icons -->
 <link
@@ -116,6 +118,9 @@ body {
 </style>
 <link rel="stylesheet"
 	href="${pageContext.request.contextPath}/css/storefront.css">
+<c:if test="${catalogPage}">
+	<link rel="stylesheet" href="${pageContext.request.contextPath}/css/catalog.css">
+</c:if>
 
 <jsp:include page="/WEB-INF/views/shared/security.jsp" />
 </head>
@@ -126,10 +131,11 @@ body {
 
 		<div class="storefront-container sf-main-row">
 
-			<a class="sf-brand" href="${pageContext.request.contextPath}/"> <span
-				class="sf-brand-mark"> <i class="bi bi-lightning-charge-fill"
-					aria-hidden="true"></i>
-			</span> <span>TECHSEVEN</span>
+			<a class="sf-brand" href="${pageContext.request.contextPath}/"
+				aria-label="TECHSEVEN - Trang chủ">
+				<img class="sf-brand-logo"
+					src="${pageContext.request.contextPath}/images/brand/techseven-logo.svg"
+					alt="TECHSEVEN" width="323" height="72" decoding="async">
 			</a>
 
 			<form class="sf-search"
