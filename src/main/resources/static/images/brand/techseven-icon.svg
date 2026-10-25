@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" role="img" aria-labelledby="icon-title">
+  <title id="icon-title">TECHSEVEN</title>
+  <rect width="80" height="80" rx="18" fill="#0046be"/>
+  <g transform="translate(8 4)">
+    <path fill="#ffe000" d="M11 8H62L52 22H2Z"/>
+    <path fill="#ffffff" d="M28 27H54L25 63H7L25 41H17Z"/>
+  </g>
+</svg>

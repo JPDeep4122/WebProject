@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -14,11 +15,13 @@ import org.springframework.web.multipart.MultipartFile;
 import com.dienmay.dto.product.AdminProductRequest;
 import com.dienmay.dto.product.ProductFilterRequest;
 import com.dienmay.entity.branch.BranchInventory;
+import com.dienmay.entity.branch.Branch;
 import com.dienmay.entity.product.Brand;
 import com.dienmay.entity.product.Category;
 import com.dienmay.entity.product.Product;
 import com.dienmay.entity.product.ProductImage;
 import com.dienmay.repository.branch.BranchInventoryRepository;
+import com.dienmay.repository.branch.BranchRepository;
 import com.dienmay.repository.product.BrandRepository;
 import com.dienmay.repository.product.CategoryRepository;
 import com.dienmay.repository.product.ProductImageRepository;
@@ -38,6 +41,7 @@ public class ProductServiceImpl implements ProductService {
 	private final CategoryRepository categoryRepository;
 	private final BrandRepository brandRepository;
 	private final BranchInventoryRepository branchInventoryRepository;
+	private final BranchRepository branchRepository;
 	private final ProductImageRepository productImageRepository;
 	private final CloudinaryService cloudinaryService;
 
@@ -49,6 +53,12 @@ public class ProductServiceImpl implements ProductService {
 	@Override
 	public List<Brand> getAllBrands() {
 		return brandRepository.findAll();
+	}
+
+	@Override
+	public List<Branch> getActiveBranches() {
+		return branchRepository.findByActiveTrue().stream()
+				.sorted(java.util.Comparator.comparing(Branch::getName)).toList();
 	}
 
 	@Override
@@ -81,36 +91,43 @@ public class ProductServiceImpl implements ProductService {
 	// LỌC SẢN PHẨM BẰNG ProductSpecification (MỤC 6)
 	@Override
 	public List<Product> filterProducts(ProductFilterRequest request) {
-		Sort sort = Sort.by(Sort.Direction.DESC, "createdAt"); // Mặc định: mới nhất
+		return filterProductsPage(request).getContent();
+	}
 
-		if (request.getSortBy() != null) {
-			switch (request.getSortBy().toLowerCase()) {
-			case "price_asc":
-				sort = Sort.by(Sort.Direction.ASC, "discountPrice");
-				break;
-			case "price_desc":
-				sort = Sort.by(Sort.Direction.DESC, "discountPrice");
-				break;
-			case "bestseller":
-				sort = Sort.by(Sort.Direction.DESC, "soldQuantity");
-				break;
-			case "rating":
-				sort = Sort.by(Sort.Direction.DESC, "rating");
-				break;
-			case "newest":
-			default:
-				sort = Sort.by(Sort.Direction.DESC, "createdAt");
-				break;
-			}
+	@Override
+	public Page<Product> filterProductsPage(ProductFilterRequest request) {
+		String key = request.getSortBy() == null ? "newest"
+				: request.getSortBy().toLowerCase(java.util.Locale.ROOT);
+		if (!List.of("newest", "price_asc", "price_desc", "bestseller", "rating", "favorite").contains(key)) {
+			key = "newest";
 		}
-
-		int page = (request.getPage() != null && request.getPage() >= 0) ? request.getPage() : 0;
-		int size = (request.getSize() != null && request.getSize() > 0) ? request.getSize() : 12;
-		Pageable pageable = PageRequest.of(page, size, sort);
-
-		Specification<Product> spec = ProductSpecification.filter(request)
-		        .and(rankingFilter(request.getSortBy()));
-		return productRepository.findAll(spec, pageable).getContent();
+		request.setSortBy(key);
+		int page = request.getPage() == null ? 0 : Math.max(0, Math.min(request.getPage(), 1_000_000));
+		int size = request.getSize() == null || request.getSize() <= 0 ? 12 : Math.min(request.getSize(), 48);
+		request.setPage(page);
+		request.setSize(size);
+		boolean priceSort = key.startsWith("price_");
+		Sort sort = switch (key) {
+		case "bestseller" -> Sort.by(Sort.Direction.DESC, "soldQuantity");
+		case "rating" -> Sort.by(Sort.Direction.DESC, "rating");
+		case "favorite" -> Sort.by(Sort.Direction.DESC, "favoriteCount");
+		default -> Sort.by(Sort.Direction.DESC, "createdAt");
+		};
+		String selectedSort = key;
+		Specification<Product> spec = ProductSpecification.filter(request).and(rankingFilter(key));
+		if (priceSort) {
+			spec = spec.and((root, query, cb) -> {
+				if (query != null && query.getResultType() != Long.class && query.getResultType() != long.class) {
+					var price = ProductSpecification.sellingPrice(root, cb);
+					query.orderBy(selectedSort.equals("price_asc") ? cb.asc(price) : cb.desc(price),
+							cb.desc(root.get("id")));
+				}
+				return cb.conjunction();
+			});
+		}
+		Pageable pageable = PageRequest.of(page, size,
+				priceSort ? Sort.unsorted() : sort.and(Sort.by(Sort.Direction.DESC, "id")));
+		return productRepository.findAll(spec, pageable);
 	}
 
 	// TOP 20 SẢN PHẨM THEO 4 TAB (MỤC 7)

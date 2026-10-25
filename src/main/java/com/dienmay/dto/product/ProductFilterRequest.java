@@ -13,6 +13,8 @@ public class ProductFilterRequest {
     private BigDecimal maxPrice;       // Giá tối đa
     private Double minRating;          // Đánh giá từ X sao trở lên (>= 4.0, >= 3.0)
     private String keyword;            // Từ khóa tìm kiếm tên SP
+    private Boolean inStockOnly = false;
+    private Long branchId;
     
     // Tham số sắp xếp: "price_asc", "price_desc", "newest", "bestseller", "rating"
     private String sortBy = "newest";  

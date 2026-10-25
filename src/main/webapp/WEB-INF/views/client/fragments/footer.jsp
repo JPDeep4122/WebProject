@@ -6,9 +6,12 @@
 	<div class="storefront-container">
 		<div class="row">
 			<div class="col-lg-4 col-md-6 mb-4">
-				<h5 class="text-primary fw-bold mb-3">
-					<i class="bi bi-lightning-charge-fill"></i> ĐIỆN MÁY SHOP
-				</h5>
+				<a class="sf-brand sf-brand-footer"
+					href="${pageContext.request.contextPath}/" aria-label="TECHSEVEN - Trang chủ">
+					<img class="sf-brand-logo"
+						src="${pageContext.request.contextPath}/images/brand/techseven-logo-dark.svg"
+						alt="TECHSEVEN" width="323" height="72" loading="lazy" decoding="async">
+				</a>
 				<p class="text-muted small">Hệ thống chuỗi cửa hàng bán lẻ điện
 					máy chính hãng hàng đầu Việt Nam. Cam kết 100% sản phẩm chính hãng,
 					bảo hành toàn quốc.</p>

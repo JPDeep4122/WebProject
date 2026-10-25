@@ -36,37 +36,79 @@
 				</div>
 
 				<div class="sf-hero-visual">
-					<c:choose>
-						<c:when test="${not empty heroProduct.mainImageUrl}">
-							<img src="<c:out value='${heroProduct.mainImageUrl}'/>"
-								alt="<c:out value='${heroProduct.name}'/>" fetchpriority="high">
-						</c:when>
-						<c:otherwise>
-							<i class="bi bi-tv" aria-hidden="true"></i>
-						</c:otherwise>
-					</c:choose>
+					<a class="sf-hero-product sf-hero-fridge"
+						href="${pageContext.request.contextPath}/products/category/tu-lanh">
+						<img
+						src="${pageContext.request.contextPath}/images/categories/tu-lanh.png"
+						alt="Khám phá tủ lạnh" width="192" height="192">
+					</a> <a class="sf-hero-product sf-hero-tv"
+						href="${pageContext.request.contextPath}/products/category/tivi">
+						<img
+						src="${pageContext.request.contextPath}/images/categories/tivi.png"
+						alt="Khám phá tivi" width="192" height="192">
+					</a> <a class="sf-hero-product sf-hero-washer"
+						href="${pageContext.request.contextPath}/products/category/may-giat">
+						<img
+						src="${pageContext.request.contextPath}/images/categories/may-giat.png"
+						alt="Khám phá máy giặt" width="192" height="192">
+					</a>
 				</div>
 			</div>
 
-			<aside class="sf-hero-side" aria-label="Gợi ý mua sắm">
-				<p class="sf-eyebrow">Khám phá ngay</p>
-				<h2>Gợi ý mua sắm</h2>
-
-				<div class="sf-shortcuts">
-					<a
-						href="${pageContext.request.contextPath}/products?sortBy=bestseller">
-						<i class="bi bi-fire" aria-hidden="true"></i> Sản phẩm bán chạy
-					</a> <a
-						href="${pageContext.request.contextPath}/products?sortBy=newest">
-						<i class="bi bi-stars" aria-hidden="true"></i> Sản phẩm mới nhất
-					</a> <a
-						href="${pageContext.request.contextPath}/products?sortBy=rating">
-						<i class="bi bi-star" aria-hidden="true"></i> Đánh giá cao
-					</a> <a href="${pageContext.request.contextPath}/vouchers"> <i
-						class="bi bi-ticket-perforated" aria-hidden="true"></i> Khám phá
-						voucher
-					</a>
+			<aside class="sf-hero-side sf-shopping-guide" aria-labelledby="shoppingGuideTitle">
+				<div class="sf-shopping-guide-heading">
+					<div>
+						<p class="sf-eyebrow">Mua sắm theo nhu cầu</p>
+						<h2 id="shoppingGuideTitle">Gợi ý mua sắm</h2>
+					</div>
+					<span class="sf-shopping-guide-mark" aria-hidden="true">
+						<i class="bi bi-compass"></i>
+					</span>
 				</div>
+
+				<nav class="sf-shopping-links" aria-label="Lối tắt mua sắm">
+					<a href="${pageContext.request.contextPath}/products?sortBy=bestseller">
+						<span class="sf-shopping-link-icon sf-shopping-link-icon-hot" aria-hidden="true">
+							<i class="bi bi-fire"></i>
+						</span>
+						<span class="sf-shopping-link-copy">
+							<strong>Sản phẩm bán chạy</strong>
+							<small>Xem sản phẩm có lượt mua</small>
+						</span>
+						<i class="bi bi-arrow-right sf-shopping-link-arrow" aria-hidden="true"></i>
+					</a>
+					<a href="${pageContext.request.contextPath}/products?sortBy=newest">
+						<span class="sf-shopping-link-icon" aria-hidden="true">
+							<i class="bi bi-stars"></i>
+						</span>
+						<span class="sf-shopping-link-copy">
+							<strong>Sản phẩm mới nhất</strong>
+							<small>Khám phá thiết bị mới cập nhật</small>
+						</span>
+						<i class="bi bi-arrow-right sf-shopping-link-arrow" aria-hidden="true"></i>
+					</a>
+					<a href="${pageContext.request.contextPath}/products?sortBy=rating">
+						<span class="sf-shopping-link-icon" aria-hidden="true">
+							<i class="bi bi-star"></i>
+						</span>
+						<span class="sf-shopping-link-copy">
+							<strong>Đánh giá cao</strong>
+							<small>Tham khảo ý kiến từ người mua</small>
+						</span>
+						<i class="bi bi-arrow-right sf-shopping-link-arrow" aria-hidden="true"></i>
+					</a>
+				</nav>
+
+				<a class="sf-shopping-voucher" href="${pageContext.request.contextPath}/vouchers">
+					<span class="sf-shopping-voucher-icon" aria-hidden="true">
+						<i class="bi bi-ticket-perforated"></i>
+					</span>
+					<span class="sf-shopping-link-copy">
+						<strong>Khám phá voucher</strong>
+						<small>Chọn mã ưu đãi trước khi đặt hàng</small>
+					</span>
+					<i class="bi bi-arrow-right sf-shopping-link-arrow" aria-hidden="true"></i>
+				</a>
 			</aside>
 
 		</div>
@@ -89,8 +131,26 @@
 					<c:url var="categoryUrl" value="/products/category/${cat.slug}" />
 
 					<a class="sf-category-card" href="<c:out value='${categoryUrl}'/>">
-						<i class="bi <c:out value='${cat.icon}'/>" aria-hidden="true"></i>
-						<span><c:out value="${cat.name}" /></span>
+
+						<span class="sf-category-visual"> <c:choose>
+								<c:when
+									test="${cat.slug eq 'tivi'
+                        or cat.slug eq 'tu-lanh'
+                        or cat.slug eq 'may-giat'
+                        or cat.slug eq 'may-lanh'}">
+
+									<c:url var="categoryImageUrl"
+										value="/images/categories/${cat.slug}.png" />
+
+									<img src="<c:out value='${categoryImageUrl}'/>" alt=""
+										width="96" height="96" loading="lazy" decoding="async">
+								</c:when>
+
+								<c:otherwise>
+									<i class="bi <c:out value='${cat.icon}'/>" aria-hidden="true"></i>
+								</c:otherwise>
+							</c:choose>
+					</span> <span><c:out value="${cat.name}" /></span>
 					</a>
 				</c:if>
 			</c:forEach>
