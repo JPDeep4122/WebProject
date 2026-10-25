@@ -1,45 +1,5 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<li class="nav-item" role="presentation">
-	<button class="nav-link" id="tab-water-btn" data-bs-toggle="pill"
-		data-bs-target="#tab-water" type="button" role="tab"
-		aria-controls="tab-water" aria-selected="false">Máy lọc nước
-	</button>
-</li>
-
-<li class="nav-item" role="presentation">
-	<button class="nav-link" id="tab-fans-btn" data-bs-toggle="pill"
-		data-bs-target="#tab-fans" type="button" role="tab"
-		aria-controls="tab-fans" aria-selected="false">Quạt và làm
-		mát</button>
-</li>
-
-<li class="nav-item" role="presentation">
-	<button class="nav-link" id="tab-cleaning-btn" data-bs-toggle="pill"
-		data-bs-target="#tab-cleaning" type="button" role="tab"
-		aria-controls="tab-cleaning" aria-selected="false">Vệ sinh
-		nhà cửa</button>
-</li>
-
-<li class="nav-item" role="presentation">
-	<button class="nav-link" id="tab-blenders-btn" data-bs-toggle="pill"
-		data-bs-target="#tab-blenders" type="button" role="tab"
-		aria-controls="tab-blenders" aria-selected="false">Thiết bị
-		xay ép</button>
-</li>
-
-<li class="nav-item" role="presentation">
-	<button class="nav-link" id="tab-beauty-btn" data-bs-toggle="pill"
-		data-bs-target="#tab-beauty" type="button" role="tab"
-		aria-controls="tab-beauty" aria-selected="false">Chăm sóc cá
-		nhân</button>
-</li>
-
-<li class="nav-item" role="presentation">
-	<button class="nav-link" id="tab-audio-btn" data-bs-toggle="pill"
-		data-bs-target="#tab-audio" type="button" role="tab"
-		aria-controls="tab-audio" aria-selected="false">Âm thanh và
-		giải trí</button>
-</li>
+<%@ taglib prefix="menu" tagdir="/WEB-INF/tags" %>
 <div class="mega-menu-wrapper d-none d-md-block">
 
 	<button class="mega-btn-trigger shadow-sm" id="btnMegaMenu"
@@ -88,6 +48,47 @@
 							role="tab" aria-controls="tab-phukien" aria-selected="false">
 							<span>Thiết bị di động & Phụ kiện</span>
 						</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button class="nav-link" id="tab-water-btn" data-bs-toggle="pill"
+							data-bs-target="#tab-water" type="button" role="tab"
+							aria-controls="tab-water" aria-selected="false">Máy lọc
+							nước</button>
+					</li>
+
+					<li class="nav-item" role="presentation">
+						<button class="nav-link" id="tab-fans-btn" data-bs-toggle="pill"
+							data-bs-target="#tab-fans" type="button" role="tab"
+							aria-controls="tab-fans" aria-selected="false">Quạt và
+							làm mát</button>
+					</li>
+
+					<li class="nav-item" role="presentation">
+						<button class="nav-link" id="tab-cleaning-btn"
+							data-bs-toggle="pill" data-bs-target="#tab-cleaning"
+							type="button" role="tab" aria-controls="tab-cleaning"
+							aria-selected="false">Vệ sinh nhà cửa</button>
+					</li>
+
+					<li class="nav-item" role="presentation">
+						<button class="nav-link" id="tab-blenders-btn"
+							data-bs-toggle="pill" data-bs-target="#tab-blenders"
+							type="button" role="tab" aria-controls="tab-blenders"
+							aria-selected="false">Thiết bị xay ép</button>
+					</li>
+
+					<li class="nav-item" role="presentation">
+						<button class="nav-link" id="tab-beauty-btn" data-bs-toggle="pill"
+							data-bs-target="#tab-beauty" type="button" role="tab"
+							aria-controls="tab-beauty" aria-selected="false">Chăm
+							sóc cá nhân</button>
+					</li>
+
+					<li class="nav-item" role="presentation">
+						<button class="nav-link" id="tab-audio-btn" data-bs-toggle="pill"
+							data-bs-target="#tab-audio" type="button" role="tab"
+							aria-controls="tab-audio" aria-selected="false">Âm thanh
+							và giải trí</button>
 					</li>
 				</ul>
 			</div>
