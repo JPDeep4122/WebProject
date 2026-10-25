@@ -2,65 +2,59 @@
 <div class="mega-menu-wrapper d-none d-md-block">
 
 	<button class="mega-btn-trigger shadow-sm" id="btnMegaMenu"
-		type="button">
+		type="button" aria-expanded="false" aria-controls="megaMenuPanel">
 		<i class="bi bi-list fs-5"></i> <span>Danh mục</span>
 	</button>
 
-	<div class="mega-menu-panel shadow-lg">
-		<div class="d-flex h-100">
+	<div class="mega-menu-panel shadow-lg" id="megaMenuPanel"
+		role="region" aria-label="Danh mục sản phẩm">
+		<div class="mega-menu-layout">
 
 			<div class="mega-sidebar">
-				<ul class="nav flex-column" id="megaMenuTabs" role="tablist">
+				<ul class="nav flex-column" id="megaMenuTabs" role="tablist" aria-orientation="vertical">
 					<li class="nav-item" role="presentation">
 						<button class="nav-link active" id="tab-hot-btn"
 							data-bs-toggle="pill" data-bs-target="#tab-hot" type="button"
-							role="tab">
-							<span><i class="bi bi-fire text-danger me-2"></i> Chương
-								trình hot</span> <i class="bi bi-chevron-right small text-muted"></i>
-						</button>
+							role="tab" aria-controls="tab-hot" aria-selected="true">
+							<span>Chương
+								trình hot</span> </button>
 					</li>
 					<li class="nav-item" role="presentation">
 						<button class="nav-link" id="tab-dientu-btn" data-bs-toggle="pill"
-							data-bs-target="#tab-dientu" type="button" role="tab">
-							<span><i class="bi bi-tv text-primary me-2"></i> Điện tử,
-								điện lạnh</span> <i class="bi bi-chevron-right small text-muted"></i>
-						</button>
+							data-bs-target="#tab-dientu" type="button" role="tab" aria-controls="tab-dientu" aria-selected="false">
+							<span>Điện tử,
+								điện lạnh</span> </button>
 					</li>
 					<li class="nav-item" role="presentation">
 						<button class="nav-link" id="tab-giadung-btn"
 							data-bs-toggle="pill" data-bs-target="#tab-giadung" type="button"
-							role="tab">
-							<span><i class="bi bi-lightning-charge text-warning me-2"></i>
-								Điện gia dụng</span> <i class="bi bi-chevron-right small text-muted"></i>
-						</button>
+							role="tab" aria-controls="tab-giadung" aria-selected="false">
+							<span>Điện gia dụng</span> </button>
 					</li>
 					<li class="nav-item" role="presentation">
 						<button class="nav-link" id="tab-nhabep-btn" data-bs-toggle="pill"
-							data-bs-target="#tab-nhabep" type="button" role="tab">
-							<span><i class="bi bi-cup-hot text-success me-2"></i> Đồ
-								gia dụng nhà bếp</span> <i class="bi bi-chevron-right small text-muted"></i>
-						</button>
+							data-bs-target="#tab-nhabep" type="button" role="tab" aria-controls="tab-nhabep" aria-selected="false">
+							<span>Đồ
+								gia dụng nhà bếp</span> </button>
 					</li>
 					<li class="nav-item" role="presentation">
 						<button class="nav-link" id="tab-phukien-btn"
 							data-bs-toggle="pill" data-bs-target="#tab-phukien" type="button"
-							role="tab">
-							<span><i class="bi bi-phone text-info me-2"></i> Thiết bị
-								di động & Phụ kiện</span> <i
-								class="bi bi-chevron-right small text-muted"></i>
-						</button>
+							role="tab" aria-controls="tab-phukien" aria-selected="false">
+							<span>Thiết bị
+								di động & Phụ kiện</span> </button>
 					</li>
 				</ul>
 			</div>
 
-			<div class="mega-content flex-grow-1">
+			<div class="mega-content">
 				<div class="tab-content" id="megaMenuTabsContent">
 
-					<div class="tab-pane fade show active" id="tab-hot" role="tabpanel">
+					<div class="tab-pane fade show active" id="tab-hot" role="tabpanel" aria-labelledby="tab-hot-btn">
 						<div
-							class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-							<h6 class="fw-bold text-uppercase text-danger mb-0 small">
-								<i class="bi bi-stars"></i> Ưu đãi & Khuyến mãi sốc
+							class="mega-section-heading">
+							<h6 class="mega-section-title">
+								Khám phá sản phẩm
 							</h6>
 							<a href="${pageContext.request.contextPath}/products"
 								class="text-decoration-none small text-primary fw-bold">Xem
@@ -68,277 +62,277 @@
 						</div>
 						<div class="mega-grid">
 							<a
-								href="${pageContext.request.contextPath}/products?sort=discount"
+								href="${pageContext.request.contextPath}/products?sortBy=newest"
 								class="mega-sub-item">
-								<div class="mega-sub-icon bg-danger-subtle text-danger">
-									<i class="bi bi-lightning-fill"></i>
-								</div> <span>Flash Sale đến 50%</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/noi-chien-khong-dau.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Sản phẩm mới</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?sortBy=bestseller"
 								class="mega-sub-item">
-								<div class="mega-sub-icon bg-warning-subtle text-dark">
-									<i class="bi bi-gift-fill"></i>
-								</div> <span>Gia dụng Online - Quà 0đ</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/noi-com-dien.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Sản phẩm bán chạy</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=noi+com"
 								class="mega-sub-item">
-								<div class="mega-sub-icon bg-info-subtle text-primary">
-									<i class="bi bi-arrow-repeat"></i>
-								</div> <span>Đổi nồi cơm cũ lấy mới</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/noi-com-dien.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Nồi cơm điện</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=may+xay"
 								class="mega-sub-item">
-								<div class="mega-sub-icon bg-success-subtle text-success">
-									<i class="bi bi-cup-straw"></i>
-								</div> <span>Máy xay ép tiện lợi</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-xay-sinh-to.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy xay ép tiện lợi</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=may+loc+nuoc"
 								class="mega-sub-item">
-								<div class="mega-sub-icon bg-primary-subtle text-primary">
-									<i class="bi bi-droplet-fill"></i>
-								</div> <span>Máy lọc RO giá tốt</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-loc-nuoc.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy lọc nước</span>
 							</a> <a
-								href="${pageContext.request.contextPath}/products?sort=clearance"
+								href="${pageContext.request.contextPath}/products?sortBy=rating"
 								class="mega-sub-item">
-								<div class="mega-sub-icon bg-danger-subtle text-danger">
-									<i class="bi bi-tag-fill"></i>
-								</div> <span>Xả kho giá sốc</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/tu-lanh.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Sản phẩm đánh giá cao</span>
 							</a>
 						</div>
 					</div>
 
-					<div class="tab-pane fade" id="tab-dientu" role="tabpanel">
+					<div class="tab-pane fade" id="tab-dientu" role="tabpanel" aria-labelledby="tab-dientu-btn">
 						<div
-							class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-							<h6 class="fw-bold text-uppercase text-primary mb-0 small">Điện
+							class="mega-section-heading">
+							<h6 class="mega-section-title">Điện
 								máy lớn & Giải trí gia đình</h6>
 						</div>
 						<div class="mega-grid">
 							<a
 								href="${pageContext.request.contextPath}/products/category/tivi"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-tv"></i>
-								</div> <span>Google / Smart Tivi</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/tivi.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Google / Smart Tivi</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products/category/tu-lanh"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-snow2"></i>
-								</div> <span>Tủ lạnh Inverter</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/tu-lanh.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Tủ lạnh Inverter</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products/category/may-giat"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-water"></i>
-								</div> <span>Máy giặt cửa trước</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-giat.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy giặt cửa trước</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products/category/may-lanh"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-wind"></i>
-								</div> <span>Máy lạnh 1 HP - 2 HP</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-lanh.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy lạnh 1 HP - 2 HP</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=máy+sấy"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-fire text-danger"></i>
-								</div> <span>Máy sấy quần áo</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-say-quan-ao.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy sấy quần áo</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=tủ+đông"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-box2-fill"></i>
-								</div> <span>Tủ đông kháng khuẩn</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/tu-dong.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Tủ đông kháng khuẩn</span>
 							</a>
 						</div>
 					</div>
 
-					<div class="tab-pane fade" id="tab-giadung" role="tabpanel">
+					<div class="tab-pane fade" id="tab-giadung" role="tabpanel" aria-labelledby="tab-giadung-btn">
 						<div
-							class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-							<h6 class="fw-bold text-uppercase text-warning mb-0 small">Thiết
+							class="mega-section-heading">
+							<h6 class="mega-section-title">Thiết
 								bị điện gia đình tiện nghi</h6>
 						</div>
 						<div class="mega-grid">
 							<a
 								href="${pageContext.request.contextPath}/products?keyword=nồi+cơm+điện"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-egg-fried"></i>
-								</div> <span>Nồi cơm điện</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/noi-com-dien.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Nồi cơm điện</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=máy+lọc+nước"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-droplet-half"></i>
-								</div> <span>Máy lọc nước</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-loc-nuoc.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy lọc nước</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=quạt+điều+hoà"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-snow"></i>
-								</div> <span>Quạt điều hoà</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/quat-dieu-hoa.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Quạt điều hoà</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=quạt"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-fan"></i>
-								</div> <span>Quạt đứng mát</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/quat-dung.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Quạt đứng mát</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=máy+hút+bụi"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-tornado"></i>
-								</div> <span>Máy hút bụi</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-hut-bui.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy hút bụi</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=robot+hút+bụi"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-disc"></i>
-								</div> <span>Robot hút bụi</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/robot-hut-bui.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Robot hút bụi</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=máy+lọc+không+khí"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-virus2"></i>
-								</div> <span>Máy lọc không khí</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-loc-khong-khi.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy lọc không khí</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=máy+xay+sinh+tố"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-cup-straw"></i>
-								</div> <span>Máy xay sinh tố</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-xay-sinh-to.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy xay sinh tố</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=máy+ép+trái+cây"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-droplet"></i>
-								</div> <span>Máy ép chậm</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-ep-trai-cay.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy ép chậm</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=bếp+từ"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-dash-circle-dotted"></i>
-								</div> <span>Bếp từ đôi / đơn</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/bep-tu.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Bếp từ đôi / đơn</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=bàn+ủi"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-steam"></i>
-								</div> <span>Bàn ủi hơi nước</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/ban-ui.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Bàn ủi hơi nước</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=máy+hút+ẩm"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-moisture"></i>
-								</div> <span>Máy hút ẩm</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-hut-am.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy hút ẩm</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=máy+sấy+tóc"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-brush"></i>
-								</div> <span>Máy sấy tóc</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/may-say-toc.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Máy sấy tóc</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=lò+vi+sóng"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-inbox"></i>
-								</div> <span>Lò vi sóng</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/lo-vi-song.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Lò vi sóng</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=nồi+chiên+không+dầu"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-badge-ad"></i>
-								</div> <span>Nồi chiên không dầu</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/noi-chien-khong-dau.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Nồi chiên không dầu</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=bình+đun+siêu+tốc"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-cup"></i>
-								</div> <span>Bình đun siêu tốc</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/binh-dun-sieu-toc.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Bình đun siêu tốc</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=quạt+trần"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-brightness-high"></i>
-								</div> <span>Quạt trần</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/quat-tran.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Quạt trần</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=cây+nước+nóng+lạnh"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-cup-hot"></i>
-								</div> <span>Cây nước nóng lạnh</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/cay-nuoc-nong-lanh.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Cây nước nóng lạnh</span>
 							</a>
 						</div>
 					</div>
 
-					<div class="tab-pane fade" id="tab-nhabep" role="tabpanel">
+					<div class="tab-pane fade" id="tab-nhabep" role="tabpanel" aria-labelledby="tab-nhabep-btn">
 						<div
-							class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-							<h6 class="fw-bold text-uppercase text-success mb-0 small">Dụng
+							class="mega-section-heading">
+							<h6 class="mega-section-title">Dụng
 								cụ nấu nướng & Bàn ăn</h6>
 						</div>
 						<div class="mega-grid">
 							<a
 								href="${pageContext.request.contextPath}/products?keyword=chảo+chống+dính"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-circle"></i>
-								</div> <span>Chảo chống dính</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/chao.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Chảo chống dính</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=bộ+nồi"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-layers"></i>
-								</div> <span>Bộ nồi Inox cao cấp</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/bo-noi.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Bộ nồi Inox cao cấp</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=dao+kéo"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-slash-lg"></i>
-								</div> <span>Dao, thớt, kéo bếp</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/dao.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Dao, thớt, kéo bếp</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=hộp+thực+phẩm"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-box"></i>
-								</div> <span>Hộp bảo quản Lock&Lock</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/hop-thuc-pham.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Hộp bảo quản Lock&Lock</span>
 							</a>
 						</div>
 					</div>
 
-					<div class="tab-pane fade" id="tab-phukien" role="tabpanel">
+					<div class="tab-pane fade" id="tab-phukien" role="tabpanel" aria-labelledby="tab-phukien-btn">
 						<div
-							class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-							<h6 class="fw-bold text-uppercase text-info mb-0 small">Phụ
+							class="mega-section-heading">
+							<h6 class="mega-section-title">Phụ
 								kiện công nghệ chính hãng</h6>
 						</div>
 						<div class="mega-grid">
 							<a
 								href="${pageContext.request.contextPath}/products?keyword=tai+nghe"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-headphones"></i>
-								</div> <span>Tai nghe Bluetooth</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/tai-nghe.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Tai nghe Bluetooth</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=pin+sạc"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-battery-charging"></i>
-								</div> <span>Pin sạc dự phòng</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/pin-sac.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Pin sạc dự phòng</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=cáp+sạc"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-plug"></i>
-								</div> <span>Cáp sạc Type-C / Lightning</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/cap-sac.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Cáp sạc Type-C / Lightning</span>
 							</a> <a
 								href="${pageContext.request.contextPath}/products?keyword=loa+bluetooth"
 								class="mega-sub-item">
-								<div class="mega-sub-icon">
-									<i class="bi bi-speaker"></i>
-								</div> <span>Loa nghe nhạc</span>
+								<img class="mega-sub-image"
+								src="${pageContext.request.contextPath}/images/categories/loa.png"
+								width="96" height="96" alt="" loading="lazy" decoding="async"> <span>Loa nghe nhạc</span>
 							</a>
 						</div>
 					</div>
@@ -348,4 +342,4 @@
 
 		</div>
 	</div>
-</div>
+</div><div class="mega-menu-backdrop" aria-hidden="true"></div>
