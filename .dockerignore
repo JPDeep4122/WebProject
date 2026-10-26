@@ -1,0 +1,10 @@
+.git
+.idea
+.vscode
+target
+src/test/
+.env
+.env.*
+!.env.docker.example
+private/
+*.log

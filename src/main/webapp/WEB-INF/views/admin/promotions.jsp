@@ -1,0 +1,96 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%><%@ taglib prefix="c" uri="jakarta.tags.core"%>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Khuyến mãi</title>
+<link
+	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+	rel="stylesheet">
+<jsp:include page="/WEB-INF/views/shared/security.jsp"/>
+</head>
+<body>
+	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
+			class="flex-grow-1 bg-light p-4">
+			<h3>Quản lý khuyến mãi</h3>
+			<c:if test="${not empty success}">
+				<div class="alert alert-success">${success}</div>
+			</c:if>
+			<c:if test="${not empty error}">
+				<div class="alert alert-danger">${error}</div>
+			</c:if>
+			<div class="card mb-3">
+				<div class="card-header">Tạo khuyến mãi</div>
+				<div class="card-body">
+					<form method="post" action="/admin/promotions" class="row g-2">
+						<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+						<div class="col-md-3">
+							<input class="form-control" name="name"
+								placeholder="Tên khuyến mãi" required>
+						</div>
+						<div class="col-md-2">
+							<input class="form-control" name="code" placeholder="Mã voucher"
+								required>
+						</div>
+						<div class="col-md-2">
+							<input class="form-control" name="discountPercent" type="number"
+								min="0.01" max="100" step="0.01" placeholder="% giảm" required>
+						</div>
+						<div class="col-md-2">
+							<input class="form-control" name="maxUses" type="number" min="0"
+								placeholder="Số lượt tối đa">
+						</div>
+						<div class="col-md-2">
+							<input class="form-control" name="startsAt" type="datetime-local"
+								title="Bắt đầu">
+						</div>
+						<div class="col-md-2">
+							<input class="form-control" name="endsAt" type="datetime-local"
+								title="Kết thúc">
+						</div>
+						<div class="col-12">
+							<button class="btn btn-primary">Tạo khuyến mãi</button>
+						</div>
+					</form>
+				</div>
+			</div>
+			<div class="card">
+				<div class="table-responsive">
+					<table class="table table-striped align-middle mb-0">
+						<thead>
+							<tr>
+								<th>Tên</th>
+								<th>Mã</th>
+								<th>Mức giảm</th>
+								<th>Thời gian</th>
+								<th>Đã dùng / Giới hạn</th>
+								<th>Trạng thái</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							<c:forEach items="${promotions}" var="p">
+								<tr>
+									<td>${p.name}</td>
+									<td><code>${p.code}</code></td>
+									<td>${p.discountPercent}%</td>
+									<td>${p.startsAt}đến ${p.endsAt}</td>
+									<td>${p.usedCount}/ ${p.maxUses == null ? 'Không giới hạn' : p.maxUses}</td>
+									<td>${p.active ? 'Đang bật' : 'Đã tắt'}</td>
+									<td><form method="post"
+											action="/admin/promotions/${p.id}/toggle">
+										<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+											<button class="btn btn-sm btn-outline-warning">${p.active ? 'Tắt' : 'Bật'}</button>
+										</form></td>
+								</tr>
+							</c:forEach>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</main>
+	</div>
+</body>
+</html>
