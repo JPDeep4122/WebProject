@@ -42,7 +42,7 @@ public class PhoneAuthService {
                     .orElseThrow(() -> new AccessDeniedException(
                             "Tài khoản không còn khả dụng."));
 
-            if (!user.isActive()) {
+            if (!user.isActive() || user.isBlocked()) {
                 throw new AccessDeniedException(
                         "Tài khoản hiện không được phép sử dụng.");
             }
@@ -98,7 +98,7 @@ public class PhoneAuthService {
                         "Thông tin liên kết điện thoại không hợp lệ.");
             }
 
-            if (!user.isActive()) {
+            if (!user.isActive() || user.isBlocked()) {
                 throw new AccessDeniedException(
                         "Tài khoản hiện không được phép đăng nhập.");
             }

@@ -62,6 +62,10 @@ public class User {
 	@Column(name = "is_active", nullable = false)
 	@Builder.Default
 	private boolean active = false; // Mặc định luôn false, nhập đúng OTP thành true
+	
+	@Column(name = "is_blocked", nullable = false)
+	@Builder.Default
+	private boolean blocked = false;
 
 	@ManyToMany(fetch = FetchType.EAGER)
 	@JoinTable(

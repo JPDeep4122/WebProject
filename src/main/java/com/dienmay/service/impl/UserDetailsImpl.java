@@ -48,7 +48,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getEmail(),
                 user.getFullName(),
                 user.getPassword(),
-                user.isActive(),
+                user.isActive() && !user.isBlocked(),
                 user.getBranch() == null ? null : user.getBranch().getId(),
                 authorities);
     }

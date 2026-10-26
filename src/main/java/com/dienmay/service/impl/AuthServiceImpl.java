@@ -2,7 +2,6 @@ package com.dienmay.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Random;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -37,6 +36,8 @@ import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.security.jwt.JwtUtils;
 import com.dienmay.service.auth.AuthService;
 import com.dienmay.service.mail.EmailService;
+import java.security.SecureRandom;
+import java.util.Locale;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -65,6 +66,12 @@ public class AuthServiceImpl implements AuthService {
 
 	@Autowired
 	private TransactionTemplate transactionTemplate;
+	
+	private static final SecureRandom OTP_RANDOM = new SecureRandom();
+
+	private static final int MAX_OTP_ATTEMPTS = 5;
+	private static final int OTP_RESEND_SECONDS = 60;
+	private static final int MAX_OTP_SENDS_PER_HOUR = 5;
 
 	@Override
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -72,12 +79,24 @@ public class AuthServiceImpl implements AuthService {
 		String email = request.getEmail().trim().toLowerCase();
 		return prepareAndSendOtp(email, "REGISTER", () -> registerAccount(request, email));
 	}
+	
+	private ApiResponse<String> authFailure(String message) {
+	    return ApiResponse.<String>builder()
+	            .success(false)
+	            .message(message)
+	            .build();
+	}
 
 	private ApiResponse<String> registerAccount(RegisterRequest request, String email) {
 
 		// 1. Kiểm tra xem email đã tồn tại và đã kích hoạt chưa
 		if (userRepository.existsByEmail(email)) {
 			User existingUser = userRepository.findByEmail(email).get();
+			if (existingUser.isBlocked()) {
+			    return authFailure(
+			            "Tài khoản đã bị khóa. Vui lòng liên hệ cửa hàng.");
+			}
+			
 			if (existingUser.isActive()) {
 				return ApiResponse.<String>builder().success(false)
 						.message("Email này đã được đăng ký và kích hoạt trước đó!").build();
@@ -110,43 +129,41 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	@Transactional
 	public ApiResponse<String> verifyRegisterOtp(VerifyOtpRequest request) {
-		String email = request.getEmail().trim().toLowerCase();
-		String otp = request.getOtpCode().trim();
+	    String email = request.getEmail()
+	            .trim()
+	            .toLowerCase(Locale.ROOT);
 
-		// 1. Tìm mã OTP hợp lệ mới nhất
-		OtpCode otpCode = otpCodeRepository.findTopByEmailAndTypeAndUsedFalseOrderByCreatedAtDesc(email, "REGISTER")
-				.orElse(null);
+	    User user = userRepository.findForOtp(email).orElse(null);
 
-		if (otpCode == null) {
-			return ApiResponse.<String>builder().success(false)
-					.message("Không tìm thấy mã OTP hoặc mã đã được sử dụng!").build();
-		}
+	    if (user == null) {
+	        return authFailure("Tài khoản không tồn tại.");
+	    }
 
-		// 2. Kiểm tra hạn sử dụng (5 phút)
-		if (LocalDateTime.now().isAfter(otpCode.getExpiryTime())) {
-			return ApiResponse.<String>builder().success(false)
-					.message("Mã OTP đã hết hạn! Vui lòng yêu cầu gửi lại mã mới.").build();
-		}
+	    if (user.isBlocked()) {
+	        return authFailure(
+	                "Tài khoản đã bị khóa. OTP không thể mở khóa tài khoản.");
+	    }
 
-		// 3. Kiểm tra mã nhập vào có khớp không
-		if (!otpCode.getOtpCode().equals(otp)) {
-			return ApiResponse.<String>builder().success(false)
-					.message("Mã OTP không chính xác! Vui lòng kiểm tra lại.").build();
-		}
+	    if (user.isActive()) {
+	        return authFailure("Tài khoản đã được kích hoạt.");
+	    }
 
-		// 4. Hợp lệ: Đánh dấu OTP đã dùng & Kích hoạt tài khoản User
-		otpCode.setUsed(true);
-		otpCodeRepository.save(otpCode);
+	    ApiResponse<String> checked = consumeOtp(
+	            email,
+	            "REGISTER",
+	            request.getOtpCode().trim());
 
-		User user = userRepository.findByEmail(email).orElse(null);
-		if (user != null) { // [FIXED: Đổi từ user == null thành user != null]
-			user.setActive(true);
-			userRepository.save(user);
-		}
+	    if (!checked.isSuccess()) {
+	        return checked;
+	    }
 
-		return ApiResponse.<String>builder().success(true)
-				.message("Xác thực OTP thành công! Tài khoản của bạn đã được kích hoạt và có thể đăng nhập ngay.")
-				.build();
+	    user.setActive(true);
+	    userRepository.save(user);
+
+	    return ApiResponse.<String>builder()
+	            .success(true)
+	            .message("Xác thực thành công. Bạn có thể đăng nhập.")
+	            .build();
 	}
 
 	@Override
@@ -162,6 +179,11 @@ public class AuthServiceImpl implements AuthService {
 		if (user == null) {
 			return ApiResponse.<String>builder().success(false).message("Email không tồn tại trong hệ thống!").build();
 		}
+		
+		if (user.isBlocked()) {
+		    return authFailure(
+		            "Tài khoản đã bị khóa. Vui lòng liên hệ cửa hàng.");
+		}
 
 		if (user.isActive()) {
 			return ApiResponse.<String>builder().success(false)
@@ -172,33 +194,105 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	private String createOtp(String email, String type) {
-		String randomOtp = String.valueOf(new Random().nextInt(900000) + 100000);
+	    otpCodeRepository.invalidateUnused(email, type);
 
-		OtpCode otpCode = OtpCode.builder().email(email).otpCode(randomOtp).type(type)
-				.expiryTime(LocalDateTime.now().plusMinutes(5)).used(false).build();
+	    String otp = String.format(
+	            Locale.ROOT,
+	            "%06d",
+	            OTP_RANDOM.nextInt(1_000_000));
 
-		otpCodeRepository.save(otpCode);
-		return randomOtp;
+	    OtpCode entity = OtpCode.builder()
+	            .email(email)
+	            .otpCode(otp)
+	            .type(type)
+	            .expiryTime(LocalDateTime.now().plusMinutes(5))
+	            .used(false)
+	            .failedAttempts(0)
+	            .build();
+
+	    otpCodeRepository.save(entity);
+
+	    return otp;
 	}
 
-	private ApiResponse<String> prepareAndSendOtp(String email, String type,
-			Supplier<ApiResponse<String>> prepare) {
-		// Complete the database transaction and release its connection before SMTP.
-		OtpDelivery delivery = transactionTemplate.execute(status -> {
-			ApiResponse<String> response = prepare.get();
-			String otp = response.isSuccess() ? createOtp(email, type) : null;
-			return new OtpDelivery(response, otp);
-		});
-		if (delivery.otp() != null) {
-			try {
-				emailService.sendOtpEmail(email, delivery.otp());
-			} catch (MailException ex) {
-				log.warn("OTP email delivery failed: {}", ex.getClass().getSimpleName());
-				return ApiResponse.<String>builder().success(false).data(email)
-						.message("Không gửi được email OTP. Vui lòng thử gửi lại mã sau.").build();
-			}
-		}
-		return delivery.response();
+	private ApiResponse<String> prepareAndSendOtp(
+	        String email,
+	        String type,
+	        Supplier<ApiResponse<String>> prepare) {
+
+	    OtpDelivery delivery = transactionTemplate.execute(status -> {
+	        // Khóa tài khoản hiện có để các instance dùng chung giới hạn.
+	        User account = userRepository.findForOtp(email).orElse(null);
+
+	        if (account != null && account.isBlocked()) {
+	            return new OtpDelivery(
+	                    authFailure("Tài khoản đã bị khóa."),
+	                    null);
+	        }
+
+	        LocalDateTime now = LocalDateTime.now();
+
+	        OtpCode latest = otpCodeRepository
+	                .findTopByEmailAndTypeOrderByIdDesc(email, type)
+	                .orElse(null);
+
+	        if (latest != null
+	                && latest.getCreatedAt() != null
+	                && now.isBefore(
+	                        latest.getCreatedAt()
+	                                .plusSeconds(OTP_RESEND_SECONDS))) {
+
+	            return new OtpDelivery(
+	                    authFailure(
+	                            "Vui lòng chờ 60 giây giữa hai lần gửi OTP."),
+	                    null);
+	        }
+
+	        long sentCount = otpCodeRepository
+	                .countByEmailAndCreatedAtAfter(
+	                        email,
+	                        now.minusHours(1));
+
+	        if (sentCount >= MAX_OTP_SENDS_PER_HOUR) {
+	            return new OtpDelivery(
+	                    authFailure(
+	                            "Bạn đã đạt giới hạn 5 lần gửi OTP trong một giờ."),
+	                    null);
+	        }
+
+	        ApiResponse<String> response = prepare.get();
+
+	        String otp = response.isSuccess()
+	                ? createOtp(email, type)
+	                : null;
+
+	        return new OtpDelivery(response, otp);
+	    });
+
+	    if (delivery == null) {
+	        throw new IllegalStateException("Không thể chuẩn bị OTP.");
+	    }
+
+	    // SMTP thực hiện sau khi transaction database đã kết thúc.
+	    if (delivery.otp() != null) {
+	        try {
+	            emailService.sendOtpEmail(email, delivery.otp());
+	        } catch (MailException ex) {
+	            log.warn(
+	                    "OTP email delivery failed: {}",
+	                    ex.getClass().getSimpleName());
+
+	            return ApiResponse.<String>builder()
+	                    .success(false)
+	                    .data(email)
+	                    .message(
+	                            "Không gửi được email OTP. "
+	                            + "Vui lòng thử gửi lại mã sau.")
+	                    .build();
+	        }
+	    }
+
+	    return delivery.response();
 	}
 
 	private record OtpDelivery(ApiResponse<String> response, String otp) {}
@@ -209,10 +303,20 @@ public class AuthServiceImpl implements AuthService {
 
 		// 1. Kiểm tra tài khoản có tồn tại không
 		User user = userRepository.findByEmail(email).orElse(null);
+		
+		
 		if (user == null) {
 			return ApiResponse.<JwtResponse>builder().success(false).message("Tài khoản email này chưa được đăng ký!")
 					.build();
 		}
+		
+		if (user.isBlocked()) {
+	        return ApiResponse.<JwtResponse>builder()
+	                .success(false)
+	                .message("Tài khoản đã bị khóa.")
+	                .build();
+	    }
+
 
 		// 2. Kiểm tra tài khoản đã kích hoạt (active == true) chưa
 		if (!user.isActive()) {
@@ -261,6 +365,11 @@ public class AuthServiceImpl implements AuthService {
 			return ApiResponse.<String>builder().success(false).message("Email này chưa được đăng ký trong hệ thống!")
 					.build();
 		}
+		
+		if (user.isBlocked()) {
+		    return authFailure(
+		            "Tài khoản đã bị khóa. Vui lòng liên hệ cửa hàng.");
+		}
 
 		// 2. Kiểm tra tài khoản đã kích hoạt chưa
 		if (!user.isActive()) {
@@ -275,43 +384,88 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	@Transactional
 	public ApiResponse<String> resetPassword(ResetPasswordRequest request) {
-		String email = request.getEmail().trim().toLowerCase();
-		String otp = request.getOtpCode().trim();
+	    String email = request.getEmail()
+	            .trim()
+	            .toLowerCase(Locale.ROOT);
 
-		// 1. Tìm mã OTP loại FORGOT_PASSWORD mới nhất và chưa sử dụng
-		OtpCode otpCode = otpCodeRepository
-				.findTopByEmailAndTypeAndUsedFalseOrderByCreatedAtDesc(email, "FORGOT_PASSWORD").orElse(null);
+	    User user = userRepository.findForOtp(email).orElse(null);
 
-		if (otpCode == null) {
-			return ApiResponse.<String>builder().success(false)
-					.message("Không tìm thấy mã OTP hoặc mã đã được sử dụng!").build();
-		}
+	    if (user == null || user.isBlocked() || !user.isActive()) {
+	        return authFailure(
+	                "Tài khoản hiện không được phép đặt lại mật khẩu.");
+	    }
 
-		// 2. Kiểm tra hạn OTP (5 phút)
-		if (LocalDateTime.now().isAfter(otpCode.getExpiryTime())) {
-			return ApiResponse.<String>builder().success(false)
-					.message("Mã OTP đã hết hạn! Vui lòng yêu cầu cấp lại mã mới.").build();
-		}
+	    ApiResponse<String> checked = consumeOtp(
+	            email,
+	            "FORGOT_PASSWORD",
+	            request.getOtpCode().trim());
 
-		// 3. Kiểm tra mã OTP khớp không
-		if (!otpCode.getOtpCode().equals(otp)) {
-			return ApiResponse.<String>builder().success(false)
-					.message("Mã OTP không chính xác! Vui lòng kiểm tra lại.").build();
-		}
+	    if (!checked.isSuccess()) {
+	        return checked;
+	    }
 
-		// 4. Đánh dấu OTP đã dùng
-		otpCode.setUsed(true);
-		otpCodeRepository.save(otpCode);
+	    user.setPassword(
+	            passwordEncoder.encode(request.getNewPassword()));
 
-		// 5. Cập nhật mật khẩu mới (Mã hóa bằng BCrypt)
-		User user = userRepository.findByEmail(email).orElse(null);
-		if (user != null) {
-			user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-			userRepository.save(user);
-		}
+	    userRepository.save(user);
 
-		return ApiResponse.<String>builder().success(true)
-				.message("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới ngay.").build();
+	    return ApiResponse.<String>builder()
+	            .success(true)
+	            .message("Đặt lại mật khẩu thành công.")
+	            .build();
+	}
+	
+	private ApiResponse<String> consumeOtp(
+	        String email,
+	        String type,
+	        String enteredCode) {
 
+	    OtpCode otp = otpCodeRepository
+	            .findTopByEmailAndTypeOrderByIdDesc(email, type)
+	            .orElse(null);
+
+	    if (otp == null) {
+	        return authFailure("Không tìm thấy OTP. Vui lòng yêu cầu mã mới.");
+	    }
+
+	    if (otp.isUsed() || otp.getFailedAttempts() >= MAX_OTP_ATTEMPTS) {
+	        return authFailure(
+	                "OTP đã được sử dụng hoặc vô hiệu hóa. "
+	                + "Vui lòng yêu cầu mã mới.");
+	    }
+
+	    if (!LocalDateTime.now().isBefore(otp.getExpiryTime())) {
+	        otp.setUsed(true);
+	        otpCodeRepository.save(otp);
+
+	        return authFailure("OTP đã hết hạn. Vui lòng yêu cầu mã mới.");
+	    }
+
+	    if (!otp.getOtpCode().equals(enteredCode)) {
+	        int failures = otp.getFailedAttempts() + 1;
+
+	        otp.setFailedAttempts(failures);
+
+	        if (failures >= MAX_OTP_ATTEMPTS) {
+	            otp.setUsed(true);
+	        }
+
+	        otpCodeRepository.save(otp);
+
+	        return authFailure(
+	                failures >= MAX_OTP_ATTEMPTS
+	                        ? "Bạn đã nhập sai 5 lần. OTP đã bị vô hiệu hóa."
+	                        : "OTP không chính xác. Bạn còn "
+	                                + (MAX_OTP_ATTEMPTS - failures)
+	                                + " lần thử.");
+	    }
+
+	    otp.setUsed(true);
+	    otpCodeRepository.save(otp);
+
+	    return ApiResponse.<String>builder()
+	            .success(true)
+	            .message("OTP hợp lệ.")
+	            .build();
 	}
 }
