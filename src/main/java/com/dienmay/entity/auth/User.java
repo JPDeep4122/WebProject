@@ -38,6 +38,9 @@ public class User {
 	@Column(nullable = false, unique = true, length = 100)
 	private String email;
 
+	@Column(name = "google_sub", unique = true, length = 255)
+	private String googleSub;
+	
 	@Column(nullable = false)
 	private String password;
 
@@ -46,6 +49,15 @@ public class User {
 
 	@Column(name = "phone_number", length = 20)
 	private String phoneNumber;
+	
+	@Column(name = "verified_phone_number", unique = true, length = 20)
+	private String verifiedPhoneNumber;
+
+	@Column(name = "firebase_phone_uid", unique = true, length = 128)
+	private String firebasePhoneUid;
+
+	@Column(name = "phone_verified_at")
+	private LocalDateTime phoneVerifiedAt;
 
 	@Column(name = "is_active", nullable = false)
 	@Builder.Default
