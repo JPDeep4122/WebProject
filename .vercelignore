@@ -1,0 +1,11 @@
+target/
+.git/
+.vercel/
+.maven-cache/
+private/
+.env
+.env.*
+.idea/
+.vscode/
+.settings/
+*.log
