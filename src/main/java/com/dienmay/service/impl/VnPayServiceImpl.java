@@ -1,11 +1,14 @@
 package com.dienmay.service.impl;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 import java.util.ArrayList;
@@ -30,7 +33,6 @@ import com.dienmay.service.payment.VnPayService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import tools.jackson.databind.ext.javatime.DateTimeParseException;
 
 @Service
 @RequiredArgsConstructor
@@ -40,11 +42,36 @@ public class VnPayServiceImpl implements VnPayService {
     private final PaymentRepository paymentRepository;
 
     @Override
-    public String createPaymentUrl(Order order, HttpServletRequest request) {
+    public void requireConfigured() {
         if (vnPayConfig.getVnpTmnCode() == null || vnPayConfig.getVnpTmnCode().isBlank()
                 || vnPayConfig.getVnpHashSecret() == null || vnPayConfig.getVnpHashSecret().isBlank()) {
             throw new IllegalStateException(
                     "VNPay chưa được cấu hình. Hãy đặt VNPAY_TMN_CODE và VNPAY_HASH_SECRET.");
+        }
+        requireHttpUrl(vnPayConfig.getVnpPayUrl());
+        requireHttpUrl(vnPayConfig.getVnpReturnUrl());
+    }
+
+    private void requireHttpUrl(String value) {
+        try {
+            URI uri = URI.create(value);
+            if (uri.getHost() == null || !("https".equalsIgnoreCase(uri.getScheme())
+                    || "http".equalsIgnoreCase(uri.getScheme()))) {
+                throw new IllegalArgumentException();
+            }
+        } catch (RuntimeException ex) {
+            throw new IllegalStateException("URL cấu hình VNPay không hợp lệ.", ex);
+        }
+    }
+
+    @Override
+    public String createPaymentUrl(Order order, HttpServletRequest request, Instant expiresAt) {
+        requireConfigured();
+        if (expiresAt == null || !expiresAt.isAfter(Instant.now())) {
+            throw new IllegalArgumentException("Thời hạn thanh toán không hợp lệ.");
+        }
+        if (order.getFinalAmount() == null || order.getFinalAmount().signum() <= 0) {
+            throw new IllegalArgumentException("Đơn VNPay phải có số tiền lớn hơn 0.");
         }
         String vnp_Version = "2.1.0";
         String vnp_Command = "pay";
@@ -80,7 +107,7 @@ public class VnPayServiceImpl implements VnPayService {
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 
-        cld.add(Calendar.MINUTE, 15);
+        cld.setTime(java.util.Date.from(expiresAt));
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 
@@ -102,7 +129,7 @@ public class VnPayServiceImpl implements VnPayService {
                     query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString())).append('=')
                             .append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString())).append('&');
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    throw new IllegalStateException("Không thể tạo tham số thanh toán VNPay.", e);
                 }
             }
         }
@@ -113,6 +140,9 @@ public class VnPayServiceImpl implements VnPayService {
 
         // 3. Ký số trên chuỗi hashData
         String vnp_SecureHash = VnPayConfig.hmacSHA512(vnPayConfig.getVnpHashSecret(), hashData.toString());
+        if (vnp_SecureHash == null || !vnp_SecureHash.matches("(?i)[0-9a-f]{128}")) {
+            throw new IllegalStateException("Không thể tạo chữ ký thanh toán VNPay.");
+        }
         String paymentUrl = vnPayConfig.getVnpPayUrl() + "?" + query.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
 
         return paymentUrl;

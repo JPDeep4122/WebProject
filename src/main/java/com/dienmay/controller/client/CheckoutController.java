@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.dienmay.dto.checkout.CheckoutPageDto;
 import com.dienmay.dto.checkout.PlaceOrderRequest;
@@ -24,7 +25,6 @@ import com.dienmay.dto.common.ApiResponse;
 import com.dienmay.entity.order.Order;
 import com.dienmay.service.checkout.CheckoutService;
 import com.dienmay.service.checkout.ShippingService;
-import com.dienmay.service.payment.VnPayService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -38,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 public class CheckoutController {
 
     private final CheckoutService checkoutService;
-    private final VnPayService vnPayService; // TIÊM VNPAY SERVICE
     private final ShippingService shippingService;
 
     @GetMapping("/checkout")
@@ -117,7 +116,7 @@ public class CheckoutController {
         Order order;
 
         try {
-            order = checkoutService.placeOrder(request, email, session);
+            order = checkoutService.placeOrder(request, email, session, servletRequest);
         } catch (IllegalArgumentException ex) {
             model.addAttribute("checkoutError", ex.getMessage());
             return "client/checkout";
@@ -131,16 +130,31 @@ public class CheckoutController {
                             + "hoặc thử lại sau.");
 
             return "client/checkout";
+        } catch (RuntimeException ex) {
+            log.error("Không thể hoàn tất checkout", ex);
+            model.addAttribute("checkoutError", "Chưa thể hoàn tất đặt hàng. Vui lòng thử lại.");
+            return "client/checkout";
         }
 
         if ("VNPAY".equalsIgnoreCase(request.getPaymentMethod())) {
-            String vnpayUrl =
-                    vnPayService.createPaymentUrl(order, servletRequest);
-
-            return "redirect:" + vnpayUrl;
+            return "redirect:" + order.getPayment().getPaymentUrl();
         }
 
         return "redirect:/order-success/" + order.getOrderCode();
+    }
+
+    @PostMapping("/checkout/orders/{orderCode}/pay")
+    public String continuePayment(@PathVariable String orderCode, Principal principal,
+            HttpSession session, RedirectAttributes flash) {
+        String email = principal != null ? principal.getName() : null;
+        // Keep authorization failures as 404; do not disclose another customer's order.
+        Order order = checkoutService.getOrderByCode(orderCode, email, session);
+        try {
+            return "redirect:" + checkoutService.continuePayment(order.getOrderCode(), email, session);
+        } catch (IllegalArgumentException ex) {
+            flash.addFlashAttribute("paymentError", ex.getMessage());
+            return "redirect:/order-success/" + order.getOrderCode();
+        }
     }
 
     @GetMapping("/order-success/{orderCode}")

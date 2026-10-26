@@ -19,16 +19,15 @@ public class OrderStatusWebSocketNotifier {
             phase = TransactionPhase.AFTER_COMMIT,
             fallbackExecution = true)
     public void notifyCustomer(OrderStatusChangedEvent event) {
-        if (event.recipientEmail() == null || event.recipientEmail().isBlank()) {
-            return;
+        if (event.recipientEmail() != null && !event.recipientEmail().isBlank()) {
+            messagingTemplate.convertAndSendToUser(
+                    event.recipientEmail(), USER_DESTINATION, event.update());
         }
-        messagingTemplate.convertAndSendToUser(
-                event.recipientEmail(), USER_DESTINATION, event.update());
         if (event.branchId() != null) {
             messagingTemplate.convertAndSend(
                     branchDestination(event.branchId()), event.update());
-            messagingTemplate.convertAndSend(ADMIN_DESTINATION, event.update());
         }
+        messagingTemplate.convertAndSend(ADMIN_DESTINATION, event.update());
     }
 
     public static String branchDestination(Long branchId) {

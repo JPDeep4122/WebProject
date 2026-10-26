@@ -15,6 +15,8 @@ public class PlaceOrderRequest {
 	@Size(max = 20, message = "Số điện thoại tối đa 20 ký tự")
 	private String recipientPhone;
 
+    @jakarta.validation.constraints.Email(message = "Email người nhận không hợp lệ")
+    @Size(max = 100, message = "Email người nhận tối đa 100 ký tự")
     private String recipientEmail;
 
     @NotBlank(message = "Vui lòng nhập địa chỉ nhận hàng")

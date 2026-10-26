@@ -98,7 +98,7 @@
                     <c:forEach items="${ordersPage.content}" var="order">
                         <tr>
                             <td class="fw-semibold">${order.orderCode}</td>
-                            <td><c:out value="${order.user.fullName}"/><br><small class="text-secondary"><c:out value="${order.recipientPhone}"/></small></td>
+                            <td><c:out value="${order.recipientName}"/><br><small class="text-secondary"><c:out value="${order.recipientPhone}"/></small></td>
                             <td><c:out value="${order.branch.name}" default="Chưa gán"/></td>
                             <td>${order.createdAt}</td>
                             <td class="text-end"><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫</td>

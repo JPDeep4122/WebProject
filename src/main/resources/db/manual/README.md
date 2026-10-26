@@ -21,6 +21,24 @@ Chạy bằng Neon SQL Editor hoặc `psql`. Các file này là DDL thủ công,
 khi ứng dụng Spring Boot khởi động. Không chạy trực tiếp lên database đang có dữ
 liệu trước khi so sánh schema và tạo backup.
 
+Với database ứng dụng hiện tại đã có bảng `orders` và `payments`, chạy
+`04_guest_checkout_payment_links.sql` trước khi deploy bản checkout mới. File này
+cho phép đơn khách vãng lai không gắn tài khoản, thêm email liên hệ và lưu URL/
+thời hạn thanh toán VNPay. Script có thể chạy lại và không chuyển quyền sở hữu
+đơn cũ. Không cần chạy lại các script tạo schema 01–03 trên database đang hoạt động.
+
+VNPay cần `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` và `VNPAY_RETURN_URL`.
+URL trả về phải khớp môi trường, ví dụ local là
+`http://localhost:8080/payment/vnpay-return`, production là
+`https://<ten-mien>/payment/vnpay-return`. Endpoint IPN hiện có vẫn là nơi cập nhật
+kết quả thanh toán; URL trả về trình duyệt không tự đánh dấu đơn đã thanh toán.
+
+Luồng tiếp tục thanh toán chỉ mở lại URL đã lưu khi đơn còn chờ thanh toán và
+URL chưa hết hạn. Đơn cũ chưa có URL, đơn đã thất bại hoặc hết hạn không được tạo
+lại giao dịch bằng cùng mã tham chiếu. Checkout kiểm tra tồn kho tại chi nhánh được
+chọn; cơ chế trừ kho hiện tại vẫn chạy khi nhân viên xác nhận đơn, chưa giữ kho
+trong suốt thời gian khách thanh toán.
+
 ## Nhận xét thiết kế và điều chỉnh
 
 - Sơ đồ có nền tảng hợp lý: tách tài khoản/khách hàng, danh mục, sản phẩm, biến

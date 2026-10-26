@@ -102,6 +102,10 @@
 		</div>
 
 		<div class="d-flex gap-2">
+			<c:if test="${order.payment.paymentLinkAvailable}">
+				<a class="btn btn-primary"
+				   href="${pageContext.request.contextPath}/order-success/${order.orderCode}">Tiếp tục thanh toán VNPay</a>
+			</c:if>
 			<form
 				action="${pageContext.request.contextPath}/orders/${order.orderCode}/reorder"
 				method="post" class="d-inline">

@@ -6,6 +6,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Instant;
+import com.dienmay.entity.order.OrderStatus;
 
 /**
  * Entity đại diện cho bảng payments (thông tin thanh toán đơn hàng)
@@ -54,5 +56,30 @@ public class Payment {
         if (this.paymentStatus == null) {
             this.paymentStatus = PaymentStatus.PENDING;
         }
+    }
+
+    @Column(name = "payment_url", columnDefinition = "TEXT")
+    private String paymentUrl;
+
+    @Column(name = "payment_expires_at")
+    private Instant paymentExpiresAt;
+
+    @Transient
+    public boolean isPaymentLinkAvailable() {
+        if (order == null
+                || paymentMethod != PaymentMethod.VNPAY
+                || paymentStatus != PaymentStatus.PENDING
+                || paymentUrl == null
+                || paymentUrl.isBlank()
+                || paymentExpiresAt == null
+                || !paymentExpiresAt.isAfter(Instant.now())) {
+            return false;
+        }
+
+        var status = order.getStatus();
+
+        return status == OrderStatus.PENDING
+                || status == OrderStatus.CONFIRMED
+                || status == OrderStatus.PROCESSING;
     }
 }

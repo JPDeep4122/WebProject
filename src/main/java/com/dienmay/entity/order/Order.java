@@ -32,8 +32,11 @@ public class Order {
     private String orderCode; // Mã đơn hàng (VD: ORD-20260915-101)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user; // Khách hàng đặt hàng
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user;
+
+    @Column(name = "recipient_email", length = 100)
+    private String recipientEmail;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "branch_id")

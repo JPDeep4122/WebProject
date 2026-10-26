@@ -23,6 +23,9 @@ import com.dienmay.entity.order.DeliveryAssignment;
 import com.dienmay.entity.order.DeliveryStatus;
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.payment.Payment;
+import com.dienmay.entity.payment.PaymentMethod;
+import com.dienmay.entity.payment.PaymentStatus;
 import com.dienmay.repository.order.DeliveryAssignmentRepository;
 import com.dienmay.service.order.DeliveryStatusService;
 import com.dienmay.service.order.OrderStateMachine;
@@ -56,12 +59,26 @@ class DeliveryStatusServiceTests {
                 .recipientName("Recipient").recipientPhone("0123456789")
                 .shippingAddress("Delivery address").build();
         em.persist(order);
+        var payment = Payment.builder().order(order).paymentMethod(PaymentMethod.COD)
+                .paymentStatus(PaymentStatus.PENDING).amount(order.getFinalAmount()).build();
+        em.persist(payment);
+        order.setPayment(payment);
         var assignment = DeliveryAssignment.builder().order(order).shipper(shipper)
                 .status(DeliveryStatus.ASSIGNED).build();
         em.persist(assignment);
         order.setDeliveryAssignment(assignment);
         em.flush();
         assignmentId = assignment.getId();
+    }
+
+    @Test
+    void cannotResumeLegacyShippingOrderWhenVnPayIsStillUnpaid() {
+        var assignment = assignments.findById(assignmentId).orElseThrow();
+        assignment.getOrder().setStatus(OrderStatus.SHIPPING);
+        assignment.getOrder().getPayment().setPaymentMethod(PaymentMethod.VNPAY);
+        assertThrows(IllegalArgumentException.class,
+                () -> service.update(assignmentId, DeliveryStatus.DELIVERING, null, shipper.getEmail()));
+        assertEquals(DeliveryStatus.ASSIGNED, assignment.getStatus());
     }
 
     @Test
