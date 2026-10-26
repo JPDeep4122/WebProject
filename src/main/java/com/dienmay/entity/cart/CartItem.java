@@ -61,13 +61,19 @@ public class CartItem {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Tính thành tiền của món hàng này
     public BigDecimal getSubtotal() {
-        BigDecimal unitPrice = (product.getDiscountPrice() != null) 
-                ? product.getDiscountPrice() 
-                : product.getPrice();
-        return (unitPrice != null) 
-                ? unitPrice.multiply(BigDecimal.valueOf(quantity)) 
-                : BigDecimal.ZERO;
+        if (product == null || quantity == null || quantity < 1) {
+            throw new IllegalStateException(
+                    "Thông tin sản phẩm hoặc số lượng trong giỏ không hợp lệ.");
+        }
+
+        BigDecimal unitPrice = product.getSellingPrice();
+
+        if (unitPrice == null || unitPrice.signum() < 0) {
+            throw new IllegalStateException(
+                    "Sản phẩm chưa có giá bán hợp lệ.");
+        }
+
+        return unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 }

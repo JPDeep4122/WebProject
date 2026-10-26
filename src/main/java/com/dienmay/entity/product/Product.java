@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.persistence.Transient;
 
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -109,4 +110,17 @@ public class Product {
 	@CreationTimestamp
 	@Column(name = "created_at", updatable = false)
 	private LocalDateTime createdAt; // Ngày tạo (Tab Mới nhất)
+	
+	@Transient
+	public BigDecimal getSellingPrice() {
+	    if (discountPrice != null) {
+	        return discountPrice;
+	    }
+
+	    if (price != null) {
+	        return price;
+	    }
+
+	    return originalPrice;
+	}
 }

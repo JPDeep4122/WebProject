@@ -61,7 +61,7 @@
 			<div
 				class="catalog-products-grid">
 				<c:forEach items="${products}" var="prod">
-                    <c:set var="sellingPrice" value="${prod.discountPrice != null ? prod.discountPrice : (prod.price != null ? prod.price : prod.originalPrice)}"/>
+                    <c:set var="sellingPrice" value="${prod.sellingPrice}"/>
                     <c:url var="productUrl" value="/products/${prod.slug}"/>
 					<div class="col">
 						<div

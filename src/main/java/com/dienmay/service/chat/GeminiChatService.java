@@ -213,7 +213,7 @@ public class GeminiChatService {
                             .map(p -> new ProductCard(
                                     p.getId(),
                                     p.getName(),
-                                    sellingPrice(p),
+                                    p.getSellingPrice(),
                                     p.getSlug(),
                                     p.getMainImageUrl()))
                             .toList());
@@ -299,17 +299,6 @@ public class GeminiChatService {
         }
 
         return value;
-    }
-
-    private static BigDecimal sellingPrice(Product product) {
-
-        if (product.getDiscountPrice() != null) {
-            return product.getDiscountPrice();
-        }
-
-        return product.getPrice() != null
-                ? product.getPrice()
-                : product.getOriginalPrice();
     }
 
     private static ChatAdviceResponse reply(String answer) {
