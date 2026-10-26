@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core"%>
+<%@ taglib prefix="ui" tagdir="/WEB-INF/tags"%>
 
 <!-- 1. Nhúng Header chuẩn Điện Máy -->
 <jsp:include page="fragments/header.jsp" />
@@ -126,7 +127,7 @@
 									onclick="switchView('forgot')">Quên mật khẩu?</span>
 							</div>
 						</form>
-
+						<ui:phone-auth mode="login" />
 						<div id="googleSignInSection" class="mt-4"
 							data-google-client-id="<c:out value='${googleClientId}'/>"
 							data-context-path="${pageContext.request.contextPath}">
@@ -207,8 +208,8 @@
 						<i class="bi bi-shield-lock-fill text-warning fs-1"></i>
 						<h4 class="fw-bold mt-2 text-dark">Nhập mã OTP</h4>
 						<p class="text-muted small">
-							Mã 6 số đã được gửi tới email: <br>
-							<b id="pageOtpTargetEmail" class="text-primary"></b>
+							Mã 6 số đã được gửi tới email: <br> <b
+								id="pageOtpTargetEmail" class="text-primary"></b>
 						</p>
 						<form id="formOtp">
 							<div class="mb-3">
@@ -298,7 +299,7 @@
     let pagePendingEmail = "";
 
     // Hàm hiển thị thông báo trực tiếp trên trang này
-    function showPageAuthAlert(type, msg) {
+    function showModalAuthAlert(type, msg) {
         const alertBox = document.getElementById('pageAuthAlert');
         if (alertBox) {
             alertBox.className = "alert alert-" + type + " py-2 small rounded-3";
@@ -307,7 +308,7 @@
         }
     }
 
-    function hidePageAuthAlert() {
+    function hideModalAuthAlert() {
         const alertBox = document.getElementById('pageAuthAlert');
         if (alertBox) {
             alertBox.classList.add('d-none');
@@ -316,7 +317,7 @@
 
     // Hàm chuyển đổi qua lại giữa các Form
     function switchView(viewName) {
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         document.getElementById('viewLogin').classList.add('d-none');
         document.getElementById('viewRegister').classList.add('d-none');
         document.getElementById('viewOtp').classList.add('d-none');
@@ -333,7 +334,7 @@
     // 1. XỬ LÝ ĐĂNG NHẬP
     document.getElementById('formLogin').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const email = document.getElementById('pageLoginEmail').value.trim();
         const password = document.getElementById('pageLoginPassword').value;
         const btn = this.querySelector('button[type="submit"]');
@@ -355,7 +356,7 @@
                 localStorage.setItem('currentUser', JSON.stringify(data.data));
                 document.cookie = "accessToken=" + data.data.token + "; path=/; max-age=86400";
 
-                showPageAuthAlert('success', 'Đăng nhập thành công! Đang chuyển hướng...');
+                showModalAuthAlert('success', 'Đăng nhập thành công! Đang chuyển hướng...');
                 const urlParams = new URLSearchParams(window.location.search);
                 const redirectUrl = urlParams.get('redirect');
                 const roles = Array.isArray(data.data.roles) ? data.data.roles : [];
@@ -364,12 +365,12 @@
                     window.location.href = redirectUrl ? LOGIN_CONTEXT_PATH + redirectUrl : LOGIN_CONTEXT_PATH + defaultUrl;
                 }, 700);
             } else {
-                showPageAuthAlert('danger', data.message || 'Email hoặc mật khẩu không chính xác!');
+                showModalAuthAlert('danger', data.message || 'Email hoặc mật khẩu không chính xác!');
                 btn.disabled = false;
                 btn.innerText = 'TIẾP TỤC';
             }
         } catch (err) {
-            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'TIẾP TỤC';
         }
@@ -378,7 +379,7 @@
     // 2. XỬ LÝ ĐĂNG KÝ
     document.getElementById('formRegister').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const fullname = document.getElementById('pageRegFullName').value.trim();
         const phoneNumber = document.getElementById('pageRegPhone').value.trim();
         const email = document.getElementById('pageRegEmail').value.trim();
@@ -399,15 +400,15 @@
             if (data.success) {
                 pagePendingEmail = email;
                 document.getElementById('pageOtpTargetEmail').innerText = email;
-                showPageAuthAlert('success', 'Đăng ký thành công! Vui lòng nhập mã OTP đã gửi tới email của bạn.');
+                showModalAuthAlert('success', 'Đăng ký thành công! Vui lòng nhập mã OTP đã gửi tới email của bạn.');
                 switchView('otp');
             } else {
-                showPageAuthAlert('danger', data.message || 'Không thể đăng ký tài khoản!');
+                showModalAuthAlert('danger', data.message || 'Không thể đăng ký tài khoản!');
                 btn.disabled = false;
                 btn.innerText = 'ĐĂNG KÝ TÀI KHOẢN';
             }
         } catch (err) {
-            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'ĐĂNG KÝ TÀI KHOẢN';
         }
@@ -416,7 +417,7 @@
     // 3. XỬ LÝ XÁC THỰC OTP
     document.getElementById('formOtp').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const otpCode = document.getElementById('pageOtpCodeInput').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
@@ -432,18 +433,18 @@
             const data = await res.json();
 
             if (data.success) {
-                showPageAuthAlert('success', 'Kích hoạt thành công! Đang chuyển về màn hình Đăng nhập...');
+                showModalAuthAlert('success', 'Kích hoạt thành công! Đang chuyển về màn hình Đăng nhập...');
                 setTimeout(() => { 
                     switchView('login');
                     document.getElementById('pageLoginEmail').value = pagePendingEmail;
                 }, 1200);
             } else {
-                showPageAuthAlert('danger', data.message || 'Mã OTP không chính xác hoặc đã hết hạn!');
+                showModalAuthAlert('danger', data.message || 'Mã OTP không chính xác hoặc đã hết hạn!');
                 btn.disabled = false;
                 btn.innerText = 'KÍCH HOẠT & TIẾP TỤC';
             }
         } catch (err) {
-            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'KÍCH HOẠT & TIẾP TỤC';
         }
@@ -455,16 +456,16 @@
         try {
             const res = await csrfFetch(LOGIN_CONTEXT_PATH + '/api/auth/resend-otp?email=' + encodeURIComponent(pagePendingEmail), { method: 'POST' });
             const data = await res.json();
-            showPageAuthAlert(data.success ? 'info' : 'danger', data.message);
+            showModalAuthAlert(data.success ? 'info' : 'danger', data.message);
         } catch (e) {
-            showPageAuthAlert('danger', 'Không thể gửi lại mã OTP!');
+            showModalAuthAlert('danger', 'Không thể gửi lại mã OTP!');
         }
     }
 
     // 5. XỬ LÝ YÊU CẦU QUÊN MẬT KHẨU
     document.getElementById('formForgot').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const email = document.getElementById('pageForgotEmail').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
@@ -481,15 +482,15 @@
 
             if (data.success) {
                 pagePendingEmail = email;
-                showPageAuthAlert('success', 'Đã gửi mã OTP đặt lại mật khẩu về email của bạn!');
+                showModalAuthAlert('success', 'Đã gửi mã OTP đặt lại mật khẩu về email của bạn!');
                 switchView('reset');
             } else {
-                showPageAuthAlert('danger', data.message);
+                showModalAuthAlert('danger', data.message);
                 btn.disabled = false;
                 btn.innerText = 'GỬI MÃ XÁC NHẬN';
             }
         } catch (err) {
-            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'GỬI MÃ XÁC NHẬN';
         }
@@ -498,7 +499,7 @@
     // 6. XỬ LÝ ĐẶT LẠI MẬT KHẨU MỚI
     document.getElementById('formReset').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const otpCode = document.getElementById('pageResetOtpCode').value.trim();
         const newPassword = document.getElementById('pageResetNewPassword').value.trim();
         const btn = this.querySelector('button[type="submit"]');
@@ -515,15 +516,15 @@
             const data = await res.json();
 
             if (data.success) {
-                showPageAuthAlert('success', 'Đặt lại mật khẩu thành công! Hãy đăng nhập với mật khẩu mới.');
+                showModalAuthAlert('success', 'Đặt lại mật khẩu thành công! Hãy đăng nhập với mật khẩu mới.');
                 setTimeout(() => { switchView('login'); }, 1500);
             } else {
-                showPageAuthAlert('danger', data.message);
+                showModalAuthAlert('danger', data.message);
                 btn.disabled = false;
                 btn.innerText = 'LƯU MẬT KHẨU MỚI';
             }
         } catch (err) {
-            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'LƯU MẬT KHẨU MỚI';
         }
@@ -539,11 +540,11 @@
 
 <script src="${pageContext.request.contextPath}/js/google-login.js"></script>
 
-<script src="https://accounts.google.com/gsi/client?hl=vi"
-        async
-        defer
-        onload="initTechsevenGoogle()"
-        onerror="techsevenGoogleLoadFailed()"></script>
+<script src="https://accounts.google.com/gsi/client?hl=vi" async defer
+	onload="initTechsevenGoogle()" onerror="techsevenGoogleLoadFailed()"></script>
+
+<script type="module"
+	src="${pageContext.request.contextPath}/js/phone-auth.js"></script>
 <!-- 4. Nhúng Footer -->
 
 <jsp:include page="fragments/footer.jsp" />

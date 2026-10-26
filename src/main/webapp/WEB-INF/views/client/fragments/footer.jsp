@@ -84,27 +84,27 @@
       let currentPendingEmail = "";
 
       // Hiển thị thông báo trong Modal
-      function showPageAuthAlert(type, message) {
+      function showModalAuthAlert(type, message) {
         const alertBox = document.getElementById('authAlert');
         alertBox.className = "alert alert-" + type;
         alertBox.innerText = message;
         alertBox.classList.remove('d-none');
       }
 
-      function hidePageAuthAlert() {
+      function hideModalAuthAlert() {
         document.getElementById('authAlert').classList.add('d-none');
       }
 
       // Chuyển đổi qua lại giữa các Form
       function showForgotPasswordView() {
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         document.getElementById('authTabs').classList.add('d-none');
         document.getElementById('login-pane').classList.remove('show', 'active');
         document.getElementById('forgotPane').classList.remove('d-none');
       }
 
       function backToLoginView() {
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         document.getElementById('authTabs').classList.remove('d-none');
         document.getElementById('forgotPane').classList.add('d-none');
         document.getElementById('otpPane').classList.add('d-none');
@@ -115,7 +115,7 @@
       // 1. XỬ LÝ ĐĂNG NHẬP
       document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
 
@@ -132,23 +132,23 @@
             localStorage.setItem('jwtToken', data.data.token);
             localStorage.setItem('currentUser', JSON.stringify(data.data));
 
-            showPageAuthAlert('success', 'Đăng nhập thành công! Đang tải lại...');
+            showModalAuthAlert('success', 'Đăng nhập thành công! Đang tải lại...');
             setTimeout(() => {
               bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
               checkLoginStatus();
             }, 800);
           } else {
-            showPageAuthAlert('danger', data.message);
+            showModalAuthAlert('danger', data.message);
           }
         } catch (err) {
-          showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+          showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
         }
       });
 
       // 2. XỬ LÝ ĐĂNG KÝ
       document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const fullname = document.getElementById('regFullName').value;
         const phoneNumber = document.getElementById('regPhone').value;
         const email = document.getElementById('regEmail').value;
@@ -168,19 +168,19 @@
             document.getElementById('authTabs').classList.add('d-none');
             document.getElementById('register-pane').classList.remove('show', 'active');
             document.getElementById('otpPane').classList.remove('d-none');
-            showPageAuthAlert('success', data.message);
+            showModalAuthAlert('success', data.message);
           } else {
-            showPageAuthAlert('danger', data.message);
+            showModalAuthAlert('danger', data.message);
           }
         } catch (err) {
-          showPageAuthAlert('danger', 'Lỗi kết nối!');
+          showModalAuthAlert('danger', 'Lỗi kết nối!');
         }
       });
 
       // 3. XỬ LÝ NHẬP MÃ OTP KÍCH HOẠT
       document.getElementById('otpForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const otpCode = document.getElementById('otpInput').value;
 
         try {
@@ -192,23 +192,23 @@
           const data = await res.json();
 
           if (data.success) {
-            showPageAuthAlert('success', data.message + ' Vui lòng đăng nhập!');
+            showModalAuthAlert('success', data.message + ' Vui lòng đăng nhập!');
             setTimeout(() => {
               backToLoginView();
               document.getElementById('loginEmail').value = currentPendingEmail;
             }, 1500);
           } else {
-            showPageAuthAlert('danger', data.message);
+            showModalAuthAlert('danger', data.message);
           }
         } catch (err) {
-          showPageAuthAlert('danger', 'Lỗi kết nối!');
+          showModalAuthAlert('danger', 'Lỗi kết nối!');
         }
       });
 
       // 4. XỬ LÝ QUÊN MẬT KHẨU
       document.getElementById('forgotForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const email = document.getElementById('forgotEmail').value;
         currentPendingEmail = email;
 
@@ -223,19 +223,19 @@
           if (data.success) {
             document.getElementById('forgotPane').classList.add('d-none');
             document.getElementById('resetPane').classList.remove('d-none');
-            showPageAuthAlert('success', data.message);
+            showModalAuthAlert('success', data.message);
           } else {
-            showPageAuthAlert('danger', data.message);
+            showModalAuthAlert('danger', data.message);
           }
         } catch (err) {
-          showPageAuthAlert('danger', 'Lỗi kết nối!');
+          showModalAuthAlert('danger', 'Lỗi kết nối!');
         }
       });
 
       // 5. XỬ LÝ ĐẶT LẠI MẬT KHẨU
       document.getElementById('resetForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hidePageAuthAlert();
+        hideModalAuthAlert();
         const otpCode = document.getElementById('resetOtp').value;
         const newPassword = document.getElementById('resetNewPassword').value;
 
@@ -248,15 +248,15 @@
           const data = await res.json();
 
           if (data.success) {
-            showPageAuthAlert('success', data.message);
+            showModalAuthAlert('success', data.message);
             setTimeout(() => {
               backToLoginView();
             }, 1500);
           } else {
-            showPageAuthAlert('danger', data.message);
+            showModalAuthAlert('danger', data.message);
           }
         } catch (err) {
-          showPageAuthAlert('danger', 'Lỗi kết nối!');
+          showModalAuthAlert('danger', 'Lỗi kết nối!');
         }
       });
 
