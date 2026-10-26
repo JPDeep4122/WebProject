@@ -1,52 +1,59 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 260px; min-height: 100vh;">
-    <a href="/admin" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-        <i class="bi bi-shield-lock-fill fs-4 text-warning me-2"></i>
-        <span class="fs-5 fw-bold">QUẢN LÝ CỬA HÀNG</span>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<c:set var="adminCurrentPath" value="${requestScope['jakarta.servlet.forward.request_uri']}" />
+<c:if test="${empty adminCurrentPath}">
+    <c:set var="adminCurrentPath" value="${pageContext.request.requestURI}" />
+</c:if>
+<c:set var="adminCurrentPath" value="${fn:substringAfter(adminCurrentPath, pageContext.request.contextPath)}" />
+<aside class="admin-sidebar">
+    <a href="${pageContext.request.contextPath}/admin" class="admin-brand">
+        <img src="${pageContext.request.contextPath}/images/brand/techseven-logo.svg" alt="TECHSEVEN">
+        <small>KHU VỰC QUẢN TRỊ</small>
     </a>
     <hr>
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
-            <a href="/admin" class="nav-link active text-white"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>
+            <a href="${pageContext.request.contextPath}/admin" class="nav-link ${adminCurrentPath eq '/admin' ? 'active text-white' : 'text-white-50'}" ${adminCurrentPath eq '/admin' ? 'aria-current="page"' : ''}><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>
         </li>
         <li>
-            <a href="/admin/products" class="nav-link text-white-50"><i class="bi bi-box-seam me-2"></i> Quản lý Sản phẩm</a>
+            <a href="${pageContext.request.contextPath}/admin/products" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/products') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/products') ? 'aria-current="page"' : ''}><i class="bi bi-box-seam me-2"></i> Quản lý Sản phẩm</a>
         </li>
         <li>
-            <a href="/admin/categories" class="nav-link text-white-50"><i class="bi bi-tags me-2"></i> Quản lý Danh mục</a>
+            <a href="${pageContext.request.contextPath}/admin/categories" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/categories') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/categories') ? 'aria-current="page"' : ''}><i class="bi bi-tags me-2"></i> Quản lý Danh mục</a>
         </li>
         <li>
-            <a href="/admin/orders" class="nav-link text-white-50"><i class="bi bi-receipt me-2"></i> Quản lý Đơn hàng</a>
+            <a href="${pageContext.request.contextPath}/admin/orders" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/orders') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/orders') ? 'aria-current="page"' : ''}><i class="bi bi-receipt me-2"></i> Quản lý Đơn hàng</a>
         </li>
         <li>
-            <a href="/admin/inventory" class="nav-link text-white-50"><i class="bi bi-boxes me-2"></i> Tồn kho chi nhánh</a>
+            <a href="${pageContext.request.contextPath}/admin/inventory" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/inventory') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/inventory') ? 'aria-current="page"' : ''}><i class="bi bi-boxes me-2"></i> Tồn kho chi nhánh</a>
         </li>
         <li>
-            <a href="/admin/returns" class="nav-link text-white-50"><i class="bi bi-arrow-counterclockwise me-2"></i> Yêu cầu trả hàng</a>
+            <a href="${pageContext.request.contextPath}/admin/returns" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/returns') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/returns') ? 'aria-current="page"' : ''}><i class="bi bi-arrow-counterclockwise me-2"></i> Yêu cầu trả hàng</a>
         </li>
         <li>
-            <a href="/admin/branches" class="nav-link text-white-50"><i class="bi bi-shop me-2"></i> Quản lý Chi nhánh</a>
+            <a href="${pageContext.request.contextPath}/admin/branches" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/branches') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/branches') ? 'aria-current="page"' : ''}><i class="bi bi-shop me-2"></i> Quản lý Chi nhánh</a>
         </li>
         <li>
-            <a href="/admin/promotions" class="nav-link text-white-50"><i class="bi bi-percent me-2"></i> Khuyến mãi & Mã giảm</a>
+            <a href="${pageContext.request.contextPath}/admin/promotions" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/promotions') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/promotions') ? 'aria-current="page"' : ''}><i class="bi bi-percent me-2"></i> Khuyến mãi & Mã giảm</a>
         </li>
         <li>
-            <a href="/admin/users" class="nav-link text-white-50"><i class="bi bi-people me-2"></i> Quản lý Người dùng</a>
+            <a href="${pageContext.request.contextPath}/admin/users" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/users') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/users') ? 'aria-current="page"' : ''}><i class="bi bi-people me-2"></i> Quản lý Người dùng</a>
         </li>
         <li>
-            <a href="/admin/audit-logs" class="nav-link text-white-50"><i class="bi bi-journal-text me-2"></i> Nhật ký Audit Log</a>
+            <a href="${pageContext.request.contextPath}/admin/audit-logs" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/audit-logs') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/audit-logs') ? 'aria-current="page"' : ''}><i class="bi bi-journal-text me-2"></i> Nhật ký Audit Log</a>
         </li>
     </ul>
     <hr>
-    <div class="dropdown">
+    <div class="admin-account dropdown">
         <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="bi bi-person-circle fs-4 me-2"></i>
-            <strong>Admin / Manager</strong>
+            <span class="admin-account-icon"><i class="bi bi-person-fill-gear"></i></span>
+            <span><strong>Quản trị viên</strong><small>Quản lý hệ thống</small></span>
         </a>
         <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
-            <li><a class="dropdown-item" href="/"><i class="bi bi-box-arrow-up-right me-1"></i> Xem trang Khách</a></li>
+            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/"><i class="bi bi-box-arrow-up-right me-1"></i> Xem trang bán hàng</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="/logout"><i class="bi bi-box-arrow-right me-1"></i> Đăng xuất</a></li>
+            <li><a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/logout"><i class="bi bi-box-arrow-right me-1"></i> Đăng xuất</a></li>
         </ul>
     </div>
-</div>
+</aside>

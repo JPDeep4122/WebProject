@@ -20,6 +20,7 @@ import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.branch.BranchRepository;
+import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.service.order.OrderService;
 import com.dienmay.service.order.OrderStatusWebSocketNotifier;
 
@@ -33,6 +34,7 @@ public class AdminOrderController {
     private final OrderService orderService;
     private final UserRepository userRepository;
     private final BranchRepository branchRepository;
+    private final OrderRepository orderRepository;
     private final com.dienmay.service.order.OrderConfirmationService confirmationService;
     private final com.dienmay.service.order.OrderPickingService pickingService;
     private final com.dienmay.service.order.OrderFulfillmentService fulfillmentService;
@@ -147,6 +149,15 @@ public class AdminOrderController {
                         : effectiveBranchId == null ? ""
                         : OrderStatusWebSocketNotifier.branchDestination(effectiveBranchId));
         return "admin/orders";
+    }
+
+    @GetMapping("/{id}")
+    public String orderDetail(@org.springframework.web.bind.annotation.PathVariable Long id, Model model) {
+        Order order = orderRepository.findDetailedById(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng."));
+        model.addAttribute("order", order);
+        return "admin/order-detail";
     }
 
     @GetMapping("/status-snapshot")

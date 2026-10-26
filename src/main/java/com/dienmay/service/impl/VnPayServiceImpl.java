@@ -41,6 +41,11 @@ public class VnPayServiceImpl implements VnPayService {
 
     @Override
     public String createPaymentUrl(Order order, HttpServletRequest request) {
+        if (vnPayConfig.getVnpTmnCode() == null || vnPayConfig.getVnpTmnCode().isBlank()
+                || vnPayConfig.getVnpHashSecret() == null || vnPayConfig.getVnpHashSecret().isBlank()) {
+            throw new IllegalStateException(
+                    "VNPay chưa được cấu hình. Hãy đặt VNPAY_TMN_CODE và VNPAY_HASH_SECRET.");
+        }
         String vnp_Version = "2.1.0";
         String vnp_Command = "pay";
         // Chuẩn hóa vnp_TxnRef: Chỉ gồm chữ và số (loại bỏ dấu gạch ngang nếu có)

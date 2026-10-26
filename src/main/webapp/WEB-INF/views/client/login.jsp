@@ -360,9 +360,11 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const redirectUrl = urlParams.get('redirect');
                 const roles = Array.isArray(data.data.roles) ? data.data.roles : [];
-                const defaultUrl = roles.includes('ROLE_SHIPPER') ? '/shipper/orders' : '/';
+                const defaultUrl = roles.includes('ROLE_STAFF') ? '/admin/orders'
+                    : roles.includes('ROLE_SHIPPER') ? '/shipper/orders' : '/';
+                const destination = roles.includes('ROLE_ADMIN') ? '/admin' : (redirectUrl || defaultUrl);
                 setTimeout(() => {
-                    window.location.href = redirectUrl ? LOGIN_CONTEXT_PATH + redirectUrl : LOGIN_CONTEXT_PATH + defaultUrl;
+                    window.location.href = LOGIN_CONTEXT_PATH + destination;
                 }, 700);
             } else {
                 showModalAuthAlert('danger', data.message || 'Email hoặc mật khẩu không chính xác!');
