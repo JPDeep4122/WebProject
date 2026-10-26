@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core"%>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions"%>
 
 <jsp:include page="fragments/header.jsp" />
 
@@ -30,7 +31,7 @@
 			<div class="row g-3">
 				<c:forEach items="${branches}" var="branch">
 					<div class="col-md-6">
-						<article class="border rounded-3 p-4 h-100">
+						<article class="border rounded-3 p-4 h-100 d-flex flex-column">
 							<h2 class="h5 fw-bold">
 								<c:out value="${branch.name}" />
 							</h2>
@@ -52,6 +53,48 @@
 									<strong>Điện thoại:</strong>
 									<c:out value="${branch.phone}" />
 								</p>
+							</c:if>
+
+							<c:if test="${not empty fn:trim(branch.address)}">
+
+								<%-- Ghép địa chỉ đầy đủ để tìm trên Google Maps --%>
+								<c:set var="mapsAddress" value="${fn:trim(branch.address)}" />
+
+								<c:if test="${not empty fn:trim(branch.province)}">
+									<c:set var="mapsAddress"
+										value="${mapsAddress}, ${fn:trim(branch.province)}" />
+								</c:if>
+
+								<c:set var="mapsAddress" value="${mapsAddress}, Việt Nam" />
+
+								<%-- Liên kết xem vị trí --%>
+								<c:url var="mapsSearchUrl"
+									value="https://www.google.com/maps/search/">
+									<c:param name="api" value="1" />
+									<c:param name="query" value="${mapsAddress}" />
+								</c:url>
+
+								<%-- Liên kết chỉ đường đến chi nhánh --%>
+								<c:url var="mapsDirectionsUrl"
+									value="https://www.google.com/maps/dir/">
+									<c:param name="api" value="1" />
+									<c:param name="destination" value="${mapsAddress}" />
+								</c:url>
+
+								<div class="d-flex flex-wrap gap-2 mt-auto pt-3">
+									<a class="btn btn-outline-primary rounded-pill px-3"
+										href="${fn:escapeXml(mapsSearchUrl)}" target="_blank"
+										rel="noopener noreferrer"> <i class="bi bi-geo-alt me-1"
+										aria-hidden="true"></i> Xem vị trí <span
+										class="visually-hidden"> (mở tab mới)</span>
+									</a> <a class="btn btn-primary rounded-pill px-3"
+										href="${fn:escapeXml(mapsDirectionsUrl)}" target="_blank"
+										rel="noopener noreferrer"> <i
+										class="bi bi-signpost-2 me-1" aria-hidden="true"></i> Chỉ
+										đường <span class="visually-hidden"> (mở tab mới)</span>
+									</a>
+								</div>
+
 							</c:if>
 						</article>
 					</div>
