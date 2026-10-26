@@ -92,7 +92,7 @@
         <div class="card border-0 shadow-sm">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-dark"><tr><th>Mã đơn</th><th>Khách hàng</th><th>Chi nhánh</th><th>Ngày tạo</th><th class="text-end">Thành tiền</th><th>Giao hàng</th><th>Trạng thái</th></tr></thead>
+                    <thead class="table-dark"><tr><th>Mã đơn</th><th>Khách hàng</th><th>Chi nhánh</th><th>Ngày tạo</th><th class="text-end">Thành tiền</th><th>Giao hàng</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
                     <tbody>
                     <c:forEach items="${ordersPage.content}" var="order">
                         <tr>
@@ -169,9 +169,10 @@
                                     </a>
                                 </c:if>
                             </td>
+                            <td><a class="btn btn-sm btn-outline-primary" href="${pageContext.request.contextPath}/admin/orders/${order.id}"><i class="bi bi-eye me-1"></i>Xem</a></td>
                         </tr>
                     </c:forEach>
-                    <c:if test="${empty ordersPage.content}"><tr><td colspan="7" class="text-center text-secondary py-5">Không có đơn hàng phù hợp.</td></tr></c:if>
+                    <c:if test="${empty ordersPage.content}"><tr><td colspan="8" class="text-center text-secondary py-5">Không có đơn hàng phù hợp.</td></tr></c:if>
                     </tbody>
                 </table>
             </div>

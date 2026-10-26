@@ -4,6 +4,7 @@ target/
 src/test/java/com/dienmay/service/impl/CheckoutServiceImplTest.java
 .env
 .env.docker
+.env.admin-test
 /private/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

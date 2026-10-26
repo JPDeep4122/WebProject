@@ -27,6 +27,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	Optional<Order> findByOrderCode(String orderCode);
 
+	@EntityGraph(attributePaths = {"user", "branch", "orderItems", "orderItems.product", "payment", "deliveryAssignment", "deliveryAssignment.shipper"})
+	@Query("select distinct o from Order o where o.id = :id")
+	Optional<Order> findDetailedById(@Param("id") Long id);
+
 	Page<Order> findByUserId(Long userId, Pageable pageable);
 
 	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
