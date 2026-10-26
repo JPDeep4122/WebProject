@@ -7,6 +7,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+
+import com.dienmay.dto.auth.GoogleLoginRequest;
+import com.dienmay.service.auth.GoogleAuthService;
 
 import com.dienmay.dto.auth.ForgotPasswordRequest;
 import com.dienmay.dto.auth.JwtResponse;
@@ -25,6 +30,9 @@ public class AuthController {
 	
 	@Autowired
     private AuthService authService;
+	
+	@Autowired
+	private GoogleAuthService googleAuthService;
 	
     // 1. API Đăng ký tài khoản
 	@PostMapping("/register")
@@ -66,5 +74,45 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         ApiResponse<String> response = authService.resetPassword(request);
         return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<JwtResponse>> googleLogin(
+            @Valid @RequestBody GoogleLoginRequest request) {
+
+        try {
+            JwtResponse jwtResponse = googleAuthService.login(request);
+
+            return ResponseEntity.ok(
+                    ApiResponse.<JwtResponse>builder()
+                            .success(true)
+                            .message("Đăng nhập Google thành công!")
+                            .data(jwtResponse)
+                            .build());
+
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.<JwtResponse>builder()
+                            .success(false)
+                            .message(ex.getMessage())
+                            .build());
+
+        } catch (DataIntegrityViolationException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.<JwtResponse>builder()
+                            .success(false)
+                            .message("Thông tin tài khoản bị trùng. "
+                                    + "Vui lòng thử lại hoặc đăng nhập "
+                                    + "bằng tài khoản hiện có.")
+                            .build());
+
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ApiResponse.<JwtResponse>builder()
+                            .success(false)
+                            .message("Đăng nhập Google hiện chưa khả dụng. "
+                                    + "Vui lòng thử lại sau.")
+                            .build());
+        }
     }
 }

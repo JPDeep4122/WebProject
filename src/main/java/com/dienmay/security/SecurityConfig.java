@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/shipper", "/shipper/**").hasRole("SHIPPER")
                 .requestMatchers("/account", "/account/**").authenticated()
+                .requestMatchers("/api/account/**").authenticated()
                 .requestMatchers("/api/auth/**", "/api/test/**", "/", "/products/**", "/cart/**", "/checkout/**", "/login", "/register", "/css/**", "/js/**", "/images/**", "/static/**", "/favicon.ico").permitAll()
                 .anyRequest().permitAll()
             );
