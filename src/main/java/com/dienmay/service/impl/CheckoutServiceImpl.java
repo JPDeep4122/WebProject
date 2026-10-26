@@ -2,10 +2,13 @@ package com.dienmay.service.impl;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,8 +25,8 @@ import com.dienmay.dto.checkout.PlaceOrderRequest;
 import com.dienmay.dto.checkout.ShippingQuoteResponse;
 import com.dienmay.dto.checkout.VoucherResponse;
 import com.dienmay.entity.auth.Address;
-import com.dienmay.entity.auth.Role;
 import com.dienmay.entity.auth.User;
+import com.dienmay.entity.branch.Branch;
 import com.dienmay.entity.cart.Cart;
 import com.dienmay.entity.cart.CartItem;
 import com.dienmay.entity.order.Order;
@@ -35,18 +38,22 @@ import com.dienmay.entity.payment.PaymentStatus;
 import com.dienmay.entity.promotion.Promotion;
 import com.dienmay.event.PromotionEvent;
 import com.dienmay.repository.auth.AddressRepository;
-import com.dienmay.repository.auth.RoleRepository;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.branch.BranchRepository;
-import com.dienmay.repository.cart.CartItemRepository;
 import com.dienmay.repository.cart.CartRepository;
 import com.dienmay.repository.order.OrderItemRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.payment.PaymentRepository;
 import com.dienmay.repository.promotion.PromotionRepository;
 import com.dienmay.service.checkout.CheckoutService;
+import com.dienmay.service.checkout.PurchaseValidator;
 import com.dienmay.service.checkout.ShippingService;
+import com.dienmay.service.payment.VnPayService;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -56,10 +63,8 @@ import lombok.RequiredArgsConstructor;
 public class CheckoutServiceImpl implements CheckoutService {
 
 	private final CartRepository cartRepository;
-	private final CartItemRepository cartItemRepository;
 	private final AddressRepository addressRepository;
 	private final UserRepository userRepository;
-	private final RoleRepository roleRepository;
 	private final OrderRepository orderRepository;
 	private final OrderItemRepository orderItemRepository;
 	private final PaymentRepository paymentRepository;
@@ -68,13 +73,18 @@ public class CheckoutServiceImpl implements CheckoutService {
 	private final ShippingService shippingService;
 	private final BranchRepository branchRepository;
 	private final TransactionTemplate transactionTemplate;
+	private final PurchaseValidator purchaseValidator;
+	private final VnPayService vnPayService;
+
+	@PersistenceContext
+	private EntityManager entityManager;
 
 	@Override
 	@Transactional(readOnly = true)
 	public CheckoutPageDto getCheckoutData(String userEmail, HttpSession session) {
 		Cart cart = getCart(userEmail, session);
 		List<CartItem> selectedItems = (cart != null && cart.getItems() != null)
-				? cart.getItems().stream().filter(CartItem::getSelected).collect(Collectors.toList())
+				? cart.getItems().stream().filter(item -> Boolean.TRUE.equals(item.getSelected())).collect(Collectors.toList())
 				: new ArrayList<>();
 
 		List<CheckoutItemDto> items = selectedItems.stream().map(item -> {
@@ -181,21 +191,25 @@ public class CheckoutServiceImpl implements CheckoutService {
 
 	@Override
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public Order placeOrder(PlaceOrderRequest request, String userEmail, HttpSession session) {
+	public Order placeOrder(PlaceOrderRequest request, String userEmail, HttpSession session,
+			HttpServletRequest servletRequest) {
 
 		PaymentMethod method = requireSupportedPaymentMethod(request.getPaymentMethod());
+		if (method == PaymentMethod.VNPAY) {
+			vnPayService.requireConfigured();
+		}
 		ShippingQuoteResponse shippingQuote = shippingService.quote(request.getShippingAddress(),
 				request.getProvince());
 
 		Order order = transactionTemplate
-				.execute(status -> createOrder(request, userEmail, session, shippingQuote, method));
+				.execute(status -> createOrder(request, userEmail, session, shippingQuote, method, servletRequest));
 
 		if (order == null) {
 			throw new IllegalStateException("Không thể tạo đơn hàng.");
 		}
 
 		// Chỉ cấp quyền sau khi đơn được tạo và transaction đã thành công.
-		if (userEmail == null || userEmail.isBlank() || userEmail.equalsIgnoreCase("anonymousUser")) {
+		if (order.getUser() == null && session != null) {
 			session.setAttribute("GUEST_CHECKOUT_ORDER_" + order.getId(), Boolean.TRUE);
 		}
 
@@ -203,13 +217,22 @@ public class CheckoutServiceImpl implements CheckoutService {
 	}
 
 	private Order createOrder(PlaceOrderRequest request, String userEmail, HttpSession session,
-			ShippingQuoteResponse shippingQuote, PaymentMethod method) {
+			ShippingQuoteResponse shippingQuote, PaymentMethod method, HttpServletRequest servletRequest) {
 		Cart cart = getCart(userEmail, session);
-		if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
+		if (cart == null) {
+			throw new IllegalArgumentException("Giỏ hàng của bạn đang trống!");
+		}
+		Long cartId = cart.getId();
+		// A checkout page may already have loaded this cart via OpenEntityManagerInView.
+		// Reload under the database lock before reading any selected items.
+		entityManager.detach(cart);
+		cart = cartRepository.findForUpdate(cartId)
+				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giỏ hàng."));
+		if (cart.getItems() == null || cart.getItems().isEmpty()) {
 			throw new IllegalArgumentException("Giỏ hàng của bạn đang trống!");
 		}
 
-		List<CartItem> selectedItems = cart.getItems().stream().filter(CartItem::getSelected)
+		List<CartItem> selectedItems = cart.getItems().stream().filter(item -> Boolean.TRUE.equals(item.getSelected()))
 				.collect(Collectors.toList());
 
 		if (selectedItems.isEmpty()) {
@@ -218,23 +241,11 @@ public class CheckoutServiceImpl implements CheckoutService {
 
 		// 1. Xác định User đặt hàng
 		User user = null;
-		if (userEmail != null && !userEmail.equalsIgnoreCase("anonymousUser")) {
-			user = userRepository.findByEmail(userEmail).orElse(null);
+		if (userEmail != null && !userEmail.isBlank() && !userEmail.equalsIgnoreCase("anonymousUser")) {
+			user = userRepository.findByEmail(userEmail)
+					.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản đăng nhập."));
 		}
-		if (user == null) {
-			String guestEmail = (request.getRecipientEmail() != null && !request.getRecipientEmail().trim().isEmpty())
-					? request.getRecipientEmail().trim().toLowerCase()
-					: "guest_" + System.currentTimeMillis() + "@dienmay.com";
-
-			user = userRepository.findByEmail(guestEmail).orElseGet(() -> {
-				Role customerRole = roleRepository.findByName("ROLE_CUSTOMER").orElse(null);
-				User newUser = User.builder().email(guestEmail).fullName(request.getRecipientName())
-						.phoneNumber(request.getRecipientPhone()).password("NO_PASSWORD_GUEST").active(true).build();
-				if (customerRole != null)
-					newUser.getRoles().add(customerRole);
-				return userRepository.save(newUser);
-			});
-		}
+		Branch branch = validateCheckoutItems(selectedItems, shippingQuote.getBranchId());
 
 		// 2. Tính toán tổng tiền
 		BigDecimal subtotal = selectedItems.stream().map(CartItem::getSubtotal).reduce(BigDecimal.ZERO,
@@ -275,13 +286,15 @@ public class CheckoutServiceImpl implements CheckoutService {
 
 		// 3. Tạo mã đơn hàng duy nhất
 		String orderCode = "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-"
-				+ (1000 + new Random().nextInt(9000));
+				+ UUID.randomUUID().toString().replace("-", "");
 
 		// 4. Lưu Entity Order
 		Order order = Order.builder().orderCode(orderCode).user(user)
-				.branch(branchRepository.findById(shippingQuote.getBranchId()).orElse(null)).totalAmount(subtotal)
+				.branch(branch).totalAmount(subtotal)
 				.shippingFee(shippingFee).discountAmount(discount).finalAmount(finalAmount).status(OrderStatus.PENDING)
 				.recipientName(request.getRecipientName()).recipientPhone(request.getRecipientPhone())
+				.recipientEmail(request.getRecipientEmail() == null || request.getRecipientEmail().isBlank()
+						? null : request.getRecipientEmail().trim())
 				.shippingAddress(request.getShippingAddress()).note(request.getNote()).build();
 
 		Order savedOrder = orderRepository.save(order);
@@ -294,15 +307,25 @@ public class CheckoutServiceImpl implements CheckoutService {
 		}).collect(Collectors.toList());
 
 		orderItemRepository.saveAll(orderItems);
+		savedOrder.getOrderItems().addAll(orderItems);
 
 		Payment payment = Payment.builder().order(savedOrder).paymentMethod(method).paymentStatus(PaymentStatus.PENDING)
 				.amount(finalAmount).build();
 
 		paymentRepository.save(payment);
+		savedOrder.setPayment(payment);
+		if (method == PaymentMethod.VNPAY) {
+			Instant expiresAt = Instant.now().plusSeconds(15 * 60).truncatedTo(ChronoUnit.SECONDS);
+			String paymentUrl = vnPayService.createPaymentUrl(savedOrder, servletRequest, expiresAt);
+			if (paymentUrl == null || paymentUrl.isBlank()) {
+				throw new IllegalStateException("Không thể tạo đường dẫn thanh toán VNPay.");
+			}
+			payment.setPaymentUrl(paymentUrl);
+			payment.setPaymentExpiresAt(expiresAt);
+		}
 
 		// 7. XÓA CÁC MÓN ĐÃ ĐẶT RA KHỎI GIỎ HÀNG
 		cart.getItems().removeAll(selectedItems);
-		cartItemRepository.deleteAll(selectedItems);
 		cartRepository.save(cart);
 
 		return savedOrder;
@@ -318,10 +341,8 @@ public class CheckoutServiceImpl implements CheckoutService {
 
 		String cleanCode = orderCode.trim();
 
-		Order order = orderRepository.findByOrderCode(cleanCode).orElseGet(() -> orderRepository.findAll().stream()
-				.filter(o -> o.getOrderCode() != null
-						&& o.getOrderCode().replace("-", "").equalsIgnoreCase(cleanCode.replace("-", "")))
-				.findFirst()
+		Order order = orderRepository.findByOrderCode(cleanCode).orElseGet(() -> orderRepository
+				.findByPaymentReference(cleanCode.replace("-", "").toUpperCase(java.util.Locale.ROOT))
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.")));
 
 		boolean authenticated = userEmail != null && !userEmail.isBlank()
@@ -330,7 +351,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 		boolean owner = authenticated && order.getUser() != null
 				&& userEmail.equalsIgnoreCase(order.getUser().getEmail());
 
-		boolean guestWithAccess = !authenticated && session != null
+		boolean guestWithAccess = session != null
 				&& Boolean.TRUE.equals(session.getAttribute("GUEST_CHECKOUT_ORDER_" + order.getId()));
 
 		if (!owner && !guestWithAccess) {
@@ -340,13 +361,66 @@ public class CheckoutServiceImpl implements CheckoutService {
 		return order;
 	}
 
+	@Override
+	@Transactional
+	public String continuePayment(String orderCode, String userEmail, HttpSession session) {
+		Order visibleOrder = getOrderByCode(orderCode, userEmail, session);
+		Order order = orderRepository.findForUpdate(visibleOrder.getId())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng."));
+		entityManager.refresh(order, LockModeType.PESSIMISTIC_WRITE);
+		Payment payment = paymentRepository.findByOrderIdForUpdate(order.getId())
+				.orElseThrow(() -> new IllegalArgumentException("Đơn hàng chưa có thông tin thanh toán."));
+		entityManager.refresh(payment);
+		order.setPayment(payment);
+		if (!payment.isPaymentLinkAvailable()) {
+			throw new IllegalArgumentException("Đường dẫn thanh toán đã hết hạn hoặc đơn không còn chờ thanh toán.");
+		}
+		return payment.getPaymentUrl();
+	}
+
+	private Branch validateCheckoutItems(List<CartItem> items, Long branchId) {
+		if (branchId == null) {
+			throw new IllegalArgumentException("Chưa xác định được chi nhánh giao hàng.");
+		}
+		Branch branch = branchRepository.findById(branchId)
+				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chi nhánh giao hàng."));
+		entityManager.refresh(branch);
+		if (!branch.isActive()) {
+			throw new IllegalArgumentException("Chi nhánh giao hàng đang ngừng hoạt động.");
+		}
+		var quantities = new TreeMap<Long, Integer>();
+		for (CartItem item : items) {
+			if (item.getProduct() == null || item.getProduct().getId() == null) {
+				throw new IllegalArgumentException("Sản phẩm trong giỏ không hợp lệ.");
+			}
+			purchaseValidator.requireQuantity(item.getQuantity());
+			quantities.merge(item.getProduct().getId(), item.getQuantity(), (left, right) -> {
+				long total = (long) left + right;
+				if (total > Integer.MAX_VALUE) {
+					throw new IllegalArgumentException("Số lượng sản phẩm vượt giới hạn.");
+				}
+				return (int) total;
+			});
+		}
+		for (var entry : quantities.entrySet()) {
+			var product = purchaseValidator.requireProduct(entry.getKey(), entry.getValue());
+			purchaseValidator.requireBranchStock(branchId, entry.getKey(), entry.getValue());
+			for (CartItem item : items) {
+				if (entry.getKey().equals(item.getProduct().getId())) {
+					item.setProduct(product);
+				}
+			}
+		}
+		return branch;
+	}
+
 	private Cart getCart(String userEmail, HttpSession session) {
 		if (userEmail != null && !userEmail.equalsIgnoreCase("anonymousUser")) {
 			Cart cart = cartRepository.findByUser_Email(userEmail).orElse(null);
 			if (cart != null)
 				return cart;
 		}
-		String sessionId = (String) session.getAttribute("GUEST_CART_SESSION");
+		String sessionId = session == null ? null : (String) session.getAttribute("GUEST_CART_SESSION");
 		if (sessionId != null) {
 			return cartRepository.findBySessionId(sessionId).orElse(null);
 		}

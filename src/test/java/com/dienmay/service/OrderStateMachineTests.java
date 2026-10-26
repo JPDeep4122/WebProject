@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
 
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.payment.Payment;
+import com.dienmay.entity.payment.PaymentMethod;
+import com.dienmay.entity.payment.PaymentStatus;
 import com.dienmay.entity.auth.User;
 import com.dienmay.entity.branch.Branch;
 import com.dienmay.service.order.OrderStatusChangedEvent;
@@ -43,6 +46,8 @@ class OrderStateMachineTests {
     @Test
     void transitionsOrderAndRejectsInvalidMove() {
         var order = Order.builder().status(OrderStatus.PENDING).build();
+        order.setPayment(Payment.builder().order(order).paymentMethod(PaymentMethod.COD)
+                .paymentStatus(PaymentStatus.PENDING).build());
 
         stateMachine.transition(order, OrderStatus.CONFIRMED);
         assertEquals(OrderStatus.CONFIRMED, order.getStatus());
@@ -76,5 +81,42 @@ class OrderStateMachineTests {
         assertEquals("ORD-REALTIME-1", event.update().orderCode());
         assertEquals(OrderStatus.PENDING, event.update().previousStatus());
         assertEquals(OrderStatus.CONFIRMED, event.update().status());
+    }
+
+    @Test
+    void blocksUnpaidAndFailedVnPayBeforeShippingOrDelivery() {
+        for (var paymentStatus : new PaymentStatus[] {PaymentStatus.PENDING, PaymentStatus.FAILED}) {
+            for (var current : new OrderStatus[] {OrderStatus.PROCESSING, OrderStatus.SHIPPING}) {
+                var order = Order.builder().status(current).build();
+                order.setPayment(Payment.builder().order(order).paymentMethod(PaymentMethod.VNPAY)
+                        .paymentStatus(paymentStatus).build());
+                var target = current == OrderStatus.PROCESSING ? OrderStatus.SHIPPING : OrderStatus.DELIVERED;
+                assertThrows(IllegalArgumentException.class, () -> stateMachine.transition(order, target));
+                assertEquals(current, order.getStatus());
+            }
+        }
+    }
+
+    @Test
+    void allowsPaidVnPayAndRejectsMissingPayment() {
+        var order = Order.builder().status(OrderStatus.PROCESSING).build();
+        assertThrows(IllegalArgumentException.class, () -> stateMachine.transition(order, OrderStatus.SHIPPING));
+        order.setPayment(Payment.builder().order(order).paymentMethod(PaymentMethod.VNPAY)
+                .paymentStatus(PaymentStatus.SUCCESS).build());
+        stateMachine.transition(order, OrderStatus.SHIPPING);
+        stateMachine.transition(order, OrderStatus.DELIVERED);
+        assertEquals(OrderStatus.DELIVERED, order.getStatus());
+    }
+
+    @Test
+    void guestOrderStillPublishesBranchEventWithoutUsingContactEmailAsIdentity() {
+        var events = new ArrayList<Object>();
+        stateMachine.setApplicationEventPublisher(events::add);
+        var order = Order.builder().orderCode("ORD-GUEST").recipientEmail("other@example.test")
+                .branch(Branch.builder().id(12L).build()).status(OrderStatus.PENDING).build();
+        stateMachine.transition(order, OrderStatus.CONFIRMED);
+        var event = (OrderStatusChangedEvent) events.getFirst();
+        org.junit.jupiter.api.Assertions.assertNull(event.recipientEmail());
+        assertEquals(12L, event.branchId());
     }
 }

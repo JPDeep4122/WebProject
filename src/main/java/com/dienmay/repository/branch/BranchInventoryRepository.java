@@ -40,4 +40,11 @@ public interface BranchInventoryRepository extends JpaRepository<BranchInventory
             + "or lower(inventory.product.sku) like lower(concat('%', :keyword, '%'))) ")
     Page<BranchInventory> search(@Param("branchId") Long branchId,
             @Param("keyword") String keyword, Pageable pageable);
+
+    @Query("""
+            select coalesce(sum(coalesce(i.stockQuantity, 0) - coalesce(i.reservedQuantity, 0)), 0)
+            from BranchInventory i
+            where i.product.id = :productId and i.branch.active = true
+            """)
+    long totalAvailable(@Param("productId") Long productId);
 }

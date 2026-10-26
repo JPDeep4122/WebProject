@@ -13,6 +13,9 @@ import org.springframework.stereotype.Component;
 import com.dienmay.dto.order.OrderStatusUpdate;
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.payment.Payment;
+import com.dienmay.entity.payment.PaymentMethod;
+import com.dienmay.entity.payment.PaymentStatus;
 
 @Component
 public class OrderStateMachine implements ApplicationEventPublisherAware {
@@ -48,6 +51,8 @@ public class OrderStateMachine implements ApplicationEventPublisherAware {
             throw new IllegalArgumentException(
                     "Không thể chuyển trạng thái đơn từ " + current + " sang " + target + ".");
         }
+        requirePaymentBeforeDelivery(order, target);
+
         order.setStatus(target);
         publishStatusChanged(order, current, target);
     }
@@ -58,14 +63,46 @@ public class OrderStateMachine implements ApplicationEventPublisherAware {
     }
 
     private void publishStatusChanged(Order order, OrderStatus previousStatus, OrderStatus status) {
-        if (eventPublisher == null || order.getUser() == null
-                || order.getUser().getEmail() == null || order.getOrderCode() == null) {
+        if (eventPublisher == null || order.getOrderCode() == null) {
             return;
         }
         var update = new OrderStatusUpdate(
                 order.getOrderCode(), previousStatus, status, LocalDateTime.now());
         Long branchId = order.getBranch() == null ? null : order.getBranch().getId();
-        eventPublisher.publishEvent(new OrderStatusChangedEvent(
-                order.getUser().getEmail(), branchId, update));
+        String accountEmail = order.getUser() == null ? null : order.getUser().getEmail();
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(accountEmail, branchId, update));
+    }
+
+    void requirePaymentBeforeDelivery(
+            Order order, OrderStatus target) {
+
+        if (target != OrderStatus.SHIPPING
+                && target != OrderStatus.DELIVERED) {
+            return;
+        }
+
+        Payment payment = order.getPayment();
+
+        if (payment == null
+                || payment.getPaymentMethod() == null
+                || payment.getPaymentStatus() == null) {
+            throw new IllegalArgumentException(
+                    "Đơn hàng chưa có thông tin thanh toán hợp lệ.");
+        }
+
+        PaymentMethod method = payment.getPaymentMethod();
+        PaymentStatus status = payment.getPaymentStatus();
+
+        boolean allowed = switch (method) {
+            case VNPAY -> status == PaymentStatus.SUCCESS;
+            case COD -> status == PaymentStatus.PENDING
+                    || status == PaymentStatus.SUCCESS;
+            default -> false;
+        };
+
+        if (!allowed) {
+            throw new IllegalArgumentException(
+                    "Chưa thể giao hàng: trạng thái thanh toán không hợp lệ.");
+        }
     }
 }

@@ -72,6 +72,7 @@ public class DeliveryStatusService {
 
     private void startDelivering(OrderStatus orderStatus, Order order,
             DeliveryAssignment assignment, LocalDateTime now) {
+        orderStateMachine.requirePaymentBeforeDelivery(order, OrderStatus.SHIPPING);
         if (orderStatus == OrderStatus.PROCESSING) {
             orderStateMachine.transition(order, OrderStatus.SHIPPING);
         } else if (orderStatus != OrderStatus.SHIPPING) {
@@ -87,6 +88,7 @@ public class DeliveryStatusService {
 
     private void completeSuccessfully(OrderStatus orderStatus, Order order,
             DeliveryAssignment assignment, LocalDateTime now) {
+        orderStateMachine.requirePaymentBeforeDelivery(order, OrderStatus.DELIVERED);
         if (orderStatus == OrderStatus.SHIPPING) {
             orderStateMachine.transition(order, OrderStatus.DELIVERED);
         } else if (orderStatus != OrderStatus.DELIVERED) {

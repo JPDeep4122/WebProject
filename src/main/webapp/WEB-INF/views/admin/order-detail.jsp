@@ -31,7 +31,14 @@
                     <div class="card-header bg-white fw-semibold"><i class="bi bi-person me-2"></i>Thông tin khách hàng</div>
                     <div class="card-body">
                         <dl class="row mb-0">
-                            <dt class="col-sm-4">Tài khoản</dt><dd class="col-sm-8"><c:out value="${order.user.fullName}"/> (<c:out value="${order.user.email}"/>)</dd>
+                            <dt class="col-sm-4">Tài khoản</dt>
+                            <dd class="col-sm-8">
+                                <c:choose>
+                                    <c:when test="${empty order.user}">Khách vãng lai</c:when>
+                                    <c:otherwise><c:out value="${order.user.fullName}"/> (<c:out value="${order.user.email}"/>)</c:otherwise>
+                                </c:choose>
+                            </dd>
+                            <dt class="col-sm-4">Email liên hệ</dt><dd class="col-sm-8"><c:out value="${order.recipientEmail}"/></dd>
                             <dt class="col-sm-4">Người nhận</dt><dd class="col-sm-8"><c:out value="${order.recipientName}"/></dd>
                             <dt class="col-sm-4">Điện thoại</dt><dd class="col-sm-8"><c:out value="${order.recipientPhone}"/></dd>
                             <dt class="col-sm-4">Địa chỉ giao</dt><dd class="col-sm-8"><c:out value="${order.shippingAddress}"/></dd>

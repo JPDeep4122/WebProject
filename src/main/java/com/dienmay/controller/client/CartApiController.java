@@ -21,6 +21,12 @@ public class CartApiController {
 
     private final CartService cartService;
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidCart(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.<Void>builder()
+                .success(false).message(ex.getMessage()).build());
+    }
+
     // 1. Thêm vào giỏ hàng (AJAX)
     @PostMapping("/add")
     public ResponseEntity<ApiResponse<CartResponse>> addToCart(

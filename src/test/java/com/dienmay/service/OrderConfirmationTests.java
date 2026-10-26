@@ -21,6 +21,9 @@ import com.dienmay.entity.auth.*;
 import com.dienmay.entity.branch.*;
 import com.dienmay.entity.order.*;
 import com.dienmay.entity.product.Product;
+import com.dienmay.entity.payment.Payment;
+import com.dienmay.entity.payment.PaymentMethod;
+import com.dienmay.entity.payment.PaymentStatus;
 import com.dienmay.service.order.OrderConfirmationService;
 import com.dienmay.service.order.OrderFulfillmentService;
 import com.dienmay.service.order.OrderPickingService;
@@ -96,7 +99,13 @@ class OrderConfirmationTests {
                 .recipientName("Customer").recipientPhone("0123456789").shippingAddress("Test").build();
         var item = OrderItem.builder().order(order).product(em.find(Product.class, productId))
                 .quantity(quantity).price(BigDecimal.TEN).build();
-        order.getOrderItems().add(item); em.persist(order); return order.getId();
+        order.getOrderItems().add(item);
+        em.persist(order);
+        var payment = Payment.builder().order(order).paymentMethod(PaymentMethod.COD)
+                .paymentStatus(PaymentStatus.PENDING).amount(order.getFinalAmount()).build();
+        em.persist(payment);
+        order.setPayment(payment);
+        return order.getId();
     }
 
     private void assertState(Long id, OrderStatus status, int stock) {

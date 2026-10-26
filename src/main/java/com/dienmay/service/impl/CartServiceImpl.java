@@ -19,9 +19,11 @@ import com.dienmay.entity.product.Product;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.cart.CartItemRepository;
 import com.dienmay.repository.cart.CartRepository;
-import com.dienmay.repository.product.ProductRepository;
 import com.dienmay.service.cart.CartService;
+import com.dienmay.service.checkout.PurchaseValidator;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -34,8 +36,11 @@ public class CartServiceImpl implements CartService {
 
 	private final CartRepository cartRepository;
 	private final CartItemRepository cartItemRepository;
-	private final ProductRepository productRepository;
 	private final UserRepository userRepository;
+	private final PurchaseValidator purchaseValidator;
+
+	@PersistenceContext
+	private EntityManager entityManager;
 
 	// Helper: Lấy hoặc tạo Giỏ hàng (hỗ trợ cả đã đăng nhập hoặc khách vãng lai qua
 	// session)
@@ -61,7 +66,6 @@ public class CartServiceImpl implements CartService {
 	}
 
 	@Override
-	@Transactional(readOnly = true)
 	public CartResponse getCart(String userEmail, HttpSession session) {
 		Cart cart = getOrCreateCart(userEmail, session);
 		return toCartResponse(cart);
@@ -69,18 +73,30 @@ public class CartServiceImpl implements CartService {
 
 	@Override
 	public CartResponse addToCart(AddToCartRequest request, String userEmail, HttpSession session) {
-		Cart cart = getOrCreateCart(userEmail, session);
-		Product product = productRepository.findById(request.getProductId())
-				.orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm ID: " + request.getProductId()));
 
-		CartItem item = cartItemRepository.findByCart_IdAndProduct_Id(cart.getId(), product.getId()).orElse(null);
+		Cart cart = getOrCreateCartForUpdate(userEmail, session);
 
-		if (item != null) {
-			item.setQuantity(item.getQuantity() + request.getQuantity());
-		} else {
-			item = CartItem.builder().cart(cart).product(product).quantity(request.getQuantity()).selected(true)
-					.build();
+		Product product = purchaseValidator.requireProduct(request.getProductId(), request.getQuantity());
+
+		CartItem item = cart.getItems().stream()
+				.filter(existing -> product.getId().equals(existing.getProduct().getId())).findFirst().orElse(null);
+
+		long desiredQuantity = (item == null ? 0L : item.getQuantity().longValue()) + request.getQuantity();
+
+		if (desiredQuantity > Integer.MAX_VALUE) {
+			throw new IllegalArgumentException("Số lượng sản phẩm vượt giới hạn.");
+		}
+
+		int quantity = (int) desiredQuantity;
+
+		purchaseValidator.requireTotalStock(product.getId(), quantity);
+
+		if (item == null) {
+			item = CartItem.builder().cart(cart).product(product).quantity(quantity).selected(true).build();
+
 			cart.getItems().add(item);
+		} else {
+			item.setQuantity(quantity);
 		}
 
 		cartRepository.save(cart);
@@ -88,103 +104,46 @@ public class CartServiceImpl implements CartService {
 	}
 
 	@Override
-	public CartResponse buyNow(
-	        AddToCartRequest request,
-	        String userEmail,
-	        HttpSession session) {
+	public CartResponse buyNow(AddToCartRequest request, String userEmail, HttpSession session) {
+		Cart cart = getOrCreateCartForUpdate(userEmail, session);
+		Integer quantity = request.getQuantity();
+		Product product = purchaseValidator.requireProduct(request.getProductId(), quantity);
+		purchaseValidator.requireTotalStock(product.getId(), quantity);
 
-	    if (request.getProductId() == null
-	            || request.getProductId() <= 0) {
-	        throw new ResponseStatusException(
-	                HttpStatus.BAD_REQUEST,
-	                "Sản phẩm không hợp lệ.");
-	    }
+		CartItem target = cart.getItems().stream().filter(item -> product.getId().equals(item.getProduct().getId()))
+				.findFirst().orElse(null);
 
-	    Integer quantity = request.getQuantity();
+		// Giữ các món khác trong giỏ, chỉ bỏ chọn.
+		for (CartItem item : cart.getItems()) {
+			item.setSelected(false);
+		}
 
-	    if (quantity == null || quantity < 1) {
-	        throw new ResponseStatusException(
-	                HttpStatus.BAD_REQUEST,
-	                "Số lượng phải lớn hơn hoặc bằng 1.");
-	    }
+		if (target == null) {
+			target = CartItem.builder().cart(cart).product(product).quantity(quantity).selected(true).build();
 
-	    Product product = productRepository
-	            .findById(request.getProductId())
-	            .orElseThrow(() -> new ResponseStatusException(
-	                    HttpStatus.NOT_FOUND,
-	                    "Không tìm thấy sản phẩm."));
+			cart.getItems().add(target);
+		} else {
+			target.setQuantity(quantity);
+			target.setSelected(true);
+		}
 
-	    if (!product.isActive()) {
-	        throw new ResponseStatusException(
-	                HttpStatus.BAD_REQUEST,
-	                "Sản phẩm đã ngừng kinh doanh.");
-	    }
+		cartRepository.saveAndFlush(cart);
 
-	    BigDecimal price = product.getSellingPrice();
-
-	    if (price == null || price.signum() < 0) {
-	        throw new ResponseStatusException(
-	                HttpStatus.BAD_REQUEST,
-	                "Sản phẩm chưa có giá bán hợp lệ.");
-	    }
-
-	    long availableQuantity = product.getBranchInventories()
-	            .stream()
-	            .filter(stock -> stock.getBranch() != null
-	                    && stock.getBranch().isActive())
-	            .mapToLong(stock -> stock.getAvailableQuantity() == null
-	                    ? 0L
-	                    : Math.max(0, stock.getAvailableQuantity()))
-	            .sum();
-
-	    if (quantity > availableQuantity) {
-	        throw new ResponseStatusException(
-	                HttpStatus.BAD_REQUEST,
-	                "Số lượng yêu cầu vượt quá tồn kho hiện tại.");
-	    }
-
-	    Cart cart = getOrCreateCart(userEmail, session);
-
-	    CartItem target = cart.getItems().stream()
-	            .filter(item -> product.getId()
-	                    .equals(item.getProduct().getId()))
-	            .findFirst()
-	            .orElse(null);
-
-	    // Giữ các món khác trong giỏ, chỉ bỏ chọn.
-	    for (CartItem item : cart.getItems()) {
-	        item.setSelected(false);
-	    }
-
-	    if (target == null) {
-	        target = CartItem.builder()
-	                .cart(cart)
-	                .product(product)
-	                .quantity(quantity)
-	                .selected(true)
-	                .build();
-
-	        cart.getItems().add(target);
-	    } else {
-	        target.setQuantity(quantity);
-	        target.setSelected(true);
-	    }
-
-	    cartRepository.saveAndFlush(cart);
-
-	    return toCartResponse(cart);
+		return toCartResponse(cart);
 	}
-	
+
 	@Override
 	public CartResponse updateQuantity(Long cartItemId, int quantity, String userEmail, HttpSession session) {
 
-		Cart cart = getOrCreateCart(userEmail, session);
+		Cart cart = getOrCreateCartForUpdate(userEmail, session);
 		CartItem item = requireOwnedItem(cartItemId, cart);
 
 		if (quantity <= 0) {
 			cart.getItems().remove(item);
 			cartItemRepository.delete(item);
 		} else {
+			Product product = purchaseValidator.requireProduct(item.getProduct().getId(), quantity);
+			purchaseValidator.requireTotalStock(product.getId(), quantity);
 			item.setQuantity(quantity);
 			cartItemRepository.save(item);
 		}
@@ -195,7 +154,7 @@ public class CartServiceImpl implements CartService {
 	@Override
 	public CartResponse removeItem(Long cartItemId, String userEmail, HttpSession session) {
 
-		Cart cart = getOrCreateCart(userEmail, session);
+		Cart cart = getOrCreateCartForUpdate(userEmail, session);
 		CartItem item = requireOwnedItem(cartItemId, cart);
 
 		cart.getItems().remove(item);
@@ -207,7 +166,7 @@ public class CartServiceImpl implements CartService {
 	@Override
 	public CartResponse toggleSelect(Long cartItemId, boolean selected, String userEmail, HttpSession session) {
 
-		Cart cart = getOrCreateCart(userEmail, session);
+		Cart cart = getOrCreateCartForUpdate(userEmail, session);
 		CartItem item = requireOwnedItem(cartItemId, cart);
 
 		item.setSelected(selected);
@@ -218,7 +177,7 @@ public class CartServiceImpl implements CartService {
 
 	@Override
 	public CartResponse selectAll(boolean selected, String userEmail, HttpSession session) {
-		Cart cart = getOrCreateCart(userEmail, session);
+		Cart cart = getOrCreateCartForUpdate(userEmail, session);
 		for (CartItem item : cart.getItems()) {
 			item.setSelected(selected);
 		}
@@ -227,7 +186,6 @@ public class CartServiceImpl implements CartService {
 	}
 
 	@Override
-	@Transactional(readOnly = true)
 	public int getCartTotalQuantity(String userEmail, HttpSession session) {
 		Cart cart = getOrCreateCart(userEmail, session);
 		return cart.getItems().stream().mapToInt(CartItem::getQuantity).sum();
@@ -255,5 +213,14 @@ public class CartServiceImpl implements CartService {
 	private CartItem requireOwnedItem(Long cartItemId, Cart cart) {
 		return cartItemRepository.findByIdAndCart_Id(cartItemId, cart.getId())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy mục giỏ hàng."));
+	}
+
+	private Cart getOrCreateCartForUpdate(String userEmail, HttpSession session) {
+		Cart cart = getOrCreateCart(userEmail, session);
+		Long cartId = cart.getId();
+		// Discard an earlier page preview, then lock before loading the item collection.
+		entityManager.detach(cart);
+		return cartRepository.findForUpdate(cartId)
+				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giỏ hàng."));
 	}
 }

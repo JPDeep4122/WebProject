@@ -28,4 +28,16 @@ class OrderStatusWebSocketNotifierTests {
         verify(messaging).convertAndSend("/topic/branches/7/order-status", update);
         verify(messaging).convertAndSend("/topic/admin/order-status", update);
     }
+
+    @Test
+    void guestOrdersNotifyBranchAndAdminWithoutSendingToAnyUser() {
+        var messaging = org.mockito.Mockito.mock(SimpMessagingTemplate.class);
+        var notifier = new OrderStatusWebSocketNotifier(messaging);
+        var update = new OrderStatusUpdate("ORD-GUEST", OrderStatus.PENDING,
+                OrderStatus.CONFIRMED, LocalDateTime.now());
+        notifier.notifyCustomer(new OrderStatusChangedEvent(null, 7L, update));
+        verify(messaging).convertAndSend("/topic/branches/7/order-status", update);
+        verify(messaging).convertAndSend("/topic/admin/order-status", update);
+        org.mockito.Mockito.verifyNoMoreInteractions(messaging);
+    }
 }
