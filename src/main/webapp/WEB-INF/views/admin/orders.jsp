@@ -15,6 +15,7 @@
 	href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
 	rel="stylesheet">
 <jsp:include page="/WEB-INF/views/shared/security.jsp"/>
+    <jsp:include page="fragments/theme.jsp"/>
 </head>
 <body>
 	<div class="d-flex">

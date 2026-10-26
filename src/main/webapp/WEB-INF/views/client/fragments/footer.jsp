@@ -130,8 +130,18 @@
           if (data.success) {
             // Lưu Token và Thông tin người dùng vào LocalStorage
             localStorage.setItem('jwtToken', data.data.token);
+            localStorage.setItem('accessToken', data.data.token);
             localStorage.setItem('currentUser', JSON.stringify(data.data));
 
+            const roles = Array.isArray(data.data.roles) ? data.data.roles : [];
+            if (roles.includes('ROLE_ADMIN')) {
+              showModalAuthAlert('success', 'Đăng nhập thành công! Đang chuyển đến trang quản trị...');
+              document.cookie = "accessToken=" + data.data.token + "; path=/; max-age=86400";
+              setTimeout(() => {
+                window.location.href = CONTEXT_PATH + '/admin';
+              }, 700);
+              return;
+            }
             showModalAuthAlert('success', 'Đăng nhập thành công! Đang tải lại...');
             setTimeout(() => {
               bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();

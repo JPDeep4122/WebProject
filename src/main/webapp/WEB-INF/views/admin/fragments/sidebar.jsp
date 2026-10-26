@@ -6,10 +6,10 @@
     <c:set var="adminCurrentPath" value="${pageContext.request.requestURI}" />
 </c:if>
 <c:set var="adminCurrentPath" value="${fn:substringAfter(adminCurrentPath, pageContext.request.contextPath)}" />
-<div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 260px; min-height: 100vh;">
-    <a href="/admin" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-        <i class="bi bi-shield-lock-fill fs-4 text-warning me-2"></i>
-        <span class="fs-5 fw-bold">QUẢN LÝ CỬA HÀNG</span>
+<aside class="admin-sidebar">
+    <a href="${pageContext.request.contextPath}/admin" class="admin-brand">
+        <img src="${pageContext.request.contextPath}/images/brand/techseven-logo.svg" alt="TECHSEVEN">
+        <small>KHU VỰC QUẢN TRỊ</small>
     </a>
     <hr>
     <ul class="nav nav-pills flex-column mb-auto">
@@ -45,15 +45,15 @@
         </li>
     </ul>
     <hr>
-    <div class="dropdown">
+    <div class="admin-account dropdown">
         <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="bi bi-person-circle fs-4 me-2"></i>
-            <strong>Admin / Manager</strong>
+            <span class="admin-account-icon"><i class="bi bi-person-fill-gear"></i></span>
+            <span><strong>Quản trị viên</strong><small>Quản lý hệ thống</small></span>
         </a>
         <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
-            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/"><i class="bi bi-box-arrow-up-right me-1"></i> Xem trang Khách</a></li>
+            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/"><i class="bi bi-box-arrow-up-right me-1"></i> Xem trang bán hàng</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="/logout"><i class="bi bi-box-arrow-right me-1"></i> Đăng xuất</a></li>
+            <li><a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/logout"><i class="bi bi-box-arrow-right me-1"></i> Đăng xuất</a></li>
         </ul>
     </div>
-</div>
+</aside>
