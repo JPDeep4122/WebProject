@@ -12,7 +12,7 @@
 	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
 	rel="stylesheet">
 <jsp:include page="/WEB-INF/views/shared/security.jsp" />
-    <jsp:include page="fragments/theme.jsp"/>
+<jsp:include page="fragments/theme.jsp" />
 </head>
 <body>
 	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
@@ -147,7 +147,11 @@
 										</c:forEach></td>
 									<td>${u.branch.name}</td>
 									<td><span
-										class="badge ${u.active ? 'bg-success' : 'bg-danger'}">${u.active ? 'Đang hoạt động' : 'Đã khóa'}</span></td>
+										class="badge ${u.blocked ? 'bg-danger'
+            : (u.active ? 'bg-success' : 'bg-warning text-dark')}">
+											${u.blocked ? 'Đã khóa'
+            : (u.active ? 'Đang hoạt động' : 'Chờ xác thực')}
+									</span></td>
 									<td><form method="post"
 											action="/admin/users/${u.id}/update" class="d-flex gap-1">
 											<input type="hidden" name="${_csrf.parameterName}"
@@ -169,7 +173,9 @@
 											action="/admin/users/${u.id}/toggle">
 											<input type="hidden" name="${_csrf.parameterName}"
 												value="${_csrf.token}">
-											<button class="btn btn-sm btn-outline-warning">${u.active ? 'Khóa' : 'Mở khóa'}</button>
+											<button type="submit" class="btn btn-sm btn-outline-warning">
+												${u.blocked ? 'Mở khóa' : (u.active ? 'Khóa' : 'Kích hoạt')}
+											</button>
 										</form></td>
 								</tr>
 							</c:forEach>

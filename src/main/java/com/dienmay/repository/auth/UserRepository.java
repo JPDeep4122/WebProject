@@ -42,4 +42,8 @@ public interface UserRepository extends JpaRepository<User, Long>{
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select u from User u where u.email = :email")
 	Optional<User> findForPhoneLink(@Param("email") String email);
+	
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select u from User u where u.email = :email")
+	Optional<User> findForOtp(@Param("email") String email);
 }

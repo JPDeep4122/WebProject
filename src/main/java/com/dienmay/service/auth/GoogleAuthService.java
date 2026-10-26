@@ -51,7 +51,7 @@ public class GoogleAuthService {
 					user = createGoogleUser(identity);
 				} else {
 					// Email đã có: liên kết với tài khoản hiện tại.
-					if (!user.isActive()) {
+					if (!user.isActive() || user.isBlocked()) {
 						throw new IllegalArgumentException(
 								"Tài khoản chưa được kích hoạt " + "hoặc đã bị vô hiệu hóa.");
 					}
@@ -74,7 +74,7 @@ public class GoogleAuthService {
 				}
 			}
 
-			if (!user.isActive()) {
+			if (!user.isActive() || user.isBlocked()) {
 				throw new IllegalArgumentException("Tài khoản hiện không được phép đăng nhập.");
 			}
 

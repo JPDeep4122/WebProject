@@ -41,6 +41,10 @@ public class OtpCode {
 	@Column(name = "is_used", nullable = false)
 	@Builder.Default
 	private boolean used = false;
+	
+	@Column(name = "failed_attempts", nullable = false)
+	@Builder.Default
+	private int failedAttempts = 0;
 
 	@Column(name = "created_at", updatable = false)
 	private LocalDateTime createdAt;
