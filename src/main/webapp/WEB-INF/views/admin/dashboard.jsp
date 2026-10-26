@@ -16,6 +16,7 @@
 	href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
 	rel="stylesheet">
 <jsp:include page="/WEB-INF/views/shared/security.jsp" />
+    <jsp:include page="fragments/theme.jsp"/>
 </head>
 <body>
 	<div class="d-flex">
@@ -160,8 +161,5 @@
 		</div>
 	</div>
 
-	<!-- Bootstrap JS Bundle -->
-	<script
-		src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

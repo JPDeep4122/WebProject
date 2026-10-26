@@ -9,6 +9,7 @@
 	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
 	rel="stylesheet">
 <jsp:include page="/WEB-INF/views/shared/security.jsp" />
+    <jsp:include page="fragments/theme.jsp"/>
 </head>
 <body>
 	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
