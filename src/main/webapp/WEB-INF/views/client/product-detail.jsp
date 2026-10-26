@@ -28,7 +28,7 @@
 			<div
 				class="bg-white p-4 rounded-4 shadow-sm border text-center position-relative">
 				<c:if
-					test="${product.discountPrice != null && product.discountPrice < product.originalPrice}">
+					test="${product.sellingPrice != null && product.sellingPrice < product.originalPrice}">
 					<span
 						class="position-absolute top-0 start-0 bg-danger text-white px-3 py-1 m-3 rounded-pill small fw-bold">
 						Giảm sốc </span>
@@ -67,10 +67,10 @@
 				<div
 					class="p-3 bg-light rounded-3 mb-3 d-flex align-items-baseline gap-3">
 					<span class="text-danger display-6 fw-bold"> <fmt:formatNumber
-							value="${product.discountPrice}" type="number"
+							value="${product.sellingPrice}" type="number"
 							groupingUsed="true" /> ₫
 					</span>
-					<c:if test="${product.discountPrice < product.originalPrice}">
+					<c:if test="${product.sellingPrice < product.originalPrice}">
 						<span class="text-muted text-decoration-line-through fs-5">
 							<fmt:formatNumber value="${product.originalPrice}" type="number"
 								groupingUsed="true" /> ₫
@@ -610,7 +610,7 @@
 								class="text-decoration-none text-dark">
 								<h6 class="card-title fw-bold text-truncate" title="${rel.name}">${rel.name}</h6>
 							</a> <span class="text-danger fw-bold"> <fmt:formatNumber
-									value="${rel.discountPrice}" type="number" groupingUsed="true" />
+									value="${rel.sellingPrice}" type="number" groupingUsed="true" />
 								₫
 							</span>
 						</div>

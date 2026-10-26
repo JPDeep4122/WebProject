@@ -261,10 +261,10 @@
 									<div class="mt-auto pt-2">
 										<div class="d-flex align-items-baseline gap-2">
 											<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
-													value="${prod.discountPrice}" type="number"
+													value="${prod.sellingPrice}" type="number"
 													groupingUsed="true" /> ₫
 											</span>
-											<c:if test="${prod.discountPrice < prod.originalPrice}">
+											<c:if test="${prod.sellingPrice < prod.originalPrice}">
 												<span class="text-muted text-decoration-line-through small">
 													<fmt:formatNumber value="${prod.originalPrice}"
 														type="number" groupingUsed="true" /> ₫
@@ -344,10 +344,10 @@
 									<div class="mt-auto pt-2">
 										<div class="d-flex align-items-baseline gap-2">
 											<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
-													value="${prod.discountPrice}" type="number"
+													value="${prod.sellingPrice}" type="number"
 													groupingUsed="true" /> ₫
 											</span>
-											<c:if test="${prod.discountPrice < prod.originalPrice}">
+											<c:if test="${prod.sellingPrice < prod.originalPrice}">
 												<span class="text-muted text-decoration-line-through small">
 													<fmt:formatNumber value="${prod.originalPrice}"
 														type="number" groupingUsed="true" /> ₫
@@ -427,10 +427,10 @@
 									<div class="mt-auto pt-2">
 										<div class="d-flex align-items-baseline gap-2">
 											<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
-													value="${prod.discountPrice}" type="number"
+													value="${prod.sellingPrice}" type="number"
 													groupingUsed="true" /> ₫
 											</span>
-											<c:if test="${prod.discountPrice < prod.originalPrice}">
+											<c:if test="${prod.sellingPrice < prod.originalPrice}">
 												<span class="text-muted text-decoration-line-through small">
 													<fmt:formatNumber value="${prod.originalPrice}"
 														type="number" groupingUsed="true" /> ₫
@@ -510,10 +510,10 @@
 									<div class="mt-auto pt-2">
 										<div class="d-flex align-items-baseline gap-2">
 											<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
-													value="${prod.discountPrice}" type="number"
+													value="${prod.sellingPrice}" type="number"
 													groupingUsed="true" /> ₫
 											</span>
-											<c:if test="${prod.discountPrice < prod.originalPrice}">
+											<c:if test="${prod.sellingPrice < prod.originalPrice}">
 												<span class="text-muted text-decoration-line-through small">
 													<fmt:formatNumber value="${prod.originalPrice}"
 														type="number" groupingUsed="true" /> ₫

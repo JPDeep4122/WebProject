@@ -78,8 +78,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 				: new ArrayList<>();
 
 		List<CheckoutItemDto> items = selectedItems.stream().map(item -> {
-			BigDecimal price = (item.getProduct().getDiscountPrice() != null) ? item.getProduct().getDiscountPrice()
-					: item.getProduct().getPrice();
+			BigDecimal price = item.getProduct().getSellingPrice();
 			return CheckoutItemDto.builder().productId(item.getProduct().getId())
 					.productName(item.getProduct().getName()).productSlug(item.getProduct().getSlug())
 					.imageUrl(item.getProduct().getMainImageUrl()).price(price).quantity(item.getQuantity())
@@ -289,8 +288,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
 		// 5. Lưu OrderItems
 		List<OrderItem> orderItems = selectedItems.stream().map(item -> {
-			BigDecimal price = (item.getProduct().getDiscountPrice() != null) ? item.getProduct().getDiscountPrice()
-					: item.getProduct().getPrice();
+			BigDecimal price = item.getProduct().getSellingPrice();
 			return OrderItem.builder().order(savedOrder).product(item.getProduct()).quantity(item.getQuantity())
 					.price(price).subtotal(item.getSubtotal()).build();
 		}).collect(Collectors.toList());

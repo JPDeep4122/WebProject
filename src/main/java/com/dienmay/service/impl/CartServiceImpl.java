@@ -120,9 +120,7 @@ public class CartServiceImpl implements CartService {
 	                "Sản phẩm đã ngừng kinh doanh.");
 	    }
 
-	    BigDecimal price = product.getDiscountPrice() != null
-	            ? product.getDiscountPrice()
-	            : product.getPrice();
+	    BigDecimal price = product.getSellingPrice();
 
 	    if (price == null || price.signum() < 0) {
 	        throw new ResponseStatusException(
@@ -238,8 +236,7 @@ public class CartServiceImpl implements CartService {
 	// Helper: Map sang CartResponse DTO
 	private CartResponse toCartResponse(Cart cart) {
 		List<CartItemResponse> itemResponses = (cart.getItems() != null) ? cart.getItems().stream().map(item -> {
-			BigDecimal price = (item.getProduct().getDiscountPrice() != null) ? item.getProduct().getDiscountPrice()
-					: item.getProduct().getPrice();
+			BigDecimal price = item.getProduct().getSellingPrice();
 			return CartItemResponse.builder().id(item.getId()).productId(item.getProduct().getId())
 					.productName(item.getProduct().getName()).productSlug(item.getProduct().getSlug())
 					.productImageUrl(item.getProduct().getMainImageUrl()).unitPrice(price).quantity(item.getQuantity())
