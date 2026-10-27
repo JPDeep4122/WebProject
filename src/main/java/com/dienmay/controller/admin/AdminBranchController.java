@@ -1,6 +1,8 @@
 package com.dienmay.controller.admin;
 
 import java.util.Comparator;
+import java.text.Normalizer;
+import java.util.Locale;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -40,6 +42,7 @@ public class AdminBranchController {
         try {
             Branch branch = new Branch();
             applyFields(branch, name, address, province, phone);
+            ensureUniqueName(branch.getName(), null);
             branch.setActive(true);
             branchRepository.save(branch);
             flash.addFlashAttribute("success", "Đã thêm chi nhánh.");
@@ -61,6 +64,7 @@ public class AdminBranchController {
             Branch branch = branchRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chi nhánh."));
             applyFields(branch, name, address, province, phone);
+            ensureUniqueName(branch.getName(), branch.getId());
             branch.setActive(active);
             branchRepository.save(branch);
             flash.addFlashAttribute("success", "Đã cập nhật chi nhánh.");
@@ -88,5 +92,21 @@ public class AdminBranchController {
         branch.setAddress(cleanAddress);
         branch.setProvince(cleanProvince.isEmpty() ? null : cleanProvince);
         branch.setPhone(cleanPhone.isEmpty() ? null : cleanPhone);
+    }
+
+    private void ensureUniqueName(String name, Long currentBranchId) {
+        String normalizedName = normalizeName(name);
+        boolean duplicate = branchRepository.findAll().stream()
+                .filter(branch -> !branch.getId().equals(currentBranchId))
+                .anyMatch(branch -> normalizeName(branch.getName()).equals(normalizedName));
+        if (duplicate) {
+            throw new IllegalArgumentException("Tên chi nhánh đã tồn tại (không phân biệt chữ hoa, dấu và khoảng trắng).");
+        }
+    }
+
+    private String normalizeName(String value) {
+        String decomposed = Normalizer.normalize(value == null ? "" : value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").replace('đ', 'd').replace('Đ', 'd');
+        return decomposed.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 }

@@ -2,6 +2,8 @@ package com.dienmay.config.seeder;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.text.Normalizer;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -52,12 +54,8 @@ public class DataSeeder implements CommandLineRunner {
 		System.out.println(">>> DANG KHOI TAO DU LIEU MAU CHO DIEN MAY SHOP...");
 
 		// 1. Tạo Chi nhánh
-		Branch b1 = branchRepo
-				.save(Branch.builder().name("Chi nhánh Quận 1").address("123 Lê Lợi, Bến Nghé, Q1, TP.HCM")
-						.province("Thành phố Hồ Chí Minh").phone("02838221122").build());
-		Branch b2 = branchRepo.save(
-				Branch.builder().name("Chi nhánh Bình Thạnh").address("456 Điện Biên Phủ, P25, Bình Thạnh, TP.HCM")
-						.province("Thành phố Hồ Chí Minh").phone("02838992233").build());
+		Branch b1 = findOrCreateBranch("Chi nhánh Quận 1", "123 Lê Lợi, Bến Nghé, Q1, TP.HCM", "02838221122");
+		Branch b2 = findOrCreateBranch("Chi nhánh Bình Thạnh", "456 Điện Biên Phủ, P25, Bình Thạnh, TP.HCM", "02838992233");
 
 		// 2. Tạo Danh mục
 		Category catTivi = categoryRepo.save(Category.builder().name("Tivi").slug("tivi").icon("bi-tv").build());
@@ -149,6 +147,21 @@ public class DataSeeder implements CommandLineRunner {
 		seedBranchStock();
 
 		System.out.println(">>> DA KHOI TAO XONG DU LIEU MAU KEM TON KHO CHI NHANH!");
+	}
+
+	private Branch findOrCreateBranch(String name, String address, String phone) {
+		String normalizedName = normalizeBranchName(name);
+		return branchRepo.findAll().stream()
+				.filter(branch -> normalizeBranchName(branch.getName()).equals(normalizedName))
+				.findFirst()
+				.orElseGet(() -> branchRepo.save(Branch.builder().name(name).address(address)
+						.province("Thành phố Hồ Chí Minh").phone(phone).build()));
+	}
+
+	private String normalizeBranchName(String value) {
+		String decomposed = Normalizer.normalize(value == null ? "" : value, Normalizer.Form.NFD)
+				.replaceAll("\\p{M}", "").replace('đ', 'd').replace('Đ', 'd');
+		return decomposed.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
 	}
 
 	private void seedBranchStock() {

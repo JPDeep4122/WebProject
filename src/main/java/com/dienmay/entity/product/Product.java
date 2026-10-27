@@ -1,6 +1,7 @@
 package com.dienmay.entity.product;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -113,7 +114,7 @@ public class Product {
 	
 	@Transient
 	public BigDecimal getSellingPrice() {
-	    if (discountPrice != null) {
+	    if (hasDiscount()) {
 	        return discountPrice;
 	    }
 
@@ -122,5 +123,22 @@ public class Product {
 	    }
 
 	    return originalPrice;
+	}
+
+	@Transient
+	public boolean isDiscounted() {
+		return hasDiscount();
+	}
+
+	@Transient
+	public BigDecimal getDiscountPercentage() {
+		if (!hasDiscount()) return BigDecimal.ZERO;
+		return originalPrice.subtract(discountPrice).multiply(BigDecimal.valueOf(100))
+				.divide(originalPrice, 0, RoundingMode.HALF_UP);
+	}
+
+	private boolean hasDiscount() {
+		return originalPrice != null && originalPrice.signum() > 0 && discountPrice != null
+				&& discountPrice.signum() > 0 && discountPrice.compareTo(originalPrice) < 0;
 	}
 }
