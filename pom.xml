@@ -190,6 +190,17 @@
 	</dependencies>
 
 	<build>
+		<!-- Keep the locally-run demo seed out of the application artifact. -->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+				<excludes>
+					<exclude>db/manual/04_seed_demo_data.sql</exclude>
+						<exclude>db/manual/04_seed_demo_accounts.txt</exclude>
+				</excludes>
+			</resource>
+		</resources>
 		<plugins>
 			<!-- Compile JSPs with the project's Jasper version before
 			packaging. -->
