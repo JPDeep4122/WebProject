@@ -6,8 +6,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.branch.BranchRepository;
+import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.payment.PaymentStatus;
 import java.math.BigDecimal;
 import java.util.Locale;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @Controller
 public class AdminDashboardController {
@@ -31,6 +35,9 @@ public class AdminDashboardController {
             var revenue = orderRepository.sumSuccessfulRevenueByBranch(branch.getId());
             return new BranchRevenue(branch.getName(), revenue == null ? BigDecimal.ZERO : revenue);
         }).toList());
+        model.addAttribute("successfulOrders", orderRepository.findSuccessfulPaidOrders(
+                PaymentStatus.SUCCESS, OrderStatus.CANCELLED,
+                PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"))).getContent());
         return "admin/dashboard"; // Trỏ đến src/main/webapp/WEB-INF/views/admin/dashboard.jsp
     }
 

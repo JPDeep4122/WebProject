@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Build the executable Spring Boot WAR with the same Java major version as the project.
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
@@ -6,7 +7,10 @@ COPY pom.xml ./
 
 COPY src ./src
 ARG RENDER_GIT_COMMIT=local
-RUN mvn -B -Dmaven.test.skip=true -Dapp.revision="$RENDER_GIT_COMMIT" package
+# Keep Maven dependencies in BuildKit's cache across source edits. This avoids
+# downloading the full dependency graph on every Compose Watch rebuild.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -Dmaven.test.skip=true -Dapp.revision="$RENDER_GIT_COMMIT" package
 # Avoid repeatedly inflating nested libraries during JSP/EL class loading.
 RUN mkdir -p target/runtime && cd target/runtime \
     && jar -xf ../dienmay-shop-0.0.1-SNAPSHOT.war

@@ -170,7 +170,7 @@
                                     </a>
                                 </c:if>
                             </td>
-                            <td><a class="btn btn-sm btn-outline-primary" href="${pageContext.request.contextPath}/admin/orders/${order.id}"><i class="bi bi-eye me-1"></i>Xem</a></td>
+                            <td><a class="btn btn-sm btn-outline-primary" href="${pageContext.request.contextPath}/admin/orders/${order.id}"><i class="bi bi-eye me-1"></i>Chi tiết</a></td>
                         </tr>
                     </c:forEach>
                     <c:if test="${empty ordersPage.content}"><tr><td colspan="8" class="text-center text-secondary py-5">Không có đơn hàng phù hợp.</td></tr></c:if>
