@@ -64,13 +64,6 @@ public class AdminOrderController {
         return "redirect:/admin/orders";
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/{id}/start-shipping")
-    public String startShipping(@org.springframework.web.bind.annotation.PathVariable Long id,
-            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
-        return execute(id, principal, flash, fulfillmentService::startShipping,
-                "Đã chuyển đơn sang trạng thái đang giao.");
-    }
-
     @org.springframework.web.bind.annotation.PostMapping("/{id}/assign")
     public String assign(@org.springframework.web.bind.annotation.PathVariable Long id,
             @RequestParam Long shipperId, Principal principal,
@@ -82,13 +75,6 @@ public class AdminOrderController {
             flash.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/admin/orders";
-    }
-
-    @org.springframework.web.bind.annotation.PostMapping("/{id}/deliver")
-    public String deliver(@org.springframework.web.bind.annotation.PathVariable Long id,
-            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
-        return execute(id, principal, flash, fulfillmentService::markDelivered,
-                "Đã xác nhận giao hàng thành công.");
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/{id}/cancel")
