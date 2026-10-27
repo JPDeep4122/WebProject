@@ -26,6 +26,9 @@
             <a href="${pageContext.request.contextPath}/admin/orders" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/orders') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/orders') ? 'aria-current="page"' : ''}><i class="bi bi-receipt me-2"></i> Quản lý Đơn hàng</a>
         </li>
         <li>
+            <a href="${pageContext.request.contextPath}/admin/invoices" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/invoices') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/invoices') ? 'aria-current="page"' : ''}><i class="bi bi-receipt-cutoff me-2"></i> Hóa đơn</a>
+        </li>
+        <li>
             <a href="${pageContext.request.contextPath}/admin/inventory" class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/inventory') ? 'active text-white' : 'text-white-50'}" ${fn:startsWith(adminCurrentPath, '/admin/inventory') ? 'aria-current="page"' : ''}><i class="bi bi-boxes me-2"></i> Tồn kho chi nhánh</a>
         </li>
         <li>

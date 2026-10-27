@@ -115,49 +115,31 @@
 				đơn đã thanh toán thành công; đơn đã hủy không được tính.
 			</div>
 
-			<!-- Bảng đơn hàng gần đây -->
-			<div class="card border-0 shadow-sm">
-				<div class="card-header bg-white fw-bold py-3">
-					<i class="bi bi-clock-history me-1"></i> Đơn hàng cần xử lý gần đây
+			<div class="card border-0 shadow-sm mb-4">
+				<div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center">
+					<span><i class="bi bi-check2-circle me-1 text-success"></i> Đơn hàng thanh toán thành công gần đây</span>
+					<a class="btn btn-sm btn-outline-primary" href="${pageContext.request.contextPath}/admin/invoices">Xem tất cả hóa đơn</a>
 				</div>
-				<div class="card-body p-0">
-					<div class="table-responsive">
-						<table class="table table-hover align-middle mb-0">
-							<thead class="table-light">
+				<div class="table-responsive">
+					<table class="table table-hover align-middle mb-0">
+						<thead class="table-light"><tr><th>Mã đơn</th><th>Khách hàng</th><th>Chi nhánh</th><th>Ngày đặt</th><th class="text-end">Tổng tiền</th><th>Thao tác</th></tr></thead>
+						<tbody>
+							<c:forEach items="${successfulOrders}" var="order">
 								<tr>
-									<th>Mã đơn</th>
-									<th>Khách hàng</th>
-									<th>Chi nhánh nhận</th>
-									<th>Tổng tiền</th>
-									<th>Trạng thái</th>
-									<th>Thao tác</th>
+									<td><strong><c:out value="${order.orderCode}" /></strong></td>
+									<td><c:out value="${order.recipientName}" /><br><small class="text-secondary"><c:out value="${order.recipientPhone}" /></small></td>
+									<td><c:out value="${order.branch.name}" default="Chưa gán" /></td>
+									<td><c:out value="${order.createdAt}" /></td>
+									<td class="text-end fw-bold"><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true" /> đ</td>
+									<td><a class="btn btn-sm btn-outline-primary" href="${pageContext.request.contextPath}/admin/orders/${order.id}"><i class="bi bi-eye me-1"></i>Chi tiết hóa đơn</a></td>
 								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td><strong>#DH-10023</strong></td>
-									<td>Nguyễn Văn A (0912345678)</td>
-									<td>Chi nhánh Quận 1</td>
-									<td class="text-danger fw-bold">11.490.000 đ</td>
-									<td><span class="badge bg-warning text-dark">Chờ
-											xác nhận</span></td>
-									<td><button class="btn btn-sm btn-outline-primary">Chi
-											tiết</button></td>
-								</tr>
-								<tr>
-									<td><strong>#DH-10022</strong></td>
-									<td>Trần Thị B (0987654321)</td>
-									<td>Chi nhánh Thủ Đức</td>
-									<td class="text-danger fw-bold">8.990.000 đ</td>
-									<td><span class="badge bg-info">Đang giao hàng</span></td>
-									<td><button class="btn btn-sm btn-outline-primary">Chi
-											tiết</button></td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
+							</c:forEach>
+							<c:if test="${empty successfulOrders}"><tr><td colspan="6" class="text-center text-secondary py-4">Chưa có đơn hàng thanh toán thành công.</td></tr></c:if>
+						</tbody>
+					</table>
 				</div>
 			</div>
+
 		</div>
 	</div>
 

@@ -2,6 +2,7 @@ package com.dienmay.repository.order;
 
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.payment.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -41,6 +42,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByBranchIdAndStatus(Long branchId, OrderStatus status, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch", "payment"})
+	@Query("select o from Order o where o.payment.paymentStatus = :paymentStatus and o.status <> :excludedStatus")
+	Page<Order> findSuccessfulPaidOrders(@Param("paymentStatus") PaymentStatus paymentStatus,
+			@Param("excludedStatus") OrderStatus excludedStatus, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch", "payment"})
+	Page<Order> findByStatusNot(OrderStatus status, Pageable pageable);
 
 	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByStatus(OrderStatus status, Pageable pageable);
