@@ -225,13 +225,13 @@ class OrderConfirmationTests {
         assertState(orderId, OrderStatus.CANCELLED, 10);
     }
 
-    @Test void cancellationDuringShippingRestoresStock() {
+    @Test void cancellationDuringShippingIsRejected() {
         service.confirm(orderId, email);
         pickingService.startPicking(orderId, email);
         assignShipper(orderId);
         fulfillmentService.startShipping(orderId, email);
-        fulfillmentService.cancel(orderId, email);
-        assertState(orderId, OrderStatus.CANCELLED, 10);
+        assertThrows(IllegalArgumentException.class, () -> fulfillmentService.cancel(orderId, email));
+        assertState(orderId, OrderStatus.SHIPPING, 7);
     }
 
     @Test void deliveryFlowCannotSkipSteps() {

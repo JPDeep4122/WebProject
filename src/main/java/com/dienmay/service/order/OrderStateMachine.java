@@ -30,7 +30,7 @@ public class OrderStateMachine implements ApplicationEventPublisherAware {
         allowedTransitions.put(OrderStatus.PROCESSING,
                 EnumSet.of(OrderStatus.SHIPPING, OrderStatus.CANCELLED));
         allowedTransitions.put(OrderStatus.SHIPPING,
-                EnumSet.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED));
+                EnumSet.of(OrderStatus.DELIVERED));
         allowedTransitions.put(OrderStatus.DELIVERED,
                 EnumSet.of(OrderStatus.RETURN_REQUESTED));
         allowedTransitions.put(OrderStatus.RETURN_REQUESTED,
