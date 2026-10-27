@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
-	pageEncoding="UTF-8"%><%@ taglib prefix="c" uri="jakarta.tags.core"%>
+	pageEncoding="UTF-8"%><%@ taglib prefix="c" uri="jakarta.tags.core"%><%@ taglib prefix="fmt" uri="jakarta.tags.fmt"%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -104,7 +104,7 @@
 								<th>Sản phẩm</th>
 								<th>SKU</th>
 								<th>Danh mục</th>
-								<th>Giá</th>
+								<th>Giá bán / khuyến mãi</th>
 								<th>Trạng thái</th>
 								<th></th>
 							</tr>
@@ -116,7 +116,16 @@
 									<td>${p.name}</td>
 									<td>${p.sku}</td>
 									<td>${p.category.name}</td>
-									<td>${p.price}</td>
+									<td>
+										<c:choose>
+											<c:when test="${p.discounted}">
+												<div class="text-decoration-line-through text-secondary small"><fmt:formatNumber value="${p.originalPrice}" type="number" groupingUsed="true"/> ₫</div>
+												<div class="text-danger fw-bold"><fmt:formatNumber value="${p.discountPrice}" type="number" groupingUsed="true"/> ₫</div>
+												<span class="badge text-bg-danger">−<fmt:formatNumber value="${p.discountPercentage}" maxFractionDigits="0"/>%</span>
+											</c:when>
+											<c:otherwise><fmt:formatNumber value="${p.sellingPrice}" type="number" groupingUsed="true"/> ₫</c:otherwise>
+										</c:choose>
+									</td>
 									<td>${p.active ? 'Đang bán' : 'Đã ẩn'}</td>
 									<td class="text-nowrap"><a
 										class="btn btn-sm btn-outline-primary"
