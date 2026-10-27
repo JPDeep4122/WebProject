@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.text.Normalizer;
+import java.util.Locale;
 
 
 @Service 
@@ -31,17 +33,48 @@ public class CategoryServiceImpl implements CategoryService {
         category.setSlug(request.getSlug().trim());
         category.setIcon(request.getIcon());
 
-        if(request.getParentId() != null) {
-            Category parent = categoryRepository
-                .findById(request.getParentId())
-                .orElseThrow(() -> new RuntimeException(
-                    "Không tìm thấy danh mục cha"
-                ));
+        String parentSelection = request.getParentId();
+        if ("OTHER".equals(parentSelection)) {
+            String parentName = request.getNewParentName() == null
+                    ? "" : request.getNewParentName().trim();
+            if (parentName.isBlank()) {
+                throw new IllegalArgumentException("Vui lòng nhập tên danh mục cha mới.");
+            }
+            Category newParent = new Category();
+            newParent.setName(parentName);
+            newParent.setSlug(uniqueSlug(parentName));
+            newParent.setActive(true);
+            category.setParent(categoryRepository.save(newParent));
+        } else if (parentSelection != null && !parentSelection.isBlank()) {
+            Long parentId;
+            try {
+                parentId = Long.valueOf(parentSelection);
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Danh mục cha không hợp lệ.");
+            }
+            Category parent = categoryRepository.findById(parentId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục cha"));
             category.setParent(parent);
         }
         Category saved = categoryRepository.save(category);
 
         return toResponse(saved);
+    }
+
+    private String uniqueSlug(String name) {
+        String normalized = Normalizer.normalize(name.toLowerCase(Locale.ROOT).replace('đ', 'd'),
+                Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-|-$", "");
+        if (normalized.isBlank()) normalized = "danh-muc";
+        String candidate = normalized;
+        int suffix = 2;
+        while (categoryRepository.existsBySlug(candidate)) {
+            String tail = "-" + suffix++;
+            candidate = normalized.substring(0, Math.min(normalized.length(), 100 - tail.length())) + tail;
+        }
+        return candidate;
     }
 
 
