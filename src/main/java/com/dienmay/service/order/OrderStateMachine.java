@@ -53,6 +53,16 @@ public class OrderStateMachine implements ApplicationEventPublisherAware {
         }
         requirePaymentBeforeDelivery(order, target);
 
+        // COD is collected when delivery is confirmed. Mark the payment complete
+        // here so revenue reports include successfully delivered cash orders.
+        if (target == OrderStatus.DELIVERED
+                && order.getPayment() != null
+                && order.getPayment().getPaymentMethod() == PaymentMethod.COD
+                && order.getPayment().getPaymentStatus() == PaymentStatus.PENDING) {
+            order.getPayment().setPaymentStatus(PaymentStatus.SUCCESS);
+            order.getPayment().setPaymentTime(LocalDateTime.now());
+        }
+
         order.setStatus(target);
         publishStatusChanged(order, current, target);
     }
