@@ -24,6 +24,7 @@ import com.dienmay.service.checkout.CheckoutService;
 import com.dienmay.service.checkout.ShippingService;
 
 class CheckoutControllerTests {
+    private final java.security.Principal owner = () -> "customer@example.test";
     @Test
     void vnpayRedirectUsesTheLinkAlreadyCommittedByCheckout() {
         var checkout = mock(CheckoutService.class);
@@ -37,7 +38,7 @@ class CheckoutControllerTests {
                 .items(List.of(CheckoutItemDto.builder().build())).build());
         when(checkout.placeOrder(any(), any(), any(), any())).thenReturn(order);
         String view = controller.placeOrder(request, new BeanPropertyBindingResult(request, "orderForm"),
-                null, new MockHttpSession(), new MockHttpServletRequest(), new ExtendedModelMap());
+                owner, new MockHttpSession(), new MockHttpServletRequest(), new ExtendedModelMap());
         assertEquals("redirect:" + order.getPayment().getPaymentUrl(), view);
     }
 
@@ -52,7 +53,7 @@ class CheckoutControllerTests {
         when(checkout.placeOrder(any(), any(), any(), any()))
                 .thenThrow(new IllegalStateException("Cannot create payment URL"));
         assertEquals("client/checkout", controller.placeOrder(request,
-                new BeanPropertyBindingResult(request, "orderForm"), null,
+                new BeanPropertyBindingResult(request, "orderForm"), owner,
                 new MockHttpSession(), new MockHttpServletRequest(), model));
         assertNotNull(model.get("checkoutError"));
         assertNotNull(model.get("checkoutData"));
@@ -64,17 +65,17 @@ class CheckoutControllerTests {
         var controller = new CheckoutController(checkout, mock(ShippingService.class));
         var session = new MockHttpSession();
         var flash = new RedirectAttributesModelMap();
-        when(checkout.getOrderByCode(eq("ORD-TEST"), isNull(), eq(session)))
+        when(checkout.getOrderByCode(eq("ORD-TEST"), eq(owner.getName()), eq(session)))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
         assertThrows(ResponseStatusException.class,
-                () -> controller.continuePayment("ORD-TEST", null, session, flash));
+                () -> controller.continuePayment("ORD-TEST", owner, session, flash));
         verify(checkout, never()).continuePayment(any(), any(), any());
-        when(checkout.getOrderByCode(eq("ORD-TEST"), isNull(), eq(session)))
+        when(checkout.getOrderByCode(eq("ORD-TEST"), eq(owner.getName()), eq(session)))
                 .thenReturn(Order.builder().orderCode("ORD-TEST").build());
-        when(checkout.continuePayment(eq("ORD-TEST"), isNull(), eq(session)))
+        when(checkout.continuePayment(eq("ORD-TEST"), eq(owner.getName()), eq(session)))
                 .thenThrow(new IllegalArgumentException("Payment link expired"));
         assertEquals("redirect:/order-success/ORD-TEST",
-                controller.continuePayment("ORD-TEST", null, session, flash));
+                controller.continuePayment("ORD-TEST", owner, session, flash));
         assertEquals("Payment link expired", flash.getFlashAttributes().get("paymentError"));
     }
 }

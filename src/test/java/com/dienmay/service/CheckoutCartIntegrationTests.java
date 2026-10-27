@@ -19,6 +19,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.orm.jpa.EntityManagerHolder;
@@ -129,7 +130,7 @@ class CheckoutCartIntegrationTests {
     }
 
     private Order place() {
-        return checkout.placeOrder(request, null, session, new MockHttpServletRequest());
+        return checkout.placeOrder(request, contactEmail, session, new MockHttpServletRequest());
     }
 
     private AddToCartRequest addRequest(int quantity) {
@@ -148,22 +149,22 @@ class CheckoutCartIntegrationTests {
     }
 
     @Test
-    void guestContactEmailDoesNotClaimAnExistingAccountAndOrderUsesSellingPrice() {
+    void authenticatedOrderUsesSellingPriceAndRetainsOwnership() {
         long userCount = users.count();
         Order result = place();
-        assertNull(result.getUser());
+        assertEquals(userId, result.getUser().getId());
         assertEquals(contactEmail, result.getRecipientEmail());
         assertEquals(userCount, users.count());
         assertEquals(0, new BigDecimal("140000").compareTo(result.getFinalAmount()));
         assertEquals(0, new BigDecimal("70000").compareTo(result.getOrderItems().getFirst().getPrice()));
         assertNotNull(result.getPayment().getPaymentUrl());
         assertTrue(result.getPayment().isPaymentLinkAvailable());
-        assertEquals(Boolean.TRUE, session.getAttribute("GUEST_CHECKOUT_ORDER_" + result.getId()));
+        assertNull(session.getAttribute("GUEST_CHECKOUT_ORDER_" + result.getId()));
         assertCartQuantity(0);
-        assertEquals(0, tx.<Integer>execute(s -> orders.findByUserIdOrderByCreatedAtDesc(userId).size()).intValue());
-        assertEquals(result.getId(), checkout.getOrderByCode(result.getOrderCode(), null, session).getId());
+        assertEquals(1, tx.<Integer>execute(s -> orders.findByUserIdOrderByCreatedAtDesc(userId).size()).intValue());
+        assertEquals(result.getId(), checkout.getOrderByCode(result.getOrderCode(), contactEmail, session).getId());
         assertEquals(result.getId(), checkout.getOrderByCode(
-                result.getOrderCode().replace("-", "").toUpperCase(java.util.Locale.ROOT), null, session).getId());
+                result.getOrderCode().replace("-", "").toUpperCase(java.util.Locale.ROOT), contactEmail, session).getId());
     }
 
     @Test
@@ -226,11 +227,11 @@ class CheckoutCartIntegrationTests {
         long before = orders.count();
         clearInvocations(vnPay);
         assertEquals(result.getPayment().getPaymentUrl(),
-                checkout.continuePayment(result.getOrderCode(), null, session));
+                checkout.continuePayment(result.getOrderCode(), contactEmail, session));
         assertEquals(before, orders.count());
         verifyNoInteractions(vnPay);
-        assertThrows(ResponseStatusException.class,
-                () -> checkout.continuePayment(result.getOrderCode(), contactEmail, new MockHttpSession()));
+        assertEquals(result.getPayment().getPaymentUrl(),
+                checkout.continuePayment(result.getOrderCode(), contactEmail, new MockHttpSession()));
         assertThrows(ResponseStatusException.class,
                 () -> checkout.getOrderByCode(result.getOrderCode(), null, new MockHttpSession()));
     }
@@ -241,7 +242,7 @@ class CheckoutCartIntegrationTests {
         tx.executeWithoutResult(s -> em.find(Order.class, result.getId()).getPayment()
                 .setPaymentExpiresAt(Instant.now().minusSeconds(1)));
         assertThrows(IllegalArgumentException.class,
-                () -> checkout.continuePayment(result.getOrderCode(), null, session));
+                () -> checkout.continuePayment(result.getOrderCode(), contactEmail, session));
         for (var status : new PaymentStatus[] {PaymentStatus.SUCCESS, PaymentStatus.FAILED}) {
             tx.executeWithoutResult(s -> {
                 var payment = em.find(Order.class, result.getId()).getPayment();
@@ -249,7 +250,7 @@ class CheckoutCartIntegrationTests {
                 payment.setPaymentStatus(status);
             });
             assertThrows(IllegalArgumentException.class,
-                    () -> checkout.continuePayment(result.getOrderCode(), null, session));
+                    () -> checkout.continuePayment(result.getOrderCode(), contactEmail, session));
         }
         tx.executeWithoutResult(s -> {
             var order = em.find(Order.class, result.getId());
@@ -257,7 +258,7 @@ class CheckoutCartIntegrationTests {
             order.setStatus(OrderStatus.CANCELLED);
         });
         assertThrows(IllegalArgumentException.class,
-                () -> checkout.continuePayment(result.getOrderCode(), null, session));
+                () -> checkout.continuePayment(result.getOrderCode(), contactEmail, session));
     }
 
     @Test
@@ -334,7 +335,7 @@ class CheckoutCartIntegrationTests {
         EntityManager preview = entityManagerFactory.createEntityManager();
         TransactionSynchronizationManager.bindResource(entityManagerFactory, new EntityManagerHolder(preview));
         try {
-            assertEquals(1, checkout.getCheckoutData(null, session).getItems().size());
+            assertEquals(1, checkout.getCheckoutData(contactEmail, session).getItems().size());
             try (var pool = Executors.newSingleThreadExecutor()) {
                 assertNotNull(pool.submit(this::place).get(15, TimeUnit.SECONDS));
             }
@@ -352,7 +353,7 @@ class CheckoutCartIntegrationTests {
         EntityManager preview = entityManagerFactory.createEntityManager();
         TransactionSynchronizationManager.bindResource(entityManagerFactory, new EntityManagerHolder(preview));
         try {
-            assertEquals(1, checkout.getCheckoutData(null, session).getItems().size());
+            assertEquals(1, checkout.getCheckoutData(contactEmail, session).getItems().size());
             try (var pool = Executors.newSingleThreadExecutor()) {
                 pool.submit(() -> tx.executeWithoutResult(s -> em.find(Product.class, productId).setActive(false)))
                         .get(15, TimeUnit.SECONDS);
@@ -368,5 +369,92 @@ class CheckoutCartIntegrationTests {
     private boolean attemptCheckout() {
         try { place(); return true; }
         catch (IllegalArgumentException ex) { return false; }
+    }
+
+    @Test
+    void guestCannotPreviewOrCreateOrdersEvenWhenRecipientEmailExists() {
+        long before = orders.count();
+        assertEquals(HttpStatus.UNAUTHORIZED, assertThrows(ResponseStatusException.class,
+                () -> checkout.getCheckoutData(null, session)).getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, assertThrows(ResponseStatusException.class,
+                () -> checkout.placeOrder(request, null, session, new MockHttpServletRequest())).getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, assertThrows(ResponseStatusException.class,
+                () -> checkout.placeOrder(request, "anonymousUser", session, new MockHttpServletRequest())).getStatusCode());
+        assertEquals(before, orders.count());
+        assertCartQuantity(2);
+        verifyNoInteractions(shipping, vnPay);
+    }
+
+    @Test
+    void signInClaimsGuestCartOnceAndGuestAfterLogoutCannotSeeIt() {
+        var signedIn = carts.getCart(contactEmail, session);
+        assertEquals(cartId, signedIn.getCartId());
+        assertEquals(2, signedIn.getTotalQuantity());
+        assertNull(session.getAttribute("GUEST_CART_SESSION"));
+        assertEquals(2, carts.getCart(contactEmail, session).getTotalQuantity());
+        var guestAfterLogout = carts.getCart(null, session);
+        assertNotEquals(cartId, guestAfterLogout.getCartId());
+        assertEquals(0, guestAfterLogout.getTotalQuantity());
+        assertEquals(2, carts.getCart(contactEmail, new MockHttpSession()).getTotalQuantity());
+    }
+
+    @Test
+    void signInMergesGuestItemsWithExistingAccountCartExactlyOnce() {
+        Long accountCartId = tx.execute(s -> {
+            var accountCart = Cart.builder().user(em.find(User.class, userId)).build();
+            em.persist(accountCart);
+            var item = CartItem.builder().cart(accountCart).product(em.find(Product.class, productId))
+                    .quantity(1).selected(false).build();
+            accountCart.getItems().add(item);
+            em.persist(item);
+            return accountCart.getId();
+        });
+        var merged = carts.getCart(contactEmail, session);
+        assertEquals(accountCartId, merged.getCartId());
+        assertEquals(1, merged.getItems().size());
+        assertEquals(3, merged.getItems().getFirst().getQuantity());
+        assertTrue(merged.getItems().getFirst().getSelected());
+        assertEquals(3, carts.getCart(contactEmail, session).getTotalQuantity());
+        assertNull(session.getAttribute("GUEST_CART_SESSION"));
+        assertEquals(0, carts.getCart(null, session).getTotalQuantity());
+    }
+
+    @Test
+    void legacyGuestOrderCapabilityDoesNotGrantAnonymousOrOtherAccountAccess() {
+        Order result = place();
+        session.setAttribute("GUEST_CHECKOUT_ORDER_" + result.getId(), Boolean.TRUE);
+        assertEquals(HttpStatus.UNAUTHORIZED, assertThrows(ResponseStatusException.class,
+                () -> checkout.getOrderByCode(result.getOrderCode(), null, session)).getStatusCode());
+        String otherEmail = "other-" + UUID.randomUUID() + "@example.test";
+        tx.executeWithoutResult(s -> em.persist(User.builder().email(otherEmail).password("x")
+                .fullName("Other customer").active(true).build()));
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException.class,
+                () -> checkout.continuePayment(result.getOrderCode(), otherEmail, session)).getStatusCode());
+        assertEquals(result.getId(), checkout.getOrderByCode(result.getOrderCode(), contactEmail, session).getId());
+    }
+
+    @Test
+    void blockedAccountCannotCheckoutOrConsumeGuestCart() {
+        tx.executeWithoutResult(s -> em.find(User.class, userId).setBlocked(true));
+        long before = orders.count();
+        assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException.class, this::place).getStatusCode());
+        assertEquals(before, orders.count());
+        assertCartQuantity(2);
+        verifyNoInteractions(shipping, vnPay);
+    }
+
+    @Test
+    void twoAccountsCannotBothClaimTheSameGuestCart() throws Exception {
+        String secondEmail = "second-" + UUID.randomUUID() + "@example.test";
+        tx.executeWithoutResult(s -> em.persist(User.builder().email(secondEmail).password("x")
+                .fullName("Second customer").active(true).build()));
+        var barrier = new CyclicBarrier(2);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var first = pool.submit(() -> { barrier.await(10, TimeUnit.SECONDS); return carts.getCart(contactEmail, session).getTotalQuantity(); });
+            var second = pool.submit(() -> { barrier.await(10, TimeUnit.SECONDS); return carts.getCart(secondEmail, session).getTotalQuantity(); });
+            assertEquals(2, first.get(20, TimeUnit.SECONDS) + second.get(20, TimeUnit.SECONDS));
+        }
+        assertEquals(2, carts.getCart(contactEmail, new MockHttpSession()).getTotalQuantity()
+                + carts.getCart(secondEmail, new MockHttpSession()).getTotalQuantity());
     }
 }

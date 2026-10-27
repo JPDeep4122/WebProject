@@ -70,25 +70,7 @@ function completeLogin(user, contextPath) {
         '; path=/; max-age=86400; SameSite=Lax' +
         (location.protocol === 'https:' ? '; Secure' : '');
 
-    const roles = Array.isArray(user.roles) ? user.roles : [];
-    let target = contextPath +
-        (roles.includes('ROLE_SHIPPER') ? '/shipper/orders' : '/');
-
-    const redirect = new URLSearchParams(location.search)
-        .get('redirect');
-
-    if (redirect?.startsWith('/') && !redirect.startsWith('//')) {
-        try {
-            const candidate = new URL(contextPath + redirect, location.origin);
-            if (candidate.origin === location.origin) {
-                target = candidate.href;
-            }
-        } catch (error) {
-            // Dùng trang mặc định.
-        }
-    }
-
-    location.assign(target);
+    location.assign(window.loginDestination(user, contextPath));
 }
 
 function setup(root, auth, localTest) {

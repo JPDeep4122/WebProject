@@ -12,7 +12,7 @@
                 </div>
                 <h4 class="fw-bold text-dark mb-2">Tra cứu đơn hàng</h4>
                 <p class="text-muted small mb-4">
-                    Nhập mã đơn hàng và số điện thoại đặt hàng để kiểm tra tiến trình giao hàng.
+                    Nhập mã đơn và số điện thoại nhận hàng để tra cứu đơn thuộc tài khoản của bạn.
                 </p>
 
                 <c:if test="${not empty errorMessage}">

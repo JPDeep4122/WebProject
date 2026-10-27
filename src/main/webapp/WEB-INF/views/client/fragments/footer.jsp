@@ -7,10 +7,11 @@
 		<div class="row">
 			<div class="col-lg-4 col-md-6 mb-4">
 				<a class="sf-brand sf-brand-footer"
-					href="${pageContext.request.contextPath}/" aria-label="TECHSEVEN - Trang chủ">
-					<img class="sf-brand-logo"
-						src="${pageContext.request.contextPath}/images/brand/techseven-logo-dark.svg"
-						alt="TECHSEVEN" width="323" height="72" loading="lazy" decoding="async">
+					href="${pageContext.request.contextPath}/"
+					aria-label="TECHSEVEN - Trang chủ"> <img class="sf-brand-logo"
+					src="${pageContext.request.contextPath}/images/brand/techseven-logo-dark.svg"
+					alt="TECHSEVEN" width="323" height="72" loading="lazy"
+					decoding="async">
 				</a>
 				<p class="text-muted small">Hệ thống chuỗi cửa hàng bán lẻ điện
 					máy chính hãng hàng đầu Việt Nam. Cam kết 100% sản phẩm chính hãng,
@@ -133,19 +134,12 @@
             localStorage.setItem('accessToken', data.data.token);
             localStorage.setItem('currentUser', JSON.stringify(data.data));
 
-            const roles = Array.isArray(data.data.roles) ? data.data.roles : [];
-            if (roles.includes('ROLE_ADMIN')) {
-              showModalAuthAlert('success', 'Đăng nhập thành công! Đang chuyển đến trang quản trị...');
-              document.cookie = "accessToken=" + data.data.token + "; path=/; max-age=86400";
-              setTimeout(() => {
-                window.location.href = CONTEXT_PATH + '/admin';
-              }, 700);
-              return;
-            }
+            document.cookie = 'accessToken=' + encodeURIComponent(data.data.token)
+                + '; path=/; max-age=86400; SameSite=Lax'
+                + (location.protocol === 'https:' ? '; Secure' : '');
             showModalAuthAlert('success', 'Đăng nhập thành công! Đang tải lại...');
             setTimeout(() => {
-              bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
-              checkLoginStatus();
+              window.location.assign(window.loginDestination(data.data, CONTEXT_PATH));
             }, 800);
           } else {
             showModalAuthAlert('danger', data.message);
@@ -272,78 +266,104 @@
 
       
       function checkLoginStatus() {
-        const token = localStorage.getItem('jwtToken') || localStorage.getItem('accessToken');
-        const userJson = localStorage.getItem('currentUser');
-        const container = document.getElementById('userAuthContainer');
-        if (!container) return;
+          const userJson = localStorage.getItem('currentUser');
+          const container = document.getElementById('userAuthContainer');
+          if (!container) return;
 
-        if (token && userJson) {
-          const user = JSON.parse(userJson);
-          // Đồng bộ token sang cookie để các trang JSP Controller nhận diện được người dùng
-          document.cookie = "accessToken=" + token + "; path=/; max-age=86400";
+          if (container.dataset.authenticated === 'true') {
+            const user = {
+              email: container.dataset.userEmail,
+              fullName: container.dataset.userEmail,
+              roles: container.dataset.isAdmin === 'true' ? ['ROLE_ADMIN'] : []
+            };
+            try {
+              const saved = JSON.parse(userJson || 'null');
+              if (saved?.email === user.email) {
+                if (saved.fullName) user.fullName = saved.fullName;
+                if (Array.isArray(saved.roles) && saved.roles.length > 0) {
+                  user.roles = saved.roles;
+                }
+              }
+            } catch (error) { }
 
-          container.innerHTML = `
-            <div class="dropdown">
-              <button class="btn btn-outline-primary btn-sm rounded-pill dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
-              <i class="bi bi-person-circle"></i> <span data-user-name></span>
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-              <li>
-              <h6 class="dropdown-header small text-muted" data-user-email></h6>
-          </li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="${pageContext.request.contextPath}/account/profile"><i class="bi bi-person-circle me-2"></i>Hồ sơ của tôi</a></li>
-                <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders"><i class="bi bi-bag-check me-2"></i>Đơn hàng của tôi</a></li>
-                <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders/tracking"><i class="bi bi-search me-2"></i>Tra cứu đơn vãng lai</a></li>
-                <li><a class="dropdown-item" href="${CONTEXT_PATH}/vouchers"><i class="bi bi-ticket-perforated me-2"></i>Kho Voucher</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
-              </ul>
-            </div>
-          `;
-          container.querySelector('[data-user-name]').textContent =
-              user.fullName || 'Tài khoản';
+            container.innerHTML = `
+              <div class="dropdown">
+                <button class="btn btn-outline-primary btn-sm rounded-pill dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle"></i> <span data-user-name></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                <li>
+                <h6 class="dropdown-header small text-muted" data-user-email></h6>
+            </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="${pageContext.request.contextPath}/account/profile"><i class="bi bi-person-circle me-2"></i>Hồ sơ của tôi</a></li>
+                  <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders"><i class="bi bi-bag-check me-2"></i>Đơn hàng của tôi</a></li>
+                  <li><a class="dropdown-item" href="${CONTEXT_PATH}/orders/tracking"><i class="bi bi-search me-2"></i>Tra cứu đơn hàng của tôi</a></li>
+                  <li><a class="dropdown-item" href="${CONTEXT_PATH}/vouchers"><i class="bi bi-ticket-perforated me-2"></i>Kho Voucher</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                </ul>
+              </div>
+            `;
+            container.querySelector('[data-user-name]').textContent =
+                user.fullName || 'Tài khoản';
 
-          container.querySelector('[data-user-email]').textContent =
-              user.email || '';
-          const isAdmin = Array.isArray(user.roles)
-          && user.roles.includes('ROLE_ADMIN');
+            container.querySelector('[data-user-email]').textContent =
+                user.email || '';
 
-      if (isAdmin) {
-          const adminItem = document.createElement('li');
-          const adminLink = document.createElement('a');
+            const roles = Array.isArray(user.roles) ? user.roles : [];
+            const isAdmin = roles.includes('ROLE_ADMIN') || container.dataset.isAdmin === 'true';
+            const isStaff = roles.includes('ROLE_STAFF');
+            const isShipper = roles.includes('ROLE_SHIPPER');
 
-          adminLink.className = 'dropdown-item fw-bold text-primary';
-          adminLink.href = CONTEXT_PATH + '/admin';
-          adminLink.innerHTML =
-              '<i class="bi bi-speedometer2 me-2"></i>Trang quản trị';
+            if (isAdmin || isStaff || isShipper) {
+                const workItem = document.createElement('li');
+                const workLink = document.createElement('a');
 
-          adminItem.appendChild(adminLink);
+                workLink.className = 'dropdown-item fw-bold text-primary';
+                if (isAdmin) {
+                    workLink.href = CONTEXT_PATH + '/admin';
+                    workLink.innerHTML = '<i class="bi bi-speedometer2 me-2"></i>Trang quản trị';
+                } else if (isStaff) {
+                    workLink.href = CONTEXT_PATH + '/admin/orders';
+                    workLink.innerHTML = '<i class="bi bi-briefcase-fill me-2"></i>Khu vực nhân viên';
+                } else {
+                    workLink.href = CONTEXT_PATH + '/shipper/orders';
+                    workLink.innerHTML = '<i class="bi bi-truck me-2"></i>Đơn giao hàng';
+                }
 
-          const menu = container.querySelector('.dropdown-menu');
-          const divider = menu.querySelector('.dropdown-divider');
+                workItem.appendChild(workLink);
 
-          menu.insertBefore(adminItem, divider.closest('li'));
-      }
-        } else {
-          document.cookie = "accessToken=; path=/; max-age=0";
-          container.innerHTML = `
-            <a href="${CONTEXT_PATH}/login" class="header-btn">
-              <i class="bi bi-person-circle fs-5"></i>
-              <span class="d-none d-xl-inline">Đăng nhập</span>
-            </a>
-          `;
+                const menu = container.querySelector('.dropdown-menu');
+                const divider = menu.querySelector('.dropdown-divider');
+
+                menu.insertBefore(workItem, divider.closest('li'));
+            }
+          } else {
+            container.innerHTML = `
+              <a href="${CONTEXT_PATH}/login?redirect=/account/profile" class="header-btn">
+                <i class="bi bi-person-circle fs-5"></i>
+                <span class="d-none d-xl-inline">Đăng nhập</span>
+              </a>
+            `;
+          }
         }
-      }
 
       // ĐĂNG XUẤT
-      function logout() {
+      async function logout() {
+        try {
+          const response = await csrfFetch(CONTEXT_PATH + '/api/auth/logout', { method: 'POST' });
+          if (!response.ok) throw new Error('Logout failed');
+        } catch (error) {
+          window.alert('Chưa thể đăng xuất. Vui lòng tải lại trang và thử lại.');
+          return;
+        }
         localStorage.removeItem('jwtToken');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('currentUser');
         document.cookie = "accessToken=; path=/; max-age=0";
-        checkLoginStatus();
-        window.location.reload();
+        document.cookie = "jwtToken=; path=/; max-age=0";
+        window.location.assign(CONTEXT_PATH + '/');
       }
 
       // Tự động chạy khi mở trang

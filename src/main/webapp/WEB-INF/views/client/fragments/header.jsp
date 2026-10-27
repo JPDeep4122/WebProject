@@ -1,7 +1,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core"%>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions"%>
 <!DOCTYPE html>
+
 <html lang="vi">
 <head>
 <title>TECH7 - SHOP ĐIỆN MÁY UY TÍNN</title>
@@ -20,8 +22,10 @@
 	href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap"
 	rel="stylesheet">
 <style>
-*, body, button, input, optgroup, select, textarea, h1, h2, h3, h4, h5, h6, .btn, .form-control {
-	font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif !important;
+*, body, button, input, optgroup, select, textarea, h1, h2, h3, h4, h5,
+	h6, .btn, .form-control {
+	font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI",
+		"Helvetica Neue", Arial, sans-serif !important;
 }
 </style>
 <link rel="stylesheet"
@@ -119,7 +123,8 @@
 <link rel="stylesheet"
 	href="${pageContext.request.contextPath}/css/storefront.css">
 <c:if test="${catalogPage}">
-	<link rel="stylesheet" href="${pageContext.request.contextPath}/css/catalog.css">
+	<link rel="stylesheet"
+		href="${pageContext.request.contextPath}/css/catalog.css">
 </c:if>
 
 <jsp:include page="/WEB-INF/views/shared/security.jsp" />
@@ -132,10 +137,9 @@
 		<div class="storefront-container sf-main-row">
 
 			<a class="sf-brand" href="${pageContext.request.contextPath}/"
-				aria-label="TECHSEVEN - Trang chủ">
-				<img class="sf-brand-logo"
-					src="${pageContext.request.contextPath}/images/brand/techseven-logo.svg"
-					alt="TECHSEVEN" width="323" height="72" decoding="async">
+				aria-label="TECHSEVEN - Trang chủ"> <img class="sf-brand-logo"
+				src="${pageContext.request.contextPath}/images/brand/techseven-logo.svg"
+				alt="TECHSEVEN" width="323" height="72" decoding="async">
 			</a>
 
 			<form class="sf-search"
@@ -163,11 +167,14 @@
 					</span>
 				</button>
 
-				<div id="userAuthContainer">
-					<a href="${pageContext.request.contextPath}/login"
+								<c:set var="headerPrincipalText">${pageContext.request.userPrincipal}</c:set>
+				<div id="userAuthContainer"
+				     data-authenticated="${not empty pageContext.request.userPrincipal}"
+				     data-user-email="<c:out value='${pageContext.request.userPrincipal.name}'/>"
+				     data-is-admin="${fn:contains(headerPrincipalText, 'ROLE_ADMIN')}">
+					<a href="${pageContext.request.contextPath}${not empty pageContext.request.userPrincipal ? '/account/profile' : '/login?redirect=/account/profile'}"
 						class="header-btn" aria-label="Tài khoản"> <i
-						class="bi bi-person-circle" aria-hidden="true"></i> <span>Tài
-							khoản</span>
+						class="bi bi-person-circle" aria-hidden="true"></i> <span>${not empty pageContext.request.userPrincipal ? 'Tài khoản' : 'Đăng nhập'}</span>
 					</a>
 				</div>
 

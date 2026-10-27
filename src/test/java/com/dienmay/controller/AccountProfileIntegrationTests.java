@@ -62,6 +62,9 @@ class AccountProfileIntegrationTests {
     @Autowired PasswordEncoder encoder;
     @Autowired ObjectMapper json;
     @Autowired JwtUtils jwtUtils;
+    @Autowired com.dienmay.repository.product.ProductRepository products;
+    @Autowired com.dienmay.repository.order.OrderRepository orders;
+    @Autowired com.dienmay.service.order.OrderService orderService;
     @LocalServerPort int port;
 
     private User owner;
@@ -77,9 +80,9 @@ class AccountProfileIntegrationTests {
     void anonymousVisitorMustLogin() throws Exception {
         mvc.perform(get("/account/profile"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?redirect=/account/profile"));
+                .andExpect(redirectedUrl("/login-required?redirect=%2Faccount%2Fprofile"));
         mvc.perform(post("/account/profile").with(csrf()).param("fullName", "Intruder"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isUnauthorized());
         assertEquals("Original Name", reload(owner).getFullName());
     }
 
@@ -88,6 +91,139 @@ class AccountProfileIntegrationTests {
         mvc.perform(get("/admin/users")).andExpect(status().isForbidden());
         mvc.perform(get("/admin/users").with(user(owner.getEmail()).roles("CUSTOMER")))
                 .andExpect(status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/checkout", "/orders", "/orders/tracking", "/orders/ORD-PRIVATE",
+            "/order-success/ORD-PRIVATE", "/account/profile", "/payment/vnpay-return"})
+    void anonymousCustomerPagesRequireLogin(String path) throws Exception {
+        mvc.perform(get(path)).andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("/login-required?redirect=")));
+    }
+
+    @Test
+    void anonymousMutationAndCheckoutApisCannotCreateOrders() throws Exception {
+        long before = orders.count();
+        mvc.perform(post("/checkout/place-order").with(csrf()).param("paymentMethod", "COD"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.success").value(false));
+        mvc.perform(post("/checkout/orders/ORD-PRIVATE/pay").with(csrf()))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/orders/ORD-PRIVATE/cancel").with(csrf()))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/orders/tracking").with(csrf()).param("orderCode", "ORD-PRIVATE").param("phone", "0901234567"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/checkout/apply-voucher").with(csrf()).param("code", "SALE10").param("subtotal", "100000"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/checkout/shipping-quote").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"shippingAddress\":\"Test address\",\"province\":\"Test\"}"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/orders/status-snapshot"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.success").value(false));
+        assertEquals(before, orders.count());
+    }
+
+    @Test
+    void paymentIpnStillAcceptsAnonymousProviderRequestsAndValidatesSignature() throws Exception {
+        mvc.perform(get("/payment/vnpay-ipn"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.RspCode").value("97"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"https://outside.example", "//outside.example", "/\\outside.example", "/admin/users"})
+    void loginPromptDoesNotRedirectOutsideCustomerPages(String redirect) throws Exception {
+        mvc.perform(get("/login-required").param("redirect", redirect))
+                .andExpect(status().isOk()).andExpect(view().name("client/login-required"))
+                .andExpect(model().attribute("loginUrl", "/login?redirect=%2Forders"));
+    }
+
+    @Test
+    void trackingRequiresOwnershipEvenWhenCodeAndRecipientPhoneMatch() throws Exception {
+        String code = "ORD-TRACK-" + UUID.randomUUID().toString().replace("-", "");
+        var order = orders.saveAndFlush(com.dienmay.entity.order.Order.builder().orderCode(code).user(owner)
+                .totalAmount(java.math.BigDecimal.TEN).shippingFee(java.math.BigDecimal.ZERO)
+                .discountAmount(java.math.BigDecimal.ZERO).finalAmount(java.math.BigDecimal.TEN)
+                .status(com.dienmay.entity.order.OrderStatus.PENDING).recipientName("Test recipient")
+                .recipientPhone("0901234567").shippingAddress("Test address").build());
+        assertEquals(order.getId(), orderService.trackOrder(code, "0901234567", owner.getEmail()).getId());
+        assertNull(orderService.trackOrder(code, "0901234567", other.getEmail()));
+        assertNull(orderService.trackOrder(code, "0900000000", owner.getEmail()));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> orderService.trackOrder(code, "0901234567", null));
+    }
+
+    @Test
+    // MockMvc csrf() replaces the shared repository with a session-backed test repository.
+    // A real HTTP/browser cookie round trip must exercise the original application configuration.
+    @org.springframework.test.annotation.DirtiesContext(methodMode = org.springframework.test.annotation.DirtiesContext.MethodMode.BEFORE_METHOD)
+    void renderedGuestCartOffersLoginAndGuestCanStillAddProducts() throws Exception {
+        var cookies = new java.net.CookieManager();
+        var client = HttpClient.newBuilder().cookieHandler(cookies).connectTimeout(Duration.ofSeconds(10)).build();
+        String base = "http://localhost:" + port;
+        var prompt = client.send(HttpRequest.newBuilder(URI.create(base + "/login-required?redirect=%2Fcheckout"))
+                .timeout(Duration.ofSeconds(20)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, prompt.statusCode());
+        assertTrue(prompt.body().contains("Đăng nhập để tiếp tục"));
+        var matcher = java.util.regex.Pattern.compile("<meta\\s+name=\"_csrf\"\\s+content=\"([^\"]+)\"")
+                .matcher(prompt.body());
+        assertTrue(matcher.find());
+        String csrfToken = matcher.group(1);
+        assertTrue(cookies.getCookieStore().getCookies().stream()
+                .anyMatch(cookie -> cookie.getName().equals("XSRF-TOKEN") && cookie.getValue().equals(csrfToken)));
+        cookies.getCookieStore().getCookies().forEach(cookie -> cookie.setVersion(0));
+        var product = products.findAll().stream().filter(com.dienmay.entity.product.Product::isActive).findFirst().orElseThrow();
+        var add = client.send(HttpRequest.newBuilder(URI.create(base + "/api/cart/add"))
+                .timeout(Duration.ofSeconds(20)).header("Content-Type", "application/json")
+                .header("X-XSRF-TOKEN", csrfToken).POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"productId\":" + product.getId() + ",\"quantity\":1}")).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, add.statusCode());
+        var cart = client.send(HttpRequest.newBuilder(URI.create(base + "/cart"))
+                .timeout(Duration.ofSeconds(20)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, cart.statusCode());
+        assertTrue(cart.body().contains("id=\"loginToCheckout\""));
+        assertTrue(cart.body().contains("Đăng nhập để mua hàng"));
+        var checkout = client.send(HttpRequest.newBuilder(URI.create(base + "/checkout"))
+                .timeout(Duration.ofSeconds(20)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(302, checkout.statusCode());
+        assertTrue(checkout.headers().firstValue("Location").orElseThrow().contains("/login-required?redirect="));
+        var login = client.send(HttpRequest.newBuilder(URI.create(base + "/api/auth/login"))
+                .timeout(Duration.ofSeconds(20)).header("Content-Type", "application/json")
+                .header("X-XSRF-TOKEN", csrfToken).POST(HttpRequest.BodyPublishers.ofString(
+                        json.writeValueAsString(Map.of("email", owner.getEmail(), "password", OLD_PASSWORD))))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, login.statusCode());
+        String token = json.readTree(login.body()).path("data").path("token").asText();
+        assertFalse(token.isBlank());
+        var accessCookie = new java.net.HttpCookie("accessToken", token);
+        accessCookie.setPath("/");
+        accessCookie.setVersion(0);
+        cookies.getCookieStore().add(URI.create(base), accessCookie);
+        var signedInCheckout = client.send(HttpRequest.newBuilder(URI.create(base + "/checkout"))
+                .timeout(Duration.ofSeconds(20)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, signedInCheckout.statusCode());
+        assertTrue(signedInCheckout.body().contains("id=\"checkoutForm\""));
+        var cartCount = client.send(HttpRequest.newBuilder(URI.create(base + "/api/cart/count"))
+                .timeout(Duration.ofSeconds(20)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(1, json.readTree(cartCount.body()).path("data").asInt());
+        matcher = java.util.regex.Pattern.compile("<meta\\s+name=\"_csrf\"\\s+content=\"([^\"]+)\"")
+                .matcher(signedInCheckout.body());
+        assertTrue(matcher.find());
+        cookies.getCookieStore().getCookies().forEach(cookie -> cookie.setVersion(0));
+        var logout = client.send(HttpRequest.newBuilder(URI.create(base + "/api/auth/logout"))
+                .timeout(Duration.ofSeconds(20)).header("X-XSRF-TOKEN", matcher.group(1))
+                .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, logout.statusCode());
+        // The page also explicitly removes its JavaScript-created JWT cookies after server logout.
+        for (var cookie : java.util.List.copyOf(cookies.getCookieStore().getCookies())) {
+            if (cookie.getName().equals("accessToken") || cookie.getName().equals("jwtToken")) {
+                cookies.getCookieStore().remove(URI.create(base), cookie);
+            }
+        }
+        var afterLogout = client.send(HttpRequest.newBuilder(URI.create(base + "/account/profile"))
+                .timeout(Duration.ofSeconds(20)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(302, afterLogout.statusCode());
+        var guestCount = client.send(HttpRequest.newBuilder(URI.create(base + "/api/cart/count"))
+                .timeout(Duration.ofSeconds(20)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(0, json.readTree(guestCount.body()).path("data").asInt());
     }
 
     @Test

@@ -16,7 +16,7 @@ public interface OrderService {
 
     boolean cancelOrder(String orderCode, String userEmail, String cancelReason);
 
-    Order trackOrder(String orderCode, String phone);
+    Order trackOrder(String orderCode, String phone, String userEmail);
 
     Page<Order> getOrdersForBranch(Long branchId, OrderStatus status, Pageable pageable);
 }
