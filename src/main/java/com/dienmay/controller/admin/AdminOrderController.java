@@ -95,7 +95,7 @@ public class AdminOrderController {
     public String cancel(@org.springframework.web.bind.annotation.PathVariable Long id,
             Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
         return execute(id, principal, flash, fulfillmentService::cancel,
-                "Đã hủy đơn và hoàn lại tồn kho chi nhánh.");
+                "Đã hủy đơn hàng.");
     }
 
     @GetMapping

@@ -17,11 +17,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link
-	href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+	href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap"
 	rel="stylesheet">
 <style>
-body {
-	font-family: 'Roboto', sans-serif !important;
+*, body, button, input, optgroup, select, textarea, h1, h2, h3, h4, h5, h6, .btn, .form-control {
+	font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif !important;
 }
 </style>
 <link rel="stylesheet"

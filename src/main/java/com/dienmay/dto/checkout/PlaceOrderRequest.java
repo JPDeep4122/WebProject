@@ -11,10 +11,6 @@ public class PlaceOrderRequest {
 	@Size(max = 100, message = "Tên người nhận tối đa 100 ký tự")
 	private String recipientName;
 
-	@NotBlank(message = "Vui lòng nhập số điện thoại")
-	@Size(max = 20, message = "Số điện thoại tối đa 20 ký tự")
-	private String recipientPhone;
-
     @jakarta.validation.constraints.Email(message = "Email người nhận không hợp lệ")
     @Size(max = 100, message = "Email người nhận tối đa 100 ký tự")
     private String recipientEmail;
@@ -35,4 +31,8 @@ public class PlaceOrderRequest {
     private String paymentMethod = "COD";
 
     private String voucherCode;
+    
+	@NotBlank(message = "Vui lòng nhập số điện thoại")
+	@Pattern(regexp = "^(0|\\+84)[0-9]{9}$", message = "Số điện thoại không hợp lệ (phải gồm 10 chữ số bắt đầu bằng 0)")
+	private String recipientPhone;
 }

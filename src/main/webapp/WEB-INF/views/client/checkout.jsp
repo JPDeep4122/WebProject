@@ -85,8 +85,11 @@
 								class="text-danger">*</span></label> <input type="tel"
 								name="recipientPhone" id="recipientPhone"
 								class="form-control rounded-3"
-								value="${fn:escapeXml(orderForm.recipientPhone)}" maxlength="20"
-								required placeholder="0901234567">
+								value="${fn:escapeXml(orderForm.recipientPhone)}" maxlength="10"
+								pattern="0[0-9]{9}" inputmode="numeric"
+								oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+								title="Số điện thoại gồm 10 chữ số, bắt đầu bằng số 0" required
+								placeholder="0901234567">
 						</div>
 						<div class="col-12">
 							<label class="form-label small fw-bold">Địa chỉ chi tiết
@@ -164,7 +167,7 @@
 							</div> <span class="badge bg-primary px-3 py-2 fw-bold"> VNPAY </span>
 						</label>
 
-						
+
 					</div>
 				</div>
 
