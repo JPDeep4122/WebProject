@@ -170,6 +170,53 @@ class OrderConfirmationTests {
         assertState(orderId, OrderStatus.RETURNED, 10);
     }
 
+    @Test void pendingCancellationDoesNotRestoreStockAndRejectsRepeat() {
+        fulfillmentService.cancel(orderId, email);
+        assertState(orderId, OrderStatus.CANCELLED, 10);
+        tx.executeWithoutResult(s ->
+                assertEquals(2, em.find(BranchInventory.class, inventoryId).getReservedQuantity()));
+        assertThrows(IllegalArgumentException.class, () -> fulfillmentService.cancel(orderId, email));
+        assertState(orderId, OrderStatus.CANCELLED, 10);
+    }
+
+    @Test void pendingCancellationDoesNotRequireInventory() {
+        tx.executeWithoutResult(s -> em.remove(em.find(BranchInventory.class, inventoryId)));
+        fulfillmentService.cancel(orderId, email);
+        tx.executeWithoutResult(s -> {
+            assertEquals(OrderStatus.CANCELLED, em.find(Order.class, orderId).getStatus());
+            assertNull(em.find(BranchInventory.class, inventoryId));
+        });
+    }
+
+    @Test void cancellationDuringProcessingRestoresStockOnlyOnce() {
+        service.confirm(orderId, email);
+        pickingService.startPicking(orderId, email);
+        assertState(orderId, OrderStatus.PROCESSING, 7);
+        fulfillmentService.cancel(orderId, email);
+        assertState(orderId, OrderStatus.CANCELLED, 10);
+        assertThrows(IllegalArgumentException.class, () -> fulfillmentService.cancel(orderId, email));
+        assertState(orderId, OrderStatus.CANCELLED, 10);
+    }
+
+    @Test void confirmationRacingWithCancellationNeverInflatesStock() throws Exception {
+        var start = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var confirmation = pool.submit(() -> {
+                start.await();
+                return attempt(orderId);
+            });
+            var cancellation = pool.submit(() -> {
+                start.await();
+                fulfillmentService.cancel(orderId, email);
+                return true;
+            });
+            start.countDown();
+            confirmation.get(15, TimeUnit.SECONDS);
+            assertTrue(cancellation.get(15, TimeUnit.SECONDS));
+        }
+        assertState(orderId, OrderStatus.CANCELLED, 10);
+    }
+
     @Test void cancellationAfterConfirmationRestoresStockOnlyOnce() {
         service.confirm(orderId, email);
         fulfillmentService.cancel(orderId, email);

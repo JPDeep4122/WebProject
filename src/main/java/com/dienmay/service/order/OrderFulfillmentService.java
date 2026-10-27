@@ -78,7 +78,9 @@ public class OrderFulfillmentService {
             throw new IllegalArgumentException("Cần phân công shipper trước khi bắt đầu giao hàng.");
         }
 
-        if (restoreStock) {
+        // Confirmation deducts stock; cancelling a still-pending order must not add it back.
+        // Evaluate under the order lock so confirmation and cancellation cannot race this decision.
+        if (restoreStock && order.getStatus() != OrderStatus.PENDING) {
             restoreInventory(order, branchId);
         }
         stateMachine.transition(order, target);
