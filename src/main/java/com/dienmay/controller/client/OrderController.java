@@ -159,15 +159,16 @@ public class OrderController {
 		return "redirect:/cart";
 	}
 
-	// 5. TRA CỨU ĐƠN HÀNG NHANH CHO KHÁCH VÃNG LAI
+	// 5. Tra cứu đơn hàng của tài khoản đã đăng nhập.
 	@GetMapping("/tracking")
 	public String trackingPage() {
 		return "client/order-tracking";
 	}
 
 	@PostMapping("/tracking")
-	public String trackOrder(@RequestParam String orderCode, @RequestParam String phone, Model model) {
-		Order order = orderService.trackOrder(orderCode, phone);
+	public String trackOrder(@RequestParam String orderCode, @RequestParam String phone, Principal principal, Model model) {
+		if (principal == null) return "redirect:/login-required?redirect=/orders/tracking";
+		Order order = orderService.trackOrder(orderCode, phone, principal.getName());
 		if (order != null) {
 		    model.addAttribute("order", order);
 		    return "client/order-detail";

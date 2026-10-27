@@ -113,21 +113,16 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public Order trackOrder(String orderCode, String phone) {
-        if (orderCode == null || phone == null) {
-            return null;
+    public Order trackOrder(String orderCode, String phone, String userEmail) {
+        Order order;
+        try {
+            order = getOrderDetail(orderCode, userEmail);
+        } catch (ResponseStatusException ex) {
+            if (ex.getStatusCode() == HttpStatus.NOT_FOUND) return null;
+            throw ex;
         }
-
-        String cleanCode = orderCode.trim();
-        String cleanPhone = phone.trim();
-
-        return orderRepository.findByOrderCodeAndRecipientPhone(cleanCode, cleanPhone)
-                .orElseGet(() -> orderRepository.findAll().stream()
-                        .filter(o -> o.getOrderCode() != null
-                                && o.getOrderCode().replace("-", "").equalsIgnoreCase(cleanCode.replace("-", ""))
-                                && o.getRecipientPhone() != null
-                                && o.getRecipientPhone().replace(" ", "").equals(cleanPhone.replace(" ", "")))
-                        .findFirst().orElse(null));
+        return phone != null && order.getRecipientPhone() != null
+                && order.getRecipientPhone().replace(" ", "").equals(phone.trim().replace(" ", "")) ? order : null;
     }
 
     @Override

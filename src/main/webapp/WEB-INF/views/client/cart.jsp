@@ -138,10 +138,25 @@
 							thuế VAT và bảo hành chính hãng.
 						</div>
 
-						<a href="${pageContext.request.contextPath}/checkout"
-							class="btn btn-danger w-100 rounded-pill py-3 fw-bold fs-5 shadow">
-							MUA HÀNG NGAY <i class="bi bi-arrow-right ms-1"></i>
-						</a> <a href="${pageContext.request.contextPath}/products"
+						<c:choose>
+							<c:when test="${not empty pageContext.request.userPrincipal}">
+								<a href="${pageContext.request.contextPath}/checkout"
+									class="btn btn-danger w-100 rounded-pill py-3 fw-bold fs-5 shadow">
+									MUA HÀNG NGAY <i class="bi bi-arrow-right ms-1"></i>
+								</a>
+							</c:when>
+							<c:otherwise>
+								<p class="small text-muted">Đăng nhập để mua hàng. Sản phẩm
+									trong giỏ sẽ được giữ lại.</p>
+								<a
+									href="${pageContext.request.contextPath}/login?redirect=/checkout"
+									class="btn btn-primary w-100 rounded-pill py-3 fw-bold"
+									id="loginToCheckout"> <i
+									class="bi bi-box-arrow-in-right me-1"></i>Đăng nhập để mua hàng
+								</a>
+							</c:otherwise>
+						</c:choose>
+						<a href="${pageContext.request.contextPath}/products"
 							class="btn btn-outline-secondary w-100 rounded-pill mt-2 btn-sm">
 							<i class="bi bi-arrow-left me-1"></i>Chọn thêm sản phẩm khác
 						</a>

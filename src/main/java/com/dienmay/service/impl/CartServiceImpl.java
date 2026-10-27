@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.dienmay.dto.cart.AddToCartRequest;
 import com.dienmay.dto.cart.CartItemResponse;
@@ -23,6 +25,7 @@ import com.dienmay.service.cart.CartService;
 import com.dienmay.service.checkout.PurchaseValidator;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -46,11 +49,13 @@ public class CartServiceImpl implements CartService {
 	// session)
 	private Cart getOrCreateCart(String userEmail, HttpSession session) {
 		if (userEmail != null && !userEmail.equalsIgnoreCase("anonymousUser")) {
-			User user = userRepository.findByEmail(userEmail).orElse(null);
-			if (user != null) {
-				return cartRepository.findByUser_Email(userEmail)
-						.orElseGet(() -> cartRepository.save(Cart.builder().user(user).build()));
+			User user = userRepository.findForCart(userEmail)
+					.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập."));
+			entityManager.refresh(user, LockModeType.PESSIMISTIC_WRITE);
+			if (!user.isActive() || user.isBlocked()) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản hiện không được phép sử dụng.");
 			}
+			return mergeGuestCart(user, session);
 		}
 
 		// Khách vãng lai
@@ -60,9 +65,63 @@ public class CartServiceImpl implements CartService {
 			session.setAttribute("GUEST_CART_SESSION", sessionId);
 		}
 
-		final String currentSessionId = sessionId;
-		return cartRepository.findBySessionId(sessionId)
-				.orElseGet(() -> cartRepository.save(Cart.builder().sessionId(currentSessionId).build()));
+		Cart existing = cartRepository.findBySessionId(sessionId).orElse(null);
+		if (existing != null && existing.getUser() == null) return existing;
+		if (existing != null) {
+			sessionId = UUID.randomUUID().toString();
+			session.setAttribute("GUEST_CART_SESSION", sessionId);
+		}
+		return cartRepository.save(Cart.builder().sessionId(sessionId).build());
+	}
+
+	private Cart mergeGuestCart(User user, HttpSession session) {
+		String guestKey = session == null ? null : (String) session.getAttribute("GUEST_CART_SESSION");
+		Cart guest = guestKey == null ? null : cartRepository.findBySessionId(guestKey).orElse(null);
+		if (guest != null) {
+			Long id = guest.getId();
+			entityManager.detach(guest);
+			guest = cartRepository.findForUpdate(id).orElse(null);
+			if (guest != null) {
+				entityManager.refresh(guest, LockModeType.PESSIMISTIC_WRITE);
+				if (guest.getUser() != null || !guestKey.equals(guest.getSessionId())) guest = null;
+			}
+		}
+		Cart cart = cartRepository.findByUser_Email(user.getEmail()).orElse(null);
+		if (cart == null && guest != null) {
+			guest.setUser(user);
+			guest.setSessionId(null);
+			cart = cartRepository.saveAndFlush(guest);
+		} else {
+			if (cart == null) cart = cartRepository.saveAndFlush(Cart.builder().user(user).build());
+			if (guest != null) {
+				Long id = cart.getId();
+				entityManager.detach(cart);
+				cart = cartRepository.findForUpdate(id).orElseThrow();
+				entityManager.refresh(cart, LockModeType.PESSIMISTIC_WRITE);
+				for (CartItem source : guest.getItems()) {
+					CartItem target = cart.getItems().stream()
+							.filter(item -> item.getProduct().getId().equals(source.getProduct().getId())).findFirst().orElse(null);
+					if (target == null) {
+						cart.getItems().add(CartItem.builder().cart(cart).product(source.getProduct())
+								.quantity(source.getQuantity()).selected(source.getSelected()).build());
+					} else {
+						target.setQuantity((int) Math.min(Integer.MAX_VALUE, (long) target.getQuantity() + source.getQuantity()));
+						target.setSelected(Boolean.TRUE.equals(target.getSelected()) || Boolean.TRUE.equals(source.getSelected()));
+					}
+				}
+				cartRepository.saveAndFlush(cart);
+				cartRepository.delete(guest);
+				cartRepository.flush();
+			}
+		}
+		if (guestKey != null && TransactionSynchronizationManager.isSynchronizationActive()) {
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override public void afterCommit() {
+					if (guestKey.equals(session.getAttribute("GUEST_CART_SESSION"))) session.removeAttribute("GUEST_CART_SESSION");
+				}
+			});
+		}
+		return cart;
 	}
 
 	@Override
@@ -220,7 +279,14 @@ public class CartServiceImpl implements CartService {
 		Long cartId = cart.getId();
 		// Discard an earlier page preview, then lock before loading the item collection.
 		entityManager.detach(cart);
-		return cartRepository.findForUpdate(cartId)
+		Cart locked = cartRepository.findForUpdate(cartId)
 				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giỏ hàng."));
+		entityManager.refresh(locked, LockModeType.PESSIMISTIC_WRITE);
+		boolean signedIn = userEmail != null && !userEmail.isBlank() && !userEmail.equalsIgnoreCase("anonymousUser");
+		if (signedIn ? locked.getUser() == null || !userEmail.equalsIgnoreCase(locked.getUser().getEmail())
+				: locked.getUser() != null || !java.util.Objects.equals(locked.getSessionId(), session.getAttribute("GUEST_CART_SESSION"))) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Giỏ hàng đã thay đổi. Vui lòng tải lại trang.");
+		}
+		return locked;
 	}
 }

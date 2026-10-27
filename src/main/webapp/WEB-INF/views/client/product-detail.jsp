@@ -142,10 +142,10 @@
 						${totalStock <= 0 ? 'disabled' : ''}>
 						<i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ hàng
 					</button>
-					<button
+										<button
 						class="btn btn-danger btn-lg flex-grow-1 rounded-pill fw-bold"
 						type="button" onclick="buyNow(${product.id}, this)"
-						${totalStock <= 0 ? 'disabled' : ''}>MUA NGAY</button>
+						${totalStock <= 0 ? 'disabled' : ''}>${not empty pageContext.request.userPrincipal ? 'MUA NGAY' : 'Đăng nhập để mua ngay'}</button>
 				</div>
 				<div id="buyNowError" class="alert alert-danger mt-3 d-none"
 					role="alert"></div>
@@ -208,6 +208,12 @@
 
 			<div>
 				<c:choose>
+					<c:when test="${pageContext.request.userPrincipal eq null}">
+						<c:url var="reviewLoginUrl" value="/login">
+							<c:param name="redirect" value="/products/${product.slug}#reviewsSection" />
+						</c:url>
+						<a href="<c:out value='${reviewLoginUrl}'/>" class="btn btn-outline-primary rounded-pill">Đăng nhập để đánh giá</a>
+					</c:when>
 					<c:when test="${canReview}">
 						<button
 							class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark shadow-sm"

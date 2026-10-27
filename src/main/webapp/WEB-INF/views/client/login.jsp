@@ -299,7 +299,7 @@
     let pagePendingEmail = "";
 
     // Hàm hiển thị thông báo trực tiếp trên trang này
-    function showModalAuthAlert(type, msg) {
+    function showPageAuthAlert(type, msg) {
         const alertBox = document.getElementById('pageAuthAlert');
         if (alertBox) {
             alertBox.className = "alert alert-" + type + " py-2 small rounded-3";
@@ -308,7 +308,7 @@
         }
     }
 
-    function hideModalAuthAlert() {
+    function hidePageAuthAlert() {
         const alertBox = document.getElementById('pageAuthAlert');
         if (alertBox) {
             alertBox.classList.add('d-none');
@@ -317,7 +317,7 @@
 
     // Hàm chuyển đổi qua lại giữa các Form
     function switchView(viewName) {
-        hideModalAuthAlert();
+        hidePageAuthAlert();
         document.getElementById('viewLogin').classList.add('d-none');
         document.getElementById('viewRegister').classList.add('d-none');
         document.getElementById('viewOtp').classList.add('d-none');
@@ -334,7 +334,7 @@
     // 1. XỬ LÝ ĐĂNG NHẬP
     document.getElementById('formLogin').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hideModalAuthAlert();
+        hidePageAuthAlert();
         const email = document.getElementById('pageLoginEmail').value.trim();
         const password = document.getElementById('pageLoginPassword').value;
         const btn = this.querySelector('button[type="submit"]');
@@ -356,23 +356,17 @@
                 localStorage.setItem('currentUser', JSON.stringify(data.data));
                 document.cookie = "accessToken=" + data.data.token + "; path=/; max-age=86400";
 
-                showModalAuthAlert('success', 'Đăng nhập thành công! Đang chuyển hướng...');
-                const urlParams = new URLSearchParams(window.location.search);
-                const redirectUrl = urlParams.get('redirect');
-                const roles = Array.isArray(data.data.roles) ? data.data.roles : [];
-                const defaultUrl = roles.includes('ROLE_STAFF') ? '/admin/orders'
-                    : roles.includes('ROLE_SHIPPER') ? '/shipper/orders' : '/';
-                const destination = roles.includes('ROLE_ADMIN') ? '/admin' : (redirectUrl || defaultUrl);
+                showPageAuthAlert('success', 'Đăng nhập thành công! Đang chuyển hướng...');
                 setTimeout(() => {
-                    window.location.href = LOGIN_CONTEXT_PATH + destination;
+                    window.location.assign(window.loginDestination(data.data, LOGIN_CONTEXT_PATH));
                 }, 700);
             } else {
-                showModalAuthAlert('danger', data.message || 'Email hoặc mật khẩu không chính xác!');
+                showPageAuthAlert('danger', data.message || 'Email hoặc mật khẩu không chính xác!');
                 btn.disabled = false;
                 btn.innerText = 'TIẾP TỤC';
             }
         } catch (err) {
-            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'TIẾP TỤC';
         }
@@ -381,7 +375,7 @@
     // 2. XỬ LÝ ĐĂNG KÝ
     document.getElementById('formRegister').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hideModalAuthAlert();
+        hidePageAuthAlert();
         const fullname = document.getElementById('pageRegFullName').value.trim();
         const phoneNumber = document.getElementById('pageRegPhone').value.trim();
         const email = document.getElementById('pageRegEmail').value.trim();
@@ -402,15 +396,15 @@
             if (data.success) {
                 pagePendingEmail = email;
                 document.getElementById('pageOtpTargetEmail').innerText = email;
-                showModalAuthAlert('success', 'Đăng ký thành công! Vui lòng nhập mã OTP đã gửi tới email của bạn.');
+                showPageAuthAlert('success', 'Đăng ký thành công! Vui lòng nhập mã OTP đã gửi tới email của bạn.');
                 switchView('otp');
             } else {
-                showModalAuthAlert('danger', data.message || 'Không thể đăng ký tài khoản!');
+                showPageAuthAlert('danger', data.message || 'Không thể đăng ký tài khoản!');
                 btn.disabled = false;
                 btn.innerText = 'ĐĂNG KÝ TÀI KHOẢN';
             }
         } catch (err) {
-            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'ĐĂNG KÝ TÀI KHOẢN';
         }
@@ -419,7 +413,7 @@
     // 3. XỬ LÝ XÁC THỰC OTP
     document.getElementById('formOtp').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hideModalAuthAlert();
+        hidePageAuthAlert();
         const otpCode = document.getElementById('pageOtpCodeInput').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
@@ -435,18 +429,18 @@
             const data = await res.json();
 
             if (data.success) {
-                showModalAuthAlert('success', 'Kích hoạt thành công! Đang chuyển về màn hình Đăng nhập...');
+                showPageAuthAlert('success', 'Kích hoạt thành công! Đang chuyển về màn hình Đăng nhập...');
                 setTimeout(() => { 
                     switchView('login');
                     document.getElementById('pageLoginEmail').value = pagePendingEmail;
                 }, 1200);
             } else {
-                showModalAuthAlert('danger', data.message || 'Mã OTP không chính xác hoặc đã hết hạn!');
+                showPageAuthAlert('danger', data.message || 'Mã OTP không chính xác hoặc đã hết hạn!');
                 btn.disabled = false;
                 btn.innerText = 'KÍCH HOẠT & TIẾP TỤC';
             }
         } catch (err) {
-            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'KÍCH HOẠT & TIẾP TỤC';
         }
@@ -458,16 +452,16 @@
         try {
             const res = await csrfFetch(LOGIN_CONTEXT_PATH + '/api/auth/resend-otp?email=' + encodeURIComponent(pagePendingEmail), { method: 'POST' });
             const data = await res.json();
-            showModalAuthAlert(data.success ? 'info' : 'danger', data.message);
+            showPageAuthAlert(data.success ? 'info' : 'danger', data.message);
         } catch (e) {
-            showModalAuthAlert('danger', 'Không thể gửi lại mã OTP!');
+            showPageAuthAlert('danger', 'Không thể gửi lại mã OTP!');
         }
     }
 
     // 5. XỬ LÝ YÊU CẦU QUÊN MẬT KHẨU
     document.getElementById('formForgot').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hideModalAuthAlert();
+        hidePageAuthAlert();
         const email = document.getElementById('pageForgotEmail').value.trim();
         const btn = this.querySelector('button[type="submit"]');
 
@@ -484,15 +478,15 @@
 
             if (data.success) {
                 pagePendingEmail = email;
-                showModalAuthAlert('success', 'Đã gửi mã OTP đặt lại mật khẩu về email của bạn!');
+                showPageAuthAlert('success', 'Đã gửi mã OTP đặt lại mật khẩu về email của bạn!');
                 switchView('reset');
             } else {
-                showModalAuthAlert('danger', data.message);
+                showPageAuthAlert('danger', data.message);
                 btn.disabled = false;
                 btn.innerText = 'GỬI MÃ XÁC NHẬN';
             }
         } catch (err) {
-            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'GỬI MÃ XÁC NHẬN';
         }
@@ -501,7 +495,7 @@
     // 6. XỬ LÝ ĐẶT LẠI MẬT KHẨU MỚI
     document.getElementById('formReset').addEventListener('submit', async function(e) {
         e.preventDefault();
-        hideModalAuthAlert();
+        hidePageAuthAlert();
         const otpCode = document.getElementById('pageResetOtpCode').value.trim();
         const newPassword = document.getElementById('pageResetNewPassword').value.trim();
         const btn = this.querySelector('button[type="submit"]');
@@ -518,15 +512,15 @@
             const data = await res.json();
 
             if (data.success) {
-                showModalAuthAlert('success', 'Đặt lại mật khẩu thành công! Hãy đăng nhập với mật khẩu mới.');
+                showPageAuthAlert('success', 'Đặt lại mật khẩu thành công! Hãy đăng nhập với mật khẩu mới.');
                 setTimeout(() => { switchView('login'); }, 1500);
             } else {
-                showModalAuthAlert('danger', data.message);
+                showPageAuthAlert('danger', data.message);
                 btn.disabled = false;
                 btn.innerText = 'LƯU MẬT KHẨU MỚI';
             }
         } catch (err) {
-            showModalAuthAlert('danger', 'Lỗi kết nối máy chủ!');
+            showPageAuthAlert('danger', 'Lỗi kết nối máy chủ!');
             btn.disabled = false;
             btn.innerText = 'LƯU MẬT KHẨU MỚI';
         }

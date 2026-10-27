@@ -16,33 +16,7 @@
     }
 
     function getRedirectUrl(user) {
-        const roles = Array.isArray(user.roles) ? user.roles : [];
-        const defaultPath = roles.includes('ROLE_SHIPPER')
-            ? '/shipper/orders'
-            : '/';
-
-        let target = contextPath + defaultPath;
-
-        const redirect = new URLSearchParams(location.search)
-            .get('redirect');
-
-        if (redirect && redirect.startsWith('/')
-                && !redirect.startsWith('//')) {
-            try {
-                const candidate = new URL(
-                    contextPath + redirect,
-                    location.origin
-                );
-
-                if (candidate.origin === location.origin) {
-                    target = candidate.href;
-                }
-            } catch (error) {
-                // Dùng trang mặc định nếu đường dẫn không hợp lệ.
-            }
-        }
-
-        return target;
+        return window.loginDestination(user, contextPath);
     }
 
     async function handleGoogleCredential(result) {

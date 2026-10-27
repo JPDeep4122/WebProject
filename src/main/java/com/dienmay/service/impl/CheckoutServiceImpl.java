@@ -46,6 +46,7 @@ import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.payment.PaymentRepository;
 import com.dienmay.repository.promotion.PromotionRepository;
 import com.dienmay.service.checkout.CheckoutService;
+import com.dienmay.service.cart.CartService;
 import com.dienmay.service.checkout.PurchaseValidator;
 import com.dienmay.service.checkout.ShippingService;
 import com.dienmay.service.payment.VnPayService;
@@ -75,13 +76,15 @@ public class CheckoutServiceImpl implements CheckoutService {
 	private final TransactionTemplate transactionTemplate;
 	private final PurchaseValidator purchaseValidator;
 	private final VnPayService vnPayService;
+	private final CartService cartService;
 
 	@PersistenceContext
 	private EntityManager entityManager;
 
 	@Override
-	@Transactional(readOnly = true)
+	@Transactional
 	public CheckoutPageDto getCheckoutData(String userEmail, HttpSession session) {
+		requireCustomer(userEmail);
 		Cart cart = getCart(userEmail, session);
 		List<CartItem> selectedItems = (cart != null && cart.getItems() != null)
 				? cart.getItems().stream().filter(item -> Boolean.TRUE.equals(item.getSelected())).collect(Collectors.toList())
@@ -193,6 +196,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public Order placeOrder(PlaceOrderRequest request, String userEmail, HttpSession session,
 			HttpServletRequest servletRequest) {
+		requireCustomer(userEmail);
 
 		PaymentMethod method = requireSupportedPaymentMethod(request.getPaymentMethod());
 		if (method == PaymentMethod.VNPAY) {
@@ -208,16 +212,12 @@ public class CheckoutServiceImpl implements CheckoutService {
 			throw new IllegalStateException("Không thể tạo đơn hàng.");
 		}
 
-		// Chỉ cấp quyền sau khi đơn được tạo và transaction đã thành công.
-		if (order.getUser() == null && session != null) {
-			session.setAttribute("GUEST_CHECKOUT_ORDER_" + order.getId(), Boolean.TRUE);
-		}
-
 		return order;
 	}
 
 	private Order createOrder(PlaceOrderRequest request, String userEmail, HttpSession session,
 			ShippingQuoteResponse shippingQuote, PaymentMethod method, HttpServletRequest servletRequest) {
+		User user = requireCustomer(userEmail);
 		Cart cart = getCart(userEmail, session);
 		if (cart == null) {
 			throw new IllegalArgumentException("Giỏ hàng của bạn đang trống!");
@@ -240,11 +240,6 @@ public class CheckoutServiceImpl implements CheckoutService {
 		}
 
 		// 1. Xác định User đặt hàng
-		User user = null;
-		if (userEmail != null && !userEmail.isBlank() && !userEmail.equalsIgnoreCase("anonymousUser")) {
-			user = userRepository.findByEmail(userEmail)
-					.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản đăng nhập."));
-		}
 		Branch branch = validateCheckoutItems(selectedItems, shippingQuote.getBranchId());
 
 		// 2. Tính toán tổng tiền
@@ -334,6 +329,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 	@Override
 	@Transactional(readOnly = true)
 	public Order getOrderByCode(String orderCode, String userEmail, HttpSession session) {
+		requireCustomer(userEmail);
 
 		if (orderCode == null || orderCode.isBlank()) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.");
@@ -345,16 +341,9 @@ public class CheckoutServiceImpl implements CheckoutService {
 				.findByPaymentReference(cleanCode.replace("-", "").toUpperCase(java.util.Locale.ROOT))
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.")));
 
-		boolean authenticated = userEmail != null && !userEmail.isBlank()
-				&& !userEmail.equalsIgnoreCase("anonymousUser");
-
-		boolean owner = authenticated && order.getUser() != null
+		boolean owner = order.getUser() != null
 				&& userEmail.equalsIgnoreCase(order.getUser().getEmail());
-
-		boolean guestWithAccess = session != null
-				&& Boolean.TRUE.equals(session.getAttribute("GUEST_CHECKOUT_ORDER_" + order.getId()));
-
-		if (!owner && !guestWithAccess) {
+		if (!owner) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.");
 		}
 
@@ -415,16 +404,20 @@ public class CheckoutServiceImpl implements CheckoutService {
 	}
 
 	private Cart getCart(String userEmail, HttpSession session) {
-		if (userEmail != null && !userEmail.equalsIgnoreCase("anonymousUser")) {
-			Cart cart = cartRepository.findByUser_Email(userEmail).orElse(null);
-			if (cart != null)
-				return cart;
+		cartService.getCart(userEmail, session);
+		return cartRepository.findByUser_Email(userEmail).orElse(null);
+	}
+
+	private User requireCustomer(String email) {
+		if (email == null || email.isBlank() || email.equalsIgnoreCase("anonymousUser")) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập để mua hàng.");
 		}
-		String sessionId = session == null ? null : (String) session.getAttribute("GUEST_CART_SESSION");
-		if (sessionId != null) {
-			return cartRepository.findBySessionId(sessionId).orElse(null);
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập lại."));
+		if (!user.isActive() || user.isBlocked()) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản hiện không được phép sử dụng.");
 		}
-		return null;
+		return user;
 	}
 
 	private PaymentMethod requireSupportedPaymentMethod(String value) {

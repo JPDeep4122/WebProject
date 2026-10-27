@@ -12,7 +12,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -53,6 +52,13 @@ public class SecurityConfig {
 				.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
 						.csrfTokenRequestHandler(csrfHandler))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+				.logout(logout -> logout.logoutUrl("/api/auth/logout")
+						.invalidateHttpSession(true).clearAuthentication(true)
+						.deleteCookies("accessToken", "jwtToken", "JSESSIONID")
+						.logoutSuccessHandler((request, response, authentication) -> {
+							response.setContentType("application/json;charset=UTF-8");
+							response.getWriter().write("{\"success\":true}");
+						}))
 				.authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/api/categories/**")
 						.hasRole("ADMIN").requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
@@ -63,15 +69,20 @@ public class SecurityConfig {
 						.requestMatchers("/shipper", "/shipper/**").hasRole("SHIPPER")
 						.requestMatchers("/account", "/account/**").authenticated().requestMatchers("/api/account/**")
 						.authenticated()
+						.requestMatchers("/checkout", "/checkout/**", "/api/checkout/**", "/orders", "/orders/**",
+								"/order-success/**", "/payment/vnpay-return").authenticated()
 						.requestMatchers("/api/auth/**", "/api/test/**", "/", "/products/**", "/cart/**",
-								"/checkout/**", "/login", "/register", "/css/**", "/js/**", "/images/**", "/static/**",
+								"/login", "/register", "/css/**", "/js/**", "/images/**", "/static/**",
 								"/favicon.ico")
 						.permitAll().anyRequest().permitAll());
 
 		http.exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
-				new LoginUrlAuthenticationEntryPoint("/login?redirect=/account/profile"), request -> {
+				new CustomerAuthenticationEntryPoint(), request -> {
 					String path = request.getRequestURI().substring(request.getContextPath().length());
-					return path.equals("/account") || path.startsWith("/account/");
+					return path.equals("/account") || path.startsWith("/account/") || path.startsWith("/api/account/")
+							|| path.equals("/checkout") || path.startsWith("/checkout/") || path.startsWith("/api/checkout/")
+							|| path.equals("/orders") || path.startsWith("/orders/") || path.startsWith("/order-success/")
+							|| path.equals("/payment/vnpay-return");
 				}).defaultAuthenticationEntryPointFor(new Http403ForbiddenEntryPoint(), request -> true));
 		http.userDetailsService(userDetailsService);
 		http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
