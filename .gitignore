@@ -6,6 +6,9 @@ src/test/java/com/dienmay/service/impl/CheckoutServiceImplTest.java
 .env.docker
 .env.admin-test
 /private/
+# Local-only SQL seed data; keep it out of the public Git repository.
+/src/main/resources/db/manual/04_seed_demo_data.sql
+/src/main/resources/db/manual/04_seed_demo_accounts.txt
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
