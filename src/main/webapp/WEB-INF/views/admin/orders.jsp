@@ -133,7 +133,7 @@
                                 <c:if test="${order.status eq 'PENDING'}">
                                     <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/confirm" class="mt-2">
                                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-                                        <button class="btn btn-sm btn-success">Xác nhận đơn</button>
+                                        <button class="btn btn-sm btn-success">Duyệt &amp; xác nhận đơn</button>
                                     </form>
                                 </c:if>
                                 <c:if test="${order.status eq 'CONFIRMED'}">
