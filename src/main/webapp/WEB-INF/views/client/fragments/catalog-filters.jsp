@@ -52,10 +52,10 @@
                     <details class="catalog-filter-section" open>
                         <summary>Danh mục <i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
                         <div class="catalog-filter-section-body catalog-options">
-                            <label class="catalog-option" for="filterCategoryAll">
+                            <label class="catalog-option catalog-category-all" for="filterCategoryAll">
                                 <input type="radio" name="categorySlug" id="filterCategoryAll" value=""
                                        ${empty filter.categorySlug && empty filter.categoryId ? 'checked' : ''}>
-                                <span>Tất cả danh mục</span>
+                                <i class="bi bi-grid-fill" aria-hidden="true"></i><span>Tất cả danh mục</span>
                             </label>
                             <c:forEach items="${categories}" var="category">
                                 <c:if test="${category.active}">
@@ -82,6 +82,9 @@
                                     </label>
                                 </c:if>
                             </c:forEach>
+                            <c:if test="${empty brands}">
+                                <p class="catalog-field-help">Chưa có thương hiệu phù hợp với bộ lọc này.</p>
+                            </c:if>
                         </div>
                     </details>
 

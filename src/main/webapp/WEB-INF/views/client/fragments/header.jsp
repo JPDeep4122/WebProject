@@ -601,3 +601,5 @@
         });
     }
 </script>
+<script src="${pageContext.request.contextPath}/js/purchase-actions.js"
+        data-context="${pageContext.request.contextPath}"></script>

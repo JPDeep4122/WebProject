@@ -15,6 +15,10 @@ import jakarta.persistence.criteria.Root;
 public class ProductSpecification {
 
     public static Specification<Product> filter(ProductFilterRequest req) {
+        return filter(req, true);
+    }
+
+    public static Specification<Product> filter(ProductFilterRequest req, boolean includeBrands) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -30,7 +34,7 @@ public class ProductSpecification {
             }
 
             // 2. Lọc theo Thương hiệu (danh sách ID)
-            if (req.getBrandIds() != null && !req.getBrandIds().isEmpty()) {
+            if (includeBrands && req.getBrandIds() != null && !req.getBrandIds().isEmpty()) {
                 predicates.add(root.get("brand").get("id").in(req.getBrandIds()));
             }
 

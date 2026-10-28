@@ -19,6 +19,8 @@ public interface ProductService {
 
     List<Brand> getAllBrands();
 
+    List<Brand> getBrandsForFilter(ProductFilterRequest request);
+
     List<Product> getFeaturedProducts();
 
     List<Product> getLatestProducts();

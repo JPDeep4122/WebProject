@@ -808,7 +808,8 @@
 														</span>
 													</c:if>
 												</div>
-												<button type="button" class="bb-btn-add-cart mt-3"
+												<button type="button" class="btn btn-primary w-100 mt-3 fw-bold rounded-3" onclick="buyProductNow(${prod.id}, 1, this)"><i class="bi bi-lightning-charge-fill me-1"></i> Mua ngay</button>
+<button type="button" class="bb-btn-add-cart mt-3"
 													onclick="addToCart(${prod.id}, 1, this)">
 													<i class="bi bi-cart-plus-fill me-1"></i> Thêm vào giỏ
 												</button>
@@ -876,7 +877,8 @@
 														</span>
 													</c:if>
 												</div>
-												<button type="button" class="bb-btn-add-cart mt-3"
+												<button type="button" class="btn btn-primary w-100 mt-3 fw-bold rounded-3" onclick="buyProductNow(${prod.id}, 1, this)"><i class="bi bi-lightning-charge-fill me-1"></i> Mua ngay</button>
+<button type="button" class="bb-btn-add-cart mt-3"
 													onclick="addToCart(${prod.id}, 1, this)">
 													<i class="bi bi-cart-plus-fill me-1"></i> Thêm vào giỏ
 												</button>
@@ -944,7 +946,8 @@
 														</span>
 													</c:if>
 												</div>
-												<button type="button" class="bb-btn-add-cart mt-3"
+												<button type="button" class="btn btn-primary w-100 mt-3 fw-bold rounded-3" onclick="buyProductNow(${prod.id}, 1, this)"><i class="bi bi-lightning-charge-fill me-1"></i> Mua ngay</button>
+<button type="button" class="bb-btn-add-cart mt-3"
 													onclick="addToCart(${prod.id}, 1, this)">
 													<i class="bi bi-cart-plus-fill me-1"></i> Thêm vào giỏ
 												</button>
@@ -1012,7 +1015,8 @@
 														</span>
 													</c:if>
 												</div>
-												<button type="button" class="bb-btn-add-cart mt-3"
+												<button type="button" class="btn btn-primary w-100 mt-3 fw-bold rounded-3" onclick="buyProductNow(${prod.id}, 1, this)"><i class="bi bi-lightning-charge-fill me-1"></i> Mua ngay</button>
+<button type="button" class="bb-btn-add-cart mt-3"
 													onclick="addToCart(${prod.id}, 1, this)">
 													<i class="bi bi-cart-plus-fill me-1"></i> Thêm vào giỏ
 												</button>

@@ -143,7 +143,9 @@ public class AdminPromotionController {
                         "Mã " + p.getCode()));
             });
 
-            flash.addFlashAttribute("success", "Đã lưu voucher.");
+            flash.addFlashAttribute("success", id == null
+                    ? "Đã tạo voucher " + req.getCode().trim().toUpperCase(Locale.ROOT) + "."
+                    : "Đã cập nhật voucher " + req.getCode().trim().toUpperCase(Locale.ROOT) + ".");
 
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
