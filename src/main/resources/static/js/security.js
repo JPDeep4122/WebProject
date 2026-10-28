@@ -29,16 +29,24 @@ window.csrfFetch = function (url, options = {}) {
 
 window.loginDestination = function (user, contextPath = '') {
     const roles = Array.isArray(user?.roles) ? user.roles : [];
+    const isInternal = roles.includes('ROLE_ADMIN') || roles.includes('ROLE_STAFF') || roles.includes('ROLE_SHIPPER');
     const fallback = roles.includes('ROLE_ADMIN') ? '/admin'
         : roles.includes('ROLE_STAFF') ? '/admin/orders'
         : roles.includes('ROLE_SHIPPER') ? '/shipper/orders' : '/';
+
+    if (isInternal) {
+        return contextPath + fallback;
+    }
+
     const redirect = new URLSearchParams(window.location.search).get('redirect');
-    if (redirect?.startsWith('/') && !redirect.startsWith('//')
-            && !/[\\\r\n]/.test(redirect)) {
-        try {
-            const target = new URL(contextPath + redirect, window.location.origin);
-            if (target.origin === window.location.origin) return target.href;
-        } catch (error) { }
+    if (redirect && redirect !== '/account/profile') {
+        if (redirect.startsWith('/') && !redirect.startsWith('//')
+                && !/[\\\r\n]/.test(redirect)) {
+            try {
+                const target = new URL(contextPath + redirect, window.location.origin);
+                if (target.origin === window.location.origin) return target.href;
+            } catch (error) { }
+        }
     }
     return contextPath + fallback;
 };

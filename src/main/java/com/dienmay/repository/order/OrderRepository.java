@@ -26,6 +26,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("select o from Order o where o.orderCode = :code")
     Optional<Order> findByCodeForUpdate(@Param("code") String code);
 
+	@EntityGraph(attributePaths = {"user", "branch", "orderItems", "orderItems.product", "payment"})
 	Optional<Order> findByOrderCode(String orderCode);
 
     @Query("select o from Order o where upper(replace(o.orderCode, '-', '')) = :reference")
