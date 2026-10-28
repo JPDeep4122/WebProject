@@ -1,7 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
 
-<!-- FOOTER CỦA FOODMART -->
 <footer class="sf-footer mt-5">
 	<div class="storefront-container">
 		<div class="row">
@@ -74,17 +73,14 @@
 	</div>
 </footer>
 
-<!-- Các thư viện JS của FoodMart -->
 <script
 	src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
 
-<!-- JAVASCRIPT XỬ LÝ AUTH, JWT TOKEN & CẬP NHẬT HEADER        -->
 <script>
       const CONTEXT_PATH = "${pageContext.request.contextPath}";
       let currentPendingEmail = "";
 
-      // Hiển thị thông báo trong Modal
       function showModalAuthAlert(type, message) {
         const alertBox = document.getElementById('authAlert');
         alertBox.className = "alert alert-" + type;
@@ -96,7 +92,6 @@
         document.getElementById('authAlert').classList.add('d-none');
       }
 
-      // Chuyển đổi qua lại giữa các Form
       function showForgotPasswordView() {
         hideModalAuthAlert();
         document.getElementById('authTabs').classList.add('d-none');
@@ -113,7 +108,6 @@
         document.getElementById('login-pane').classList.add('show', 'active');
       }
 
-      // 1. XỬ LÝ ĐĂNG NHẬP
       document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideModalAuthAlert();
@@ -129,7 +123,6 @@
           const data = await res.json();
 
           if (data.success) {
-            // Lưu Token và Thông tin người dùng vào LocalStorage
             localStorage.setItem('jwtToken', data.data.token);
             localStorage.setItem('accessToken', data.data.token);
             localStorage.setItem('currentUser', JSON.stringify(data.data));
@@ -149,7 +142,6 @@
         }
       });
 
-      // 2. XỬ LÝ ĐĂNG KÝ
       document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideModalAuthAlert();
@@ -181,7 +173,6 @@
         }
       });
 
-      // 3. XỬ LÝ NHẬP MÃ OTP KÍCH HOẠT
       document.getElementById('otpForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideModalAuthAlert();
@@ -209,7 +200,6 @@
         }
       });
 
-      // 4. XỬ LÝ QUÊN MẬT KHẨU
       document.getElementById('forgotForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideModalAuthAlert();
@@ -236,7 +226,6 @@
         }
       });
 
-      // 5. XỬ LÝ ĐẶT LẠI MẬT KHẨU
       document.getElementById('resetForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         hideModalAuthAlert();
@@ -264,7 +253,6 @@
         }
       });
 
-      
       function checkLoginStatus() {
           const userJson = localStorage.getItem('currentUser');
           const container = document.getElementById('userAuthContainer');
@@ -349,7 +337,6 @@
           }
         }
 
-      // ĐĂNG XUẤT
       async function logout() {
         try {
           const response = await csrfFetch(CONTEXT_PATH + '/api/auth/logout', { method: 'POST' });
@@ -366,7 +353,6 @@
         window.location.assign(CONTEXT_PATH + '/');
       }
 
-      // Tự động chạy khi mở trang
       document.addEventListener('DOMContentLoaded', checkLoginStatus);
     </script>
 </body>

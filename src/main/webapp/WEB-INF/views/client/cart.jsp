@@ -7,7 +7,7 @@
 
 <div class="container-fluid py-4">
 
-	<!-- BREADCRUMB -->
+	
 	<nav aria-label="breadcrumb" class="mb-4">
 		<ol class="breadcrumb small">
 			<li class="breadcrumb-item"><a
@@ -38,7 +38,7 @@
 		<c:otherwise>
 			<div class="row g-4">
 
-				<!-- BẢNG DANH SÁCH MÓN HÀNG -->
+				
 				<div class="col-lg-8">
 					<div class="bg-white p-3 rounded-4 shadow-sm border mb-3">
 						<div
@@ -52,14 +52,14 @@
 							<span class="text-muted small">Đơn giá / Thành tiền</span>
 						</div>
 
-						<!-- DANH SÁCH CART ITEMS -->
+						
 						<div class="d-flex flex-column gap-3 mt-3">
 							<c:forEach items="${cart.items}" var="item">
 								<div
 									class="d-flex align-items-center justify-content-between p-2 border rounded-3 cart-item-row"
 									id="item-row-${item.id}">
 
-									<!-- Checkbox & Ảnh -->
+									
 									<div class="d-flex align-items-center gap-3">
 										<input class="form-check-input item-checkbox" type="checkbox"
 											onchange="toggleSelectItem(${item.id}, this.checked)"
@@ -82,7 +82,7 @@
 										</div>
 									</div>
 
-									<!-- Bộ tăng giảm số lượng & Thành tiền -->
+									
 									<div class="d-flex align-items-center gap-4">
 										<div class="input-group input-group-sm" style="width: 100px;">
 											<button class="btn btn-outline-secondary" type="button"
@@ -100,7 +100,7 @@
 											₫
 										</span>
 
-										<!-- Nút xóa -->
+										
 										<button class="btn btn-link text-danger p-0"
 											title="Xóa món này" onclick="removeItem(${item.id})">
 											<i class="bi bi-trash fs-5"></i>
@@ -113,7 +113,7 @@
 					</div>
 				</div>
 
-				<!-- CỘT TỔNG TIỀN VÀ NÚT THANH TOÁN -->
+				
 				<div class="col-lg-4">
 					<div
 						class="bg-white p-4 rounded-4 shadow-sm border position-sticky"
@@ -168,7 +168,7 @@
 	</c:choose>
 
 </div>
-<!-- MODAL XÁC NHẬN XÓA HIỆN ĐẠI -->
+
 <div class="modal fade" id="deleteConfirmModal" tabindex="-1"
 	aria-hidden="true">
 	<div class="modal-dialog modal-dialog-centered modal-sm">
@@ -196,19 +196,19 @@
 
 <jsp:include page="fragments/footer.jsp" />
 
-<!-- JAVASCRIPT XỬ LÝ AJAX GIỎ HÀNG -->
+
 <script>
   const ctx = '${pageContext.request.contextPath}';
   let itemToDeleteId = null;
   const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
 
-  // 1. Khi bấm icon thùng rác -> Mở Modal xác nhận đẹp mắt
+  
   function removeItem(itemId) {
     itemToDeleteId = itemId;
     deleteModal.show();
   }
 
-  // 2. Khi bấm nút "Xác nhận xóa" trong Modal
+  
   document.getElementById('btnConfirmDelete').addEventListener('click', function() {
     if (!itemToDeleteId) return;
 
@@ -217,14 +217,14 @@
       .then(res => {
         deleteModal.hide();
         if (res.success) {
-          // Hiệu ứng mờ dần và xóa dòng sản phẩm không làm giật trang
+          
           const row = document.getElementById('item-row-' + itemToDeleteId);
           if (row) {
             row.style.transition = 'all 0.3s ease';
             row.style.opacity = '0';
             row.style.transform = 'translateX(50px)';
             setTimeout(() => {
-              location.reload(); // Tải lại để cập nhật danh sách và tổng tiền
+              location.reload(); 
             }, 300);
           } else {
             location.reload();
@@ -234,10 +234,10 @@
       .catch(err => console.error(err));
   });
 
-  // 3. Cập nhật số lượng (+ / -)
+  
   function updateQty(itemId, newQty) {
     if (newQty <= 0) {
-      removeItem(itemId); // Nếu giảm về 0 thì mở popup hỏi xóa
+      removeItem(itemId); 
       return;
     }
     
@@ -250,7 +250,7 @@
       });
   }
 
-  // 4. Chọn / Bỏ chọn 1 sản phẩm
+  
   function toggleSelectItem(itemId, selected) {
     csrfFetch(ctx + '/api/cart/items/' + itemId + '/select?selected=' + selected, { method: 'PUT' })
       .then(res => res.json())
@@ -261,7 +261,7 @@
       });
   }
 
-  // 5. Chọn tất cả / Bỏ chọn tất cả
+  
   function toggleSelectAll(selected) {
     csrfFetch(ctx + '/api/cart/select-all?selected=' + selected, { method: 'PUT' })
       .then(res => res.json())

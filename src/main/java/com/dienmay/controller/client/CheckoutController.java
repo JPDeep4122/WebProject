@@ -1,6 +1,5 @@
 package com.dienmay.controller.client;
 
-import java.math.BigDecimal;
 import java.security.Principal;
 
 import org.springframework.http.ResponseEntity;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -20,6 +18,7 @@ import com.dienmay.dto.checkout.CheckoutPageDto;
 import com.dienmay.dto.checkout.PlaceOrderRequest;
 import com.dienmay.dto.checkout.ShippingQuoteRequest;
 import com.dienmay.dto.checkout.ShippingQuoteResponse;
+import com.dienmay.dto.checkout.VoucherPreviewRequest;
 import com.dienmay.dto.checkout.VoucherResponse;
 import com.dienmay.dto.common.ApiResponse;
 import com.dienmay.entity.order.Order;
@@ -57,14 +56,22 @@ public class CheckoutController {
     @PostMapping("/api/checkout/apply-voucher")
     @ResponseBody
     public ResponseEntity<ApiResponse<VoucherResponse>> applyVoucher(
-            @RequestParam String code, 
-            @RequestParam BigDecimal subtotal) {
-        VoucherResponse res = checkoutService.applyVoucher(code, subtotal);
-        return ResponseEntity.ok(ApiResponse.<VoucherResponse>builder()
-                .success(res.isValid())
-                .message(res.getMessage())
-                .data(res)
-                .build());
+            @Valid @RequestBody VoucherPreviewRequest request,
+            Principal principal,
+            HttpSession session) {
+
+        String email = principal == null
+                ? null : principal.getName();
+
+        VoucherResponse result =
+                checkoutService.applyVoucher(request, email, session);
+
+        return ResponseEntity.ok(
+                ApiResponse.<VoucherResponse>builder()
+                        .success(result.isValid())
+                        .message(result.getMessage())
+                        .data(result)
+                        .build());
     }
 
     @PostMapping("/api/checkout/shipping-quote")

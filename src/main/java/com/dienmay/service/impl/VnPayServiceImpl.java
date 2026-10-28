@@ -6,10 +6,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.time.Instant;
-import java.time.format.DateTimeParseException;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,6 +30,7 @@ import com.dienmay.entity.payment.PaymentMethod;
 import com.dienmay.entity.payment.PaymentStatus;
 import com.dienmay.repository.payment.PaymentRepository;
 import com.dienmay.service.payment.VnPayService;
+import com.dienmay.service.promotion.VoucherService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,8 @@ public class VnPayServiceImpl implements VnPayService {
 
     private final VnPayConfig vnPayConfig;
     private final PaymentRepository paymentRepository;
-
+    private final VoucherService voucherService;
+    
     @Override
     public void requireConfigured() {
         if (vnPayConfig.getVnpTmnCode() == null || vnPayConfig.getVnpTmnCode().isBlank()
@@ -277,6 +279,12 @@ public class VnPayServiceImpl implements VnPayService {
         payment.setPaymentTime(paidAt);
         paymentRepository.save(payment);
 
+        if (!success) {
+            voucherService.release(
+                    payment.getOrder().getId(),
+                    "VNPAY_FAILED");
+        }
+        
         // Trạng thái xử lý đơn hàng vẫn do chi nhánh xác nhận.
         return ipnResult("00", "Confirm Success");
     }

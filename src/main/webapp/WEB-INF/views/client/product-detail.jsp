@@ -7,7 +7,7 @@
 
 <div class="container-fluid py-4">
 
-	<!-- BREADCRUMB -->
+	
 	<nav aria-label="breadcrumb" class="mb-4">
 		<ol class="breadcrumb small">
 			<li class="breadcrumb-item"><a
@@ -23,7 +23,7 @@
 
 	<div class="row g-4 mb-5">
 
-		<!-- CỘT 1: HÌNH ẢNH SẢN PHẨM -->
+		
 		<div class="col-lg-5">
 			<div
 				class="bg-white p-4 rounded-4 shadow-sm border text-center position-relative">
@@ -46,12 +46,12 @@
 			</div>
 		</div>
 
-		<!-- CỘT 2: THÔNG TIN SẢN PHẨM & MUA HÀNG -->
+		
 		<div class="col-lg-7">
 			<div
 				class="bg-white p-4 rounded-4 shadow-sm border h-100 d-flex flex-column">
 
-				<!-- Thương hiệu & Mã SKU -->
+				
 				<div class="d-flex justify-content-between align-items-center mb-2">
 					<span
 						class="badge bg-primary-subtle text-primary fw-bold text-uppercase px-3 py-2 rounded-pill">
@@ -60,10 +60,10 @@
 					</span>
 				</div>
 
-				<!-- Tên sản phẩm -->
+				
 				<h3 class="fw-bold text-dark mb-3">${product.name}</h3>
 
-				<!-- Giá tiền -->
+				
 				<div
 					class="p-3 bg-light rounded-3 mb-3 d-flex align-items-baseline gap-3">
 					<span class="text-danger display-6 fw-bold"> <fmt:formatNumber
@@ -84,10 +84,10 @@
 					</span>
 				</div>
 
-				<!-- Mô tả tóm tắt -->
+				
 				<p class="text-muted mb-4">${product.shortDescription}</p>
 
-				<!-- ĐẶC TRƯNG CHUỖI CỬA HÀNG: TRA CỨU TỒN KHO TẠI CHI NHÁNH -->
+				
 				<div class="card border-primary-subtle mb-4 rounded-3">
 					<div
 						class="card-header bg-primary-subtle text-primary fw-bold py-2 small">
@@ -124,7 +124,7 @@
 					</ul>
 				</div>
 
-				<!-- Chọn số lượng & Nút Thêm vào giỏ -->
+				
 				<div class="d-flex gap-3 align-items-center mt-auto">
 					<div class="input-group" style="width: 130px;">
 						<button class="btn btn-outline-secondary" type="button"
@@ -154,7 +154,7 @@
 
 	</div>
 
-	<!-- PHẦN MÔ TẢ CHI TIẾT & BẢO HÀNH -->
+	
 	<div class="bg-white p-4 rounded-4 shadow-sm border mb-5">
 		<h4 class="fw-bold mb-3 border-bottom pb-2">Mô Tả Chi Tiết &
 			Chính Sách Bảo Hành</h4>
@@ -192,7 +192,7 @@
 		</div>
 	</div>
 
-	<!--ĐÁNH GIÁ & BÌNH LUẬN SẢN PHẨM (REVIEWS) -->
+	
 	<div id="reviewsSection"
 		class="bg-white p-4 rounded-4 shadow-sm border mb-5">
 		<div
@@ -505,7 +505,7 @@
 			5: '5 sao - Rất hài lòng'
 		};
 
-		// A. Xử lý chọn sao
+		
 		stars.forEach(star => {
 			star.addEventListener('click', function() {
 				const val = parseInt(this.getAttribute('data-val'));
@@ -522,7 +522,7 @@
 			});
 		});
 
-		// B. Xử lý đếm ký tự thời gian thực (Bắt buộc >= 50 ký tự)
+		
 		if (commentInput) {
 			commentInput.addEventListener('input', function() {
 				const len = this.value.trim().length;
@@ -540,14 +540,14 @@
 			});
 		}
 
-		// C. Xử lý gửi Form Đánh giá qua AJAX
+		
 		const formReview = document.getElementById('formReview');
 		if (formReview) {
 			formReview.addEventListener('submit', async function(e) {
 				e.preventDefault();
 
 				const reviewAlert = document.getElementById('reviewAlert');
-				reviewAlert.className = 'alert d-none'; // reset ẩn thông báo cũ
+				reviewAlert.className = 'alert d-none'; 
 
 				const textLen = commentInput.value.trim().length;
 				if (textLen < 50) {
@@ -569,14 +569,14 @@
 					const data = await res.json();
 
 					if (data.success) {
-						// Thông báo thành công màu xanh lá hiện đại
+						
 						reviewAlert.className = 'alert alert-success rounded-3 small py-2 px-3 mb-3 d-flex align-items-center gap-2 shadow-sm';
 						reviewAlert.innerHTML = '<i class="bi bi-check-circle-fill text-success fs-5"></i><div><strong class="d-block">Gửi đánh giá thành công!</strong><span class="text-muted">Cảm ơn bạn đã đóng góp ý kiến. Đang tải lại trang...</span></div>';
 						
 						btnSubmit.className = 'btn btn-success rounded-pill px-4 fw-bold text-white shadow-sm';
 						btnSubmit.innerHTML = '<i class="bi bi-check-lg me-1"></i>Đã gửi thành công!';
 						
-						// Đóng modal sau 1.2s và reload lại trang
+						
 						setTimeout(() => {
 							const modal = bootstrap.Modal.getInstance(document.getElementById('reviewModal'));
 							if (modal) modal.hide();
@@ -599,7 +599,7 @@
 	});
 	</script>
 
-	<!-- SẢN PHẨM LIÊN QUAN -->
+	
 	<c:if test="${not empty relatedProducts}">
 		<div class="mb-4">
 			<h4 class="fw-bold mb-3">Sản Phẩm Cùng Danh Mục</h4>
