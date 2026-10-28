@@ -39,7 +39,6 @@ public class PurchaseValidator {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Không tìm thấy sản phẩm."));
 
-        // Đọc lại trạng thái và giá hiện tại từ database.
         entityManager.refresh(product);
 
         if (!product.isActive()) {
@@ -84,5 +83,9 @@ public class PurchaseValidator {
             throw new IllegalArgumentException(
                     "Chi nhánh giao hàng không đủ số lượng sản phẩm.");
         }
+
+        int newReserved = Math.addExact(inventory.getReservedQuantity(), quantity);
+        inventory.setReservedQuantity(newReserved);
+        inventory.setAvailableQuantity(inventory.getStockQuantity() - newReserved);
     }
 }

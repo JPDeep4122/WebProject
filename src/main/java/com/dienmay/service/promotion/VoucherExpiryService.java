@@ -13,7 +13,9 @@ import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.payment.PaymentRepository;
 import com.dienmay.service.order.OrderStateMachine;
 
-import jakarta.persistence.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -24,6 +26,7 @@ public class VoucherExpiryService {
     private final PaymentRepository payments;
     private final OrderStateMachine stateMachine;
     private final TransactionTemplate transactions;
+    private final com.dienmay.repository.branch.BranchInventoryRepository inventories;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -72,6 +75,22 @@ public class VoucherExpiryService {
 
                 order.setPayment(payment);
 
+                if (order.getBranch() != null && order.getOrderItems() != null) {
+                    var quantities = new java.util.TreeMap<Long, Integer>();
+                    for (var item : order.getOrderItems()) {
+                        if (item.getProduct() != null && item.getQuantity() != null && item.getQuantity() > 0) {
+                            quantities.merge(item.getProduct().getId(), item.getQuantity(), Math::addExact);
+                        }
+                    }
+                    for (var entry : quantities.entrySet()) {
+                        inventories.findForUpdate(order.getBranch().getId(), entry.getKey()).ifPresent(inv -> {
+                            int newReserved = Math.max(0, inv.getReservedQuantity() - entry.getValue());
+                            inv.setReservedQuantity(newReserved);
+                            inv.setAvailableQuantity(inv.getStockQuantity() - newReserved);
+                        });
+                    }
+                }
+                
                 stateMachine.transition(
                         order, OrderStatus.CANCELLED);
 

@@ -62,11 +62,15 @@
                     <input class="form-control form-control-sm mb-2" name="reviewNote" maxlength="500" placeholder="Lý do từ chối" required>
                     <button class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Từ chối yêu cầu trả hàng này?');"><i class="bi bi-x-circle"></i> Từ chối</button>
                 </form></c:if>
-                <c:if test="${request.status eq 'APPROVED'}">
+                                <c:if test="${request.status eq 'APPROVED'}">
                     <form method="post" action="${pageContext.request.contextPath}/admin/returns/${request.id}/complete">
                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"><input type="hidden" name="branchId" value="${selectedBranchId}">
+                        <select class="form-select form-select-sm mb-2" name="disposition">
+                            <option value="RESTOCK">Hàng nguyên vẹn — Nhập lại kho khả dụng</option>
+                            <option value="QUARANTINE">Hàng lỗi/hỏng — Đưa vào kho cách ly</option>
+                        </select>
                         <input class="form-control form-control-sm mb-2" name="completionNote" maxlength="500" placeholder="Ghi chú khi nhận lại hàng">
-                        <button class="btn btn-sm btn-success w-100" onclick="return confirm('Xác nhận đã nhận hàng, hoàn kho và hoàn tiền?');"><i class="bi bi-box-arrow-in-down"></i> Hoàn tất trả hàng</button>
+                        <button class="btn btn-sm btn-success w-100" onclick="return confirm('Xác nhận đã nhận hàng trả và hoàn tiền?');"><i class="bi bi-box-arrow-in-down"></i> Hoàn tất trả hàng</button>
                     </form>
                     <div class="small text-secondary mt-2">Đã duyệt bởi <c:out value="${request.reviewedBy.fullName}"/></div>
                 </c:if>

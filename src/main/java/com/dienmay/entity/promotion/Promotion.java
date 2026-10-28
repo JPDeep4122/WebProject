@@ -86,7 +86,13 @@ public class Promotion {
 	public String getBenefitLabel() {
 		var number = java.text.NumberFormat.getNumberInstance(java.util.Locale.forLanguageTag("vi-VN"));
 		number.setMaximumFractionDigits(2);
-		if (discountType == VoucherType.SHIPPING) return "GIẢM PHÍ SHIP";
+		if (discountType == VoucherType.SHIPPING) {
+			if (maxDiscountAmount != null && maxDiscountAmount.compareTo(BigDecimal.valueOf(1000)) >= 0
+					&& maxDiscountAmount.remainder(BigDecimal.valueOf(1000)).signum() == 0) {
+				return "FREESHIP " + number.format(maxDiscountAmount.divide(BigDecimal.valueOf(1000))) + "K";
+			}
+			return "FREESHIP";
+		}
 		if (discountType == VoucherType.PERCENT) {
 			return "GIẢM " + number.format(discountPercent == null ? BigDecimal.ZERO : discountPercent) + "%";
 		}
@@ -94,12 +100,42 @@ public class Promotion {
 		BigDecimal thousand = BigDecimal.valueOf(1000);
 		BigDecimal million = BigDecimal.valueOf(1000000);
 		if (amount.compareTo(million) >= 0 && amount.remainder(million).signum() == 0) {
-			return "GIẢM " + number.format(amount.divide(million)) + " TRIỆU";
+			return "GIẢM " + number.format(amount.divide(million)) + "TR";
 		}
 		if (amount.compareTo(thousand) >= 0 && amount.remainder(thousand).signum() == 0) {
 			return "GIẢM " + number.format(amount.divide(thousand)) + "K";
 		}
-		return "GIẢM " + number.format(amount) + "đ";
+		return "GIẢM " + number.format(amount) + "₫";
+	}
+
+	@Transient
+	public String getDisplayName() {
+		String raw = name == null ? "" : name.replaceFirst("^\\[TV08\\]\\s*", "").trim();
+		if (code != null && code.startsWith("TV08-")) {
+			String benefit = getBenefitLabel();
+			if (discountType == VoucherType.SHIPPING) {
+				if (minOrderAmount != null && minOrderAmount.signum() > 0) {
+					return "Miễn phí vận chuyển cho đơn từ " + getMinOrderAmountDisplay();
+				}
+				return maxDiscountAmount != null
+						? "Hỗ trợ phí giao hàng tối đa " + getMaxDiscountAmountDisplay()
+						: "Miễn phí vận chuyển toàn quốc 100%";
+			}
+			if (newCustomerOnly) {
+				return "Ưu đãi Bạn Mới — " + benefit + " đơn hàng đầu tiên";
+			}
+			if (requiredPaymentMethod != null) {
+				return "Độc quyền " + requiredPaymentMethod.name() + " — " + benefit + " toàn sàn";
+			}
+			if (maxDiscountAmount != null) {
+				return "Siêu Deal Điện Máy — " + benefit + " (Tối đa " + getMaxDiscountAmountDisplay() + ")";
+			}
+			if (minOrderAmount != null && minOrderAmount.signum() > 0) {
+				return "Voucher TECHSEVEN — " + benefit + " cho đơn từ " + getMinOrderAmountDisplay();
+			}
+			return "Ưu đãi TECHSEVEN — " + benefit + " toàn bộ sản phẩm";
+		}
+		return raw.isEmpty() ? "Ưu đãi mua sắm TECHSEVEN" : raw;
 	}
 
 	@Transient

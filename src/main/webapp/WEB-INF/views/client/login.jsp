@@ -1,9 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 	pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core"%>
-<%@ taglib prefix="ui" tagdir="/WEB-INF/tags"%>
 
-<!-- 1. Nhúng Header chuẩn Điện Máy -->
 <jsp:include page="fragments/header.jsp" />
 
 <style>
@@ -127,7 +125,7 @@
 									onclick="switchView('forgot')">Quên mật khẩu?</span>
 							</div>
 						</form>
-						<ui:phone-auth mode="login" />
+						
 						<div id="googleSignInSection" class="mt-4"
 							data-google-client-id="<c:out value='${googleClientId}'/>"
 							data-context-path="${pageContext.request.contextPath}">
@@ -360,6 +358,8 @@
                 let destMsg = 'Đăng nhập thành công! Đang chuyển hướng...';
                 if (roles.includes('ROLE_ADMIN')) {
                     destMsg = 'Xin chào Quản trị viên! Đang chuyển tới Hệ thống Quản trị...';
+                } else if (roles.includes('ROLE_BRANCH_MANAGER')) {
+                    destMsg = 'Xin chào Quản lý chi nhánh! Đang chuyển tới Khu vực Quản lý...';
                 } else if (roles.includes('ROLE_STAFF')) {
                     destMsg = 'Xin chào Nhân viên! Đang chuyển tới Khu vực xử lý đơn hàng...';
                 } else if (roles.includes('ROLE_SHIPPER')) {
@@ -556,8 +556,6 @@
 <script src="https://accounts.google.com/gsi/client?hl=vi" async defer
 	onload="initTechsevenGoogle()" onerror="techsevenGoogleLoadFailed()"></script>
 
-<script type="module"
-	src="${pageContext.request.contextPath}/js/phone-auth.js"></script>
 <!-- 4. Nhúng Footer -->
 
 <jsp:include page="fragments/footer.jsp" />

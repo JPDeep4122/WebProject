@@ -42,7 +42,7 @@ public interface BranchInventoryRepository extends JpaRepository<BranchInventory
             @Param("keyword") String keyword, Pageable pageable);
 
     @Query("""
-            select coalesce(sum(coalesce(i.stockQuantity, 0) - coalesce(i.reservedQuantity, 0)), 0)
+            select coalesce(sum(coalesce(i.stockQuantity, 0) - coalesce(i.reservedQuantity, 0) - coalesce(i.transferReservedQuantity, 0) - coalesce(i.quarantineQuantity, 0)), 0)
             from BranchInventory i
             where i.product.id = :productId and i.branch.active = true
             """)

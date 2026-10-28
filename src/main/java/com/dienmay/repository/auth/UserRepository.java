@@ -22,6 +22,15 @@ public interface UserRepository extends JpaRepository<User, Long>{
 	List<User> findByRoles_Name(String roleName, Sort sort);
 
 	@EntityGraph(attributePaths = {"branch", "roles"})
+	List<User> findByBranch_Id(Long branchId, Sort sort);
+
+	@EntityGraph(attributePaths = {"branch", "roles"})
+	List<User> findByBranch_IdAndRoles_Name(Long branchId, String roleName, Sort sort);
+
+	@EntityGraph(attributePaths = {"branch", "roles"})
+	List<User> findByBranch_IdAndRoles_NameAndActiveTrueAndBlockedFalse(Long branchId, String roleName);
+	
+	@EntityGraph(attributePaths = {"branch", "roles"})
 	List<User> findDistinctByRoles_NameAndActiveTrueOrderByFullNameAsc(String roleName);
 
 	Optional<User> findByGoogleSub(String googleSub);
@@ -30,15 +39,6 @@ public interface UserRepository extends JpaRepository<User, Long>{
 	
 	Optional<User> findByEmailIgnoreCase(String email);
 	
-	Optional<User> findByFirebasePhoneUid(String firebasePhoneUid);
-
-	boolean existsByVerifiedPhoneNumberOrFirebasePhoneUid(
-	        String verifiedPhoneNumber,
-	        String firebasePhoneUid);
-
-	@Lock(LockModeType.PESSIMISTIC_WRITE)
-	@Query("select u from User u where u.email = :email")
-	Optional<User> findForPhoneLink(@Param("email") String email);
 	
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select u from User u where u.email = :email")

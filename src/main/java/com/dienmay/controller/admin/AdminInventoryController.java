@@ -57,7 +57,28 @@ public class AdminInventoryController {
             Principal principal, RedirectAttributes flash) {
         try {
             inventoryService.adjust(id, newStock, reason, principal.getName());
-            flash.addFlashAttribute("success", "Đã điều chỉnh tồn kho và lưu lịch sử thay đổi.");
+            flash.addFlashAttribute("success",
+                    "Đã lập phiếu yêu cầu điều chỉnh tồn kho (chờ Quản lý/Admin phê duyệt).");
+        } catch (IllegalArgumentException | AccessDeniedException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        if (branchId != null) {
+            flash.addAttribute("branchId", branchId);
+        }
+        return "redirect:/admin/inventory";
+    }
+
+    @PostMapping("/adjustments/{adjustmentId}/review")
+    public String reviewAdjustment(@PathVariable Long adjustmentId,
+            @RequestParam String decision,
+            @RequestParam(required = false) String reviewNote,
+            @RequestParam(required = false) Long branchId,
+            Principal principal, RedirectAttributes flash) {
+        try {
+            inventoryService.reviewAdjustment(adjustmentId, decision, reviewNote, principal.getName());
+            flash.addFlashAttribute("success", "APPROVED".equalsIgnoreCase(decision)
+                    ? "Đã phê duyệt phiếu điều chỉnh và cập nhật tồn kho thực tế."
+                    : "Đã từ chối phiếu điều chỉnh tồn kho.");
         } catch (IllegalArgumentException | AccessDeniedException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }

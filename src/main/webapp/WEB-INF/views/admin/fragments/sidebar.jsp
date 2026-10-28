@@ -10,13 +10,18 @@
 <c:set var="adminCurrentPath"
 	value="${fn:substringAfter(adminCurrentPath, pageContext.request.contextPath)}" />
 <c:set var="principalText">${pageContext.request.userPrincipal}</c:set>
-<c:set var="isAdminRole" value="${fn:contains(principalText, 'ROLE_ADMIN')}" />
+<c:set var="isAdminRole"
+	value="${fn:contains(principalText, 'ROLE_ADMIN')}" />
+<c:set var="isBranchManagerRole"
+	value="${fn:contains(principalText, 'ROLE_BRANCH_MANAGER')}" />
+<c:set var="isManagerOrAdmin"
+	value="${isAdminRole or isBranchManagerRole}" />
 
 <aside class="admin-sidebar">
 	<a href="${pageContext.request.contextPath}/admin" class="admin-brand">
 		<img
 		src="${pageContext.request.contextPath}/images/brand/techseven-logo.svg"
-		alt="TECHSEVEN"> <small>${isAdminRole ? 'KHU VỰC QUẢN TRỊ' : 'PHÂN HỆ NHÂN VIÊN'}</small>
+		alt="TECHSEVEN"> <small>${isAdminRole ? 'KHU VỰC QUẢN TRỊ' : (isBranchManagerRole ? 'QUẢN LÝ CHI NHÁNH' : 'PHÂN HỆ NHÂN VIÊN')}</small>
 	</a>
 	<hr>
 	<ul class="nav nav-pills flex-column mb-auto">
@@ -40,7 +45,7 @@
 			class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/orders') ? 'active text-white' : 'text-white-50'}"
 			${fn:startsWith(adminCurrentPath, '/admin/orders') ? 'aria-current="page"' : ''}><i
 				class="bi bi-receipt me-2"></i> Quản lý Đơn hàng</a></li>
-		<c:if test="${isAdminRole}">
+		<c:if test="${isManagerOrAdmin}">
 			<li><a href="${pageContext.request.contextPath}/admin/invoices"
 				class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/invoices') ? 'active text-white' : 'text-white-50'}"
 				${fn:startsWith(adminCurrentPath, '/admin/invoices') ? 'aria-current="page"' : ''}><i
@@ -50,6 +55,12 @@
 			class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/inventory') ? 'active text-white' : 'text-white-50'}"
 			${fn:startsWith(adminCurrentPath, '/admin/inventory') ? 'aria-current="page"' : ''}><i
 				class="bi bi-boxes me-2"></i> Tồn kho chi nhánh</a></li>
+
+		<li><a href="${pageContext.request.contextPath}/admin/transfers"
+			class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/transfers') ? 'active text-white' : 'text-white-50'}"
+			${fn:startsWith(adminCurrentPath, '/admin/transfers') ? 'aria-current="page"' : ''}><i
+				class="bi bi-arrow-left-right me-2"></i> Điều chuyển kho</a></li>
+				
 		<li><a href="${pageContext.request.contextPath}/admin/returns"
 			class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/returns') ? 'active text-white' : 'text-white-50'}"
 			${fn:startsWith(adminCurrentPath, '/admin/returns') ? 'aria-current="page"' : ''}><i
@@ -81,7 +92,7 @@
 			class="d-flex align-items-center text-white text-decoration-none dropdown-toggle w-100"
 			data-bs-toggle="dropdown"> <span class="admin-account-icon"><i
 				class="bi ${isAdminRole ? 'bi-person-fill-gear' : 'bi-person-badge-fill'}"></i></span>
-			<span class="text-truncate"> <strong>${isAdminRole ? 'Quản trị viên' : 'Nhân viên chi nhánh'}</strong>
+			<span class="text-truncate"> <strong>${isAdminRole ? 'Quản trị viên' : (isBranchManagerRole ? 'Quản lý chi nhánh' : 'Nhân viên chi nhánh')}</strong>
 				<small class="text-truncate"><c:out
 						value="${pageContext.request.userPrincipal.name}"
 						default="Hệ thống TECHSEVEN" /></small>

@@ -1,6 +1,7 @@
 package com.dienmay.controller.admin;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -14,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -63,23 +65,23 @@ public class AdminOrderController {
 
         try {
             confirmationService.confirm(id, principal.getName());
-
             flash.addFlashAttribute(
                     "success",
                     "Đã xác nhận đơn hàng và trừ tồn kho chi nhánh.");
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | AccessDeniedException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }
 
         return orderActionRedirect(id, returnTo);
     }
-    @org.springframework.web.bind.annotation.PostMapping("/{id}/start-picking")
-    public String startPicking(@org.springframework.web.bind.annotation.PathVariable Long id,
-            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+
+    @PostMapping("/{id}/start-picking")
+    public String startPicking(@PathVariable Long id,
+            Principal principal, RedirectAttributes flash) {
         try {
             pickingService.startPicking(id, principal.getName());
             flash.addFlashAttribute("success", "Đã chuyển đơn sang bước lấy và chuẩn bị hàng.");
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | AccessDeniedException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/admin/orders";
@@ -102,18 +104,45 @@ public class AdminOrderController {
             flash.addFlashAttribute(
                     "success",
                     "Đã phân công đơn hàng cho shipper.");
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | AccessDeniedException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }
 
         return orderActionRedirect(id, returnTo);
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/{id}/cancel")
-    public String cancel(@org.springframework.web.bind.annotation.PathVariable Long id,
-            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+    @PostMapping("/{id}/cancel")
+    public String cancel(@PathVariable Long id,
+            Principal principal, RedirectAttributes flash) {
         return execute(id, principal, flash, fulfillmentService::cancel,
                 "Đã hủy đơn hàng.");
+    }
+
+    @PostMapping("/{id}/confirm-cod-handover")
+    @Transactional
+    public String confirmCodHandover(@PathVariable Long id, Principal principal, RedirectAttributes flash) {
+        try {
+            Order order = findAccessibleOrder(id, principal);
+            User actor = userRepository.findByEmail(principal.getName())
+                    .orElseThrow(() -> new AccessDeniedException("Vui lòng đăng nhập."));
+            boolean admin = actor.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+            boolean manager = actor.getRoles().stream().anyMatch(r -> "ROLE_BRANCH_MANAGER".equals(r.getName()));
+            if (!admin && !manager) {
+                throw new AccessDeniedException(
+                        "Chỉ Quản lý chi nhánh hoặc Admin tổng mới được xác nhận nhận bàn giao tiền COD từ Shipper.");
+            }
+            var assignment = order.getDeliveryAssignment();
+            if (assignment == null || !"PENDING_HANDOVER".equals(assignment.getCodHandoverStatus())) {
+                throw new IllegalArgumentException("Đơn hàng này không ở trạng thái chờ bàn giao tiền COD.");
+            }
+            assignment.setCodHandoverStatus("HANDED_OVER");
+            assignment.setCodHandedOverAt(LocalDateTime.now());
+            assignment.setCodReceivedBy(actor);
+            flash.addFlashAttribute("success", "Đã xác nhận nhận đủ tiền thu hộ COD từ Shipper về quỹ chi nhánh.");
+        } catch (RuntimeException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/orders/" + id;
     }
 
     @GetMapping
@@ -127,7 +156,7 @@ public class AdminOrderController {
         User currentUser = userRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản đang đăng nhập."));
         boolean admin = currentUser.getRoles().stream()
-                .anyMatch(role -> role.getName() != null && role.getName().toUpperCase().endsWith("ADMIN"));
+                .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
 
         Long effectiveBranchId = admin ? branchId
                 : currentUser.getBranch() == null ? null : currentUser.getBranch().getId();
@@ -139,7 +168,7 @@ public class AdminOrderController {
         Page<Order> orders;
         if (!admin && effectiveBranchId == null) {
             orders = Page.empty(pageable);
-            model.addAttribute("error", "Tài khoản nhân viên chưa được gán chi nhánh.");
+            model.addAttribute("error", "Tài khoản nhân sự chưa được gán chi nhánh.");
         } else {
             orders = orderService.getOrdersForBranch(effectiveBranchId, selectedStatus, pageable);
         }
@@ -149,13 +178,13 @@ public class AdminOrderController {
         model.addAttribute("selectedStatus", selectedStatus == null ? "" : selectedStatus.name());
         model.addAttribute("selectedBranchId", effectiveBranchId);
         model.addAttribute("branches", admin ? branchRepository.findByActiveTrue()
-                : currentUser.getBranch() == null ? java.util.List.of() : java.util.List.of(currentUser.getBranch()));
+                : currentUser.getBranch() == null ? List.of() : List.of(currentUser.getBranch()));
         var shippers = userRepository
                 .findDistinctByRoles_NameAndActiveTrueOrderByFullNameAsc("ROLE_SHIPPER");
         if (effectiveBranchId != null) {
             shippers = shippers.stream()
                     .filter(shipper -> shipper.getBranch() != null
-                            && java.util.Objects.equals(shipper.getBranch().getId(), effectiveBranchId))
+                            && Objects.equals(shipper.getBranch().getId(), effectiveBranchId))
                     .toList();
         }
         model.addAttribute("shippers", shippers);
@@ -177,10 +206,6 @@ public class AdminOrderController {
             HttpServletRequest request) {
 
         Order order = findAccessibleOrder(id, principal);
-        User actor = userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new AccessDeniedException("Không có quyền xem đơn hàng."));
-        boolean admin = actor.getRoles().stream()
-                .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
 
         var shippers = userRepository
                 .findDistinctByRoles_NameAndActiveTrueOrderByFullNameAsc(
@@ -200,7 +225,6 @@ public class AdminOrderController {
         if (assignment != null && assignment.getProofPublicId() != null) {
             String proofUrl = deliveryProofStorageService.resolveViewUrl(
                     assignment.getProofPublicId(), request.getContextPath());
-            // Local fallback files are served through this order-scoped, authenticated endpoint.
             if (proofUrl != null && proofUrl.contains("/shipper/orders/proof/")) {
                 proofUrl = request.getContextPath() + "/admin/orders/" + order.getId() + "/proof";
             }
@@ -258,9 +282,11 @@ public class AdminOrderController {
                 .orElseThrow(() -> new AccessDeniedException("Không có quyền xem đơn hàng."));
         boolean admin = actor.getRoles().stream()
                 .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
+        boolean manager = actor.getRoles().stream()
+                .anyMatch(role -> "ROLE_BRANCH_MANAGER".equals(role.getName()));
         boolean staff = actor.getRoles().stream()
                 .anyMatch(role -> "ROLE_STAFF".equals(role.getName()));
-        if (!actor.isActive() || actor.isBlocked() || (!admin && !staff)) {
+        if (!actor.isActive() || actor.isBlocked() || (!admin && !manager && !staff)) {
             throw new AccessDeniedException("Không có quyền xem đơn hàng.");
         }
 
@@ -279,16 +305,14 @@ public class AdminOrderController {
             @RequestParam(required = false) Long branchId,
             Principal principal) {
         if (principal == null) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập.");
         }
         User currentUser = userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
-                        org.springframework.http.HttpStatus.UNAUTHORIZED,
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
                         "Không tìm thấy tài khoản đang đăng nhập."));
         boolean admin = currentUser.getRoles().stream()
-                .anyMatch(role -> role.getName() != null
-                        && role.getName().toUpperCase().endsWith("ADMIN"));
+                .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
         Long effectiveBranchId = admin ? branchId
                 : currentUser.getBranch() == null ? null : currentUser.getBranch().getId();
         if (!admin && effectiveBranchId == null) return List.of();
@@ -309,12 +333,12 @@ public class AdminOrderController {
     }
 
     private String execute(Long id, Principal principal,
-            org.springframework.web.servlet.mvc.support.RedirectAttributes flash,
+            RedirectAttributes flash,
             OrderAction action, String successMessage) {
         try {
             action.run(id, principal.getName());
             flash.addFlashAttribute("success", successMessage);
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | AccessDeniedException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/admin/orders";
@@ -324,7 +348,7 @@ public class AdminOrderController {
     private interface OrderAction {
         void run(Long orderId, String email);
     }
-    
+
     private String orderActionRedirect(Long id, String returnTo) {
         return "detail".equals(returnTo)
                 ? "redirect:/admin/orders/" + id

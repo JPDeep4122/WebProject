@@ -180,13 +180,6 @@
 			<version>2.9.2</version>
 		</dependency>
 
-		<!-- Firebase Admin: verify phone authentication tokens -->
-		<dependency>
-			<groupId>com.google.firebase</groupId>
-			<artifactId>firebase-admin</artifactId>
-			<version>9.11.0</version>
-		</dependency>
-
 	</dependencies>
 
 	<build>
@@ -197,7 +190,7 @@
 				<filtering>false</filtering>
 				<excludes>
 					<exclude>db/manual/04_seed_demo_data.sql</exclude>
-						<exclude>db/manual/04_seed_demo_accounts.txt</exclude>
+					<exclude>db/manual/04_seed_demo_accounts.txt</exclude>
 				</excludes>
 			</resource>
 		</resources>

@@ -29,11 +29,12 @@ public class DeliveryAssignmentService {
 	public void assign(Long orderId, Long shipperId, String actorEmail) {
 		var actor = users.findByEmail(actorEmail)
 				.orElseThrow(() -> new AccessDeniedException("Không có quyền phân công đơn hàng."));
-		boolean admin = hasRole(actor, "ROLE_ADMIN");
-		boolean staff = hasRole(actor, "ROLE_STAFF");
-		if (!actor.isActive() || (!admin && !staff)) {
-			throw new AccessDeniedException("Không có quyền phân công đơn hàng.");
-		}
+	  	boolean admin = hasRole(actor, "ROLE_ADMIN");
+	  	boolean manager = hasRole(actor, "ROLE_BRANCH_MANAGER");
+	  	boolean staff = hasRole(actor, "ROLE_STAFF");
+	  	if (!actor.isActive() || actor.isBlocked() || (!admin && !manager && !staff)) {
+	  		throw new AccessDeniedException("Không có quyền phân công đơn hàng.");
+	  	}	
 
 		var order = orders.findForUpdate(orderId)
 				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));

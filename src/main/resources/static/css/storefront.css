@@ -2559,7 +2559,6 @@ body {
     }
 }
 
-/* Giữ lựa chọn toàn bộ danh mục nổi bật trong bộ lọc. */
 .catalog-category-all {
     border: 1px solid #bfdbfe;
     border-radius: 12px;
@@ -2572,3 +2571,25 @@ body {
     border-color: #0b66c3;
     box-shadow: 0 0 0 2px rgba(11, 102, 195, .1);
 }
+
+
+.sf-branch-region {
+    display: flex;
+    align-items: center;
+    margin: 4px 0 8px;
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+.sf-branch-item {
+    border-color: #e2e8f0;
+    transition: background-color .15s ease;
+}
+.sf-branch-item:hover { background: #f8fafc; }
+.sf-branch-item.is-current {
+    background: #eff6ff;
+    box-shadow: inset 3px 0 0 #0046be;
+}
+.sf-branch-item .min-w-0 { min-width: 0; }

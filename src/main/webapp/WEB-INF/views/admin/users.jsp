@@ -42,12 +42,17 @@
 									${selectedType eq 'STAFF' ? 'selected' : ''}>Nhân viên</option>
 								<option value="SHIPPER"
 									${selectedType eq 'SHIPPER' ? 'selected' : ''}>Shipper</option>
-								<option value="CUSTOMER"
-									${selectedType eq 'CUSTOMER' ? 'selected' : ''}>Khách
-									hàng</option>
-								<option value="ADMIN"
-									${selectedType eq 'ADMIN' ? 'selected' : ''}>Quản trị
-									viên</option></select>
+								<c:if test="${isAdminActor}">
+									<option value="BRANCH_MANAGER"
+										${selectedType eq 'BRANCH_MANAGER' ? 'selected' : ''}>Quản
+										lý chi nhánh</option>
+									<option value="CUSTOMER"
+										${selectedType eq 'CUSTOMER' ? 'selected' : ''}>Khách
+										hàng</option>
+									<option value="ADMIN"
+										${selectedType eq 'ADMIN' ? 'selected' : ''}>Quản trị
+										viên</option>
+								</c:if></select>
 						</div>
 						<div class="col-md-2">
 							<label class="form-label">Sắp xếp theo</label><select
@@ -101,12 +106,59 @@
 							<input class="form-control" name="phoneNumber"
 								placeholder="Số điện thoại">
 						</div>
-						<div class="col-md-1">
-							<select class="form-select" name="role"><option
-									value="ROLE_CUSTOMER">Khách hàng</option>
+						<div class="col-md-2">
+							<select class="form-select" name="role">
+								<c:if test="${isAdminActor}">
+									<option value="ROLE_CUSTOMER">Khách hàng</option>
+									<option value="ROLE_BRANCH_MANAGER">Quản lý chi nhánh</option>
+								</c:if>
 								<option value="ROLE_STAFF">Nhân viên</option>
 								<option value="ROLE_SHIPPER">Shipper</option>
-								<option value="ROLE_ADMIN">Admin</option></select>
+								<c:if test="${isAdminActor}">
+									<option value="ROLE_ADMIN">Admin</option>
+								</c:if>
+							</select>
+						</div>
+						<div class="col-md-2">
+							<td><c:choose>
+									<c:when test="${isAdminActor}">
+										<form method="post" action="/admin/users/${u.id}/permission"
+											class="d-flex flex-column gap-1 user-permission-form">
+											<input type="hidden" name="${_csrf.parameterName}"
+												value="${_csrf.token}"> <select
+												class="form-select form-select-sm user-role-select"
+												name="role" aria-label="Vai trò mới cho ${u.email}">
+												<option value="ROLE_CUSTOMER"
+													${u.roles.iterator().next().name eq 'ROLE_CUSTOMER' ? 'selected' : ''}>Khách
+													hàng</option>
+												<option value="ROLE_STAFF"
+													${u.roles.iterator().next().name eq 'ROLE_STAFF' ? 'selected' : ''}>Nhân
+													viên</option>
+												<option value="ROLE_SHIPPER"
+													${u.roles.iterator().next().name eq 'ROLE_SHIPPER' ? 'selected' : ''}>Shipper</option>
+												<option value="ROLE_BRANCH_MANAGER"
+													${u.roles.iterator().next().name eq 'ROLE_BRANCH_MANAGER' ? 'selected' : ''}>Quản
+													lý chi nhánh</option>
+												<option value="ROLE_ADMIN"
+													${u.roles.iterator().next().name eq 'ROLE_ADMIN' ? 'selected' : ''}>Admin</option>
+											</select> <select
+												class="form-select form-select-sm user-branch-select"
+												name="branchId" aria-label="Chi nhánh của ${u.email}">
+												<option value="">Chọn chi nhánh</option>
+												<c:forEach items="${branches}" var="b">
+													<option value="${b.id}"
+														${u.branch.id eq b.id ? 'selected' : ''}>${b.name}</option>
+												</c:forEach>
+											</select>
+											<button type="submit" class="btn btn-sm btn-outline-primary">Lưu
+												quyền</button>
+										</form>
+									</c:when>
+									<c:otherwise>
+										<small class="text-muted">Chỉ Admin tổng được đổi vai
+											trò/chi nhánh</small>
+									</c:otherwise>
+								</c:choose></td>
 						</div>
 						<div class="col-md-2">
 							<select class="form-select" name="branchId"><option
@@ -150,22 +202,30 @@
 										<form method="post" action="/admin/users/${u.id}/permission"
 											class="d-flex flex-column gap-1 user-permission-form">
 											<input type="hidden" name="${_csrf.parameterName}"
-												value="${_csrf.token}">
-											<select class="form-select form-select-sm user-role-select"
+												value="${_csrf.token}"> <select
+												class="form-select form-select-sm user-role-select"
 												name="role" aria-label="Vai trò mới cho ${u.email}">
-												<option value="ROLE_CUSTOMER" ${u.roles.iterator().next().name eq 'ROLE_CUSTOMER' ? 'selected' : ''}>Khách hàng</option>
-												<option value="ROLE_STAFF" ${u.roles.iterator().next().name eq 'ROLE_STAFF' ? 'selected' : ''}>Nhân viên</option>
-												<option value="ROLE_SHIPPER" ${u.roles.iterator().next().name eq 'ROLE_SHIPPER' ? 'selected' : ''}>Shipper</option>
-												<option value="ROLE_ADMIN" ${u.roles.iterator().next().name eq 'ROLE_ADMIN' ? 'selected' : ''}>Admin</option>
-											</select>
-											<select class="form-select form-select-sm user-branch-select"
+												<option value="ROLE_CUSTOMER"
+													${u.roles.iterator().next().name eq 'ROLE_CUSTOMER' ? 'selected' : ''}>Khách
+													hàng</option>
+												<option value="ROLE_STAFF"
+													${u.roles.iterator().next().name eq 'ROLE_STAFF' ? 'selected' : ''}>Nhân
+													viên</option>
+												<option value="ROLE_SHIPPER"
+													${u.roles.iterator().next().name eq 'ROLE_SHIPPER' ? 'selected' : ''}>Shipper</option>
+												<option value="ROLE_ADMIN"
+													${u.roles.iterator().next().name eq 'ROLE_ADMIN' ? 'selected' : ''}>Admin</option>
+											</select> <select
+												class="form-select form-select-sm user-branch-select"
 												name="branchId" aria-label="Chi nhánh của ${u.email}">
 												<option value="">Chọn chi nhánh</option>
 												<c:forEach items="${branches}" var="b">
-													<option value="${b.id}" ${u.branch.id eq b.id ? 'selected' : ''}>${b.name}</option>
+													<option value="${b.id}"
+														${u.branch.id eq b.id ? 'selected' : ''}>${b.name}</option>
 												</c:forEach>
 											</select>
-											<button type="submit" class="btn btn-sm btn-outline-primary">Lưu quyền</button>
+											<button type="submit" class="btn btn-sm btn-outline-primary">Lưu
+												quyền</button>
 										</form>
 									</td>
 									<td>${u.branch.name}</td>
@@ -209,21 +269,23 @@
 		</main>
 	</div>
 	<script>
-		(function () {
+		(function() {
 			function updateBranchField(form) {
 				const role = form.querySelector('.user-role-select').value;
 				const branch = form.querySelector('.user-branch-select');
-				const needsBranch = role === 'ROLE_STAFF' || role === 'ROLE_SHIPPER';
+				const needsBranch = role === 'ROLE_BRANCH_MANAGER' || role === 'ROLE_STAFF' || role === 'ROLE_SHIPPER';
 				branch.classList.toggle('d-none', !needsBranch);
 				branch.disabled = !needsBranch;
 				branch.required = needsBranch;
 			}
-			document.querySelectorAll('.user-permission-form').forEach(function (form) {
-				updateBranchField(form);
-				form.querySelector('.user-role-select').addEventListener('change', function () {
-					updateBranchField(form);
-				});
-			});
+			document.querySelectorAll('.user-permission-form').forEach(
+					function(form) {
+						updateBranchField(form);
+						form.querySelector('.user-role-select')
+								.addEventListener('change', function() {
+									updateBranchField(form);
+								});
+					});
 		})();
 	</script>
 </body>

@@ -116,7 +116,9 @@ public class OrderServiceImpl implements OrderService {
             return false;
         }
 
-        if (currentStatus != OrderStatus.PENDING) {
+        if (currentStatus == OrderStatus.PENDING) {
+            releaseReservedInventory(order);
+        } else {
             restoreInventory(order);
         }
         stateMachine.transition(order, OrderStatus.CANCELLED);
@@ -160,6 +162,27 @@ public class OrderServiceImpl implements OrderService {
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Chi nhánh chưa có tồn kho cho sản phẩm #" + entry.getKey()));
             inventory.setStockQuantity(Math.addExact(inventory.getStockQuantity(), entry.getValue()));
+        }
+    }
+    
+    private void releaseReservedInventory(Order order) {
+        if (order.getBranch() == null || order.getBranch().getId() == null
+                || order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            return;
+        }
+        var quantities = new TreeMap<Long, Integer>();
+        for (var item : order.getOrderItems()) {
+            if (item.getProduct() != null && item.getProduct().getId() != null
+                    && item.getQuantity() != null && item.getQuantity() > 0) {
+                quantities.merge(item.getProduct().getId(), item.getQuantity(), Math::addExact);
+            }
+        }
+        for (var entry : quantities.entrySet()) {
+            inventories.findForUpdate(order.getBranch().getId(), entry.getKey()).ifPresent(inventory -> {
+                int newReserved = Math.max(0, inventory.getReservedQuantity() - entry.getValue());
+                inventory.setReservedQuantity(newReserved);
+                inventory.setAvailableQuantity(inventory.getStockQuantity() - newReserved);
+            });
         }
     }
 

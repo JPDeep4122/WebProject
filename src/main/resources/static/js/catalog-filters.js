@@ -7,14 +7,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const minPrice = document.getElementById('filterMinPrice');
     const maxPrice = document.getElementById('filterMaxPrice');
     const presets = form.querySelectorAll('[name="pricePreset"]');
+    const brandAll = document.getElementById('filterBrandAll');
+    const brandChecks = form.querySelectorAll('[name="brandIds"]');
 
-    form.querySelectorAll('[name="categorySlug"]').forEach(function (category) {
-        category.addEventListener('change', function () {
-            // Thương hiệu của danh mục trước không được giữ lại để làm rỗng danh mục mới.
-            form.querySelectorAll('[name="brandIds"]').forEach(function (brand) { brand.checked = false; });
-            form.requestSubmit();
+    if (brandAll) {
+        brandAll.addEventListener('change', function () {
+            if (brandAll.checked) {
+                brandChecks.forEach(function (cb) { cb.checked = false; });
+                form.requestSubmit();
+            } else {
+                const anyChecked = Array.from(brandChecks).some(function (cb) { return cb.checked; });
+                if (!anyChecked) brandAll.checked = true;
+            }
         });
-    });
+
+        brandChecks.forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                const anyChecked = Array.from(brandChecks).some(function (item) { return item.checked; });
+                brandAll.checked = !anyChecked;
+            });
+        });
+    }
 
     if (toggle && sidebar) {
         toggle.addEventListener('click', function () {
@@ -56,8 +69,8 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
             return;
         }
-        // Only the actual bounds belong in the URL; presets are a UI shortcut.
         presets.forEach(function (preset) { preset.disabled = true; });
+        if (brandAll) brandAll.disabled = true;
         form.querySelectorAll('[name="minPrice"], [name="maxPrice"], [name="branchId"], [name="minRating"], [name="categorySlug"]')
             .forEach(function (input) { if (!input.value) input.disabled = true; });
     });
@@ -87,7 +100,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (image.complete && image.naturalWidth === 0) showPlaceholder();
     });
 
-    // A browser may restore a page from its back/forward cache after submission.
     window.addEventListener('pageshow', function () {
         form.querySelectorAll('input, select').forEach(function (input) { input.disabled = false; });
     });

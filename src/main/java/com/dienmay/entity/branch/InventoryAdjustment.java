@@ -19,10 +19,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "inventory_adjustments")
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -53,11 +55,29 @@ public class InventoryAdjustment {
     @Column(name = "new_stock", nullable = false)
     private Integer newStock;
 
+    @Column(name = "delta_quantity", nullable = false)
+    @Builder.Default
+    private Integer deltaQuantity = 0;
+
     @Column(name = "reserved_quantity", nullable = false)
     private Integer reservedQuantity;
 
     @Column(nullable = false, length = 500)
     private String reason;
+
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private String status = "PENDING"; // PENDING, APPROVED, REJECTED
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private User reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "review_note", length = 500)
+    private String reviewNote;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -66,6 +86,12 @@ public class InventoryAdjustment {
     void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+        if (status == null) {
+            status = "PENDING";
+        }
+        if (deltaQuantity == null && newStock != null && previousStock != null) {
+            deltaQuantity = newStock - previousStock;
         }
     }
 }

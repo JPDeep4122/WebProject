@@ -2,6 +2,7 @@
 	pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core"%>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt"%>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions"%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -18,6 +19,9 @@
 <jsp:include page="fragments/theme.jsp" />
 </head>
 <body class="bg-light">
+	<c:set var="principalText">${pageContext.request.userPrincipal}</c:set>
+	<c:set var="canConfirmCodHandover"
+		value="${fn:contains(principalText, 'ROLE_ADMIN') or fn:contains(principalText, 'ROLE_BRANCH_MANAGER')}" />
 	<div class="d-flex">
 		<jsp:include page="fragments/sidebar.jsp" />
 		<main class="flex-grow-1 p-4">
@@ -114,6 +118,29 @@
 								<dd class="col-sm-7">
 									<c:out value="${order.deliveryAssignment.status}" default="—" />
 								</dd>
+								<c:if test="${order.payment.paymentMethod eq 'COD' and not empty order.deliveryAssignment}">
+									<dt class="col-sm-5">Đối soát tiền COD</dt>
+									<dd class="col-sm-7">
+										<c:choose>
+											<c:when test="${order.deliveryAssignment.codHandoverStatus eq 'HANDED_OVER'}">
+												<span class="badge text-bg-success">Đã nộp về chi nhánh</span>
+												<small class="text-secondary d-block">Người nhận quỹ: <c:out value="${order.deliveryAssignment.codReceivedBy.fullName}"/></small>
+											</c:when>
+											<c:when test="${order.deliveryAssignment.codHandoverStatus eq 'PENDING_HANDOVER'}">
+												<span class="badge text-bg-warning">Shipper đang giữ tiền COD (<fmt:formatNumber value="${order.deliveryAssignment.collectedAmount}" type="number" groupingUsed="true"/> ₫)</span>
+												<c:if test="${canConfirmCodHandover}">
+													<form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/confirm-cod-handover" class="mt-2">
+														<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+														<button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Xác nhận chi nhánh đã nhận đủ tiền mặt COD từ Shipper?');">
+															<i class="bi bi-cash-coin me-1"></i> Xác nhận đã nhận tiền COD từ Shipper
+														</button>
+													</form>
+												</c:if>
+											</c:when>
+											<c:otherwise><span class="text-muted">Chưa thu</span></c:otherwise>
+										</c:choose>
+									</dd>
+								</c:if>
 								<c:if test="${order.status eq 'CANCELLED'}">
 									<dt class="col-sm-5">Lý do giao thất bại</dt>
 									<dd class="col-sm-7">

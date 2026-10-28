@@ -39,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ReturnRequestService {
     private static final String ADMIN_ROLE = "ROLE_ADMIN";
+    private static final String MANAGER_ROLE = "ROLE_BRANCH_MANAGER";
     private static final String STAFF_ROLE = "ROLE_STAFF";
     private static final EnumSet<ReturnRequestStatus> ACTIVE_STATUSES =
             EnumSet.of(ReturnRequestStatus.PENDING, ReturnRequestStatus.APPROVED);
@@ -74,6 +75,7 @@ public class ReturnRequestService {
                 .reason(normalizedReason)
                 .requestedRefundAmount(order.getFinalAmount())
                 .status(ReturnRequestStatus.PENDING)
+                .returnDisposition("RESTOCK")
                 .build());
     }
 
@@ -91,7 +93,7 @@ public class ReturnRequestService {
     @Transactional(readOnly = true)
     public ReturnRequestOverview loadForManagement(String actorEmail, Long requestedBranchId,
             ReturnRequestStatus status, Pageable pageable) {
-        User actor = requireManager(actorEmail);
+        User actor = requireBranchPersonnel(actorEmail);
         boolean admin = hasRole(actor, ADMIN_ROLE);
         Long effectiveBranchId = admin ? validateBranch(requestedBranchId)
                 : actor.getBranch() == null ? null : actor.getBranch().getId();
@@ -107,7 +109,7 @@ public class ReturnRequestService {
                 .selectedBranchId(effectiveBranchId)
                 .canChooseBranch(admin)
                 .warning(!admin && effectiveBranchId == null
-                        ? "Tài khoản nhân viên chưa được gán chi nhánh." : null)
+                        ? "Tài khoản nhân sự chưa được gán chi nhánh." : null)
                 .build();
     }
 
@@ -117,11 +119,14 @@ public class ReturnRequestService {
         if (decision != ReturnRequestStatus.APPROVED && decision != ReturnRequestStatus.REJECTED) {
             throw new IllegalArgumentException("Quyết định xét duyệt không hợp lệ.");
         }
-        User actor = requireManager(actorEmail);
+        User actor = requireApprover(actorEmail);
         OrderReturnRequest request = returnRequests.findByIdForUpdate(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu trả hàng."));
         if (request.getStatus() != ReturnRequestStatus.PENDING) {
             throw new IllegalArgumentException("Yêu cầu này đã được xét duyệt.");
+        }
+        if (request.getRequestedBy() != null && Objects.equals(request.getRequestedBy().getId(), actor.getId())) {
+            throw new AccessDeniedException("Người tạo yêu cầu không được tự phê duyệt yêu cầu trả hàng của chính mình.");
         }
         authorizeBranch(actor, request.getOrder());
         String normalizedNote = normalizeReviewNote(reviewNote, decision);
@@ -141,8 +146,8 @@ public class ReturnRequestService {
     }
 
     @Transactional
-    public void complete(Long requestId, String completionNote, String actorEmail) {
-        User actor = requireManager(actorEmail);
+    public void complete(Long requestId, String completionNote, String disposition, String actorEmail) {
+        User actor = requireApprover(actorEmail);
         OrderReturnRequest request = returnRequests.findByIdForUpdate(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu trả hàng."));
         if (request.getStatus() != ReturnRequestStatus.APPROVED) {
@@ -163,20 +168,23 @@ public class ReturnRequestService {
             throw new IllegalArgumentException("Số tiền hoàn của yêu cầu không hợp lệ.");
         }
 
+        boolean quarantine = "QUARANTINE".equalsIgnoreCase(disposition);
+        String resolvedDisposition = quarantine ? "QUARANTINE" : "RESTOCK";
         String normalizedNote = normalizeCompletionNote(completionNote);
         Payment payment = validatePaymentForRefund(order);
-        restoreInventory(order, actor);
+        restoreInventory(order, actor, quarantine);
         payment.setPaymentStatus(PaymentStatus.REFUNDED);
         stateMachine.transition(order, OrderStatus.RETURNED);
 
         request.setStatus(ReturnRequestStatus.COMPLETED);
+        request.setReturnDisposition(resolvedDisposition);
         request.setRefundedAmount(request.getRequestedRefundAmount());
         request.setCompletedBy(actor);
         request.setCompletedAt(LocalDateTime.now());
         request.setCompletionNote(normalizedNote);
     }
 
-    private void restoreInventory(Order order, User actor) {
+    private void restoreInventory(Order order, User actor, boolean quarantine) {
         if (order.getOrderItems().isEmpty()) {
             throw new IllegalArgumentException("Đơn hàng không có sản phẩm để hoàn kho.");
         }
@@ -201,10 +209,15 @@ public class ReturnRequestService {
 
         for (var entry : locked.entrySet()) {
             BranchInventory inventory = entry.getValue();
+            int qty = quantities.get(entry.getKey());
             int previousStock = inventory.getStockQuantity();
-            int restoredStock = Math.addExact(previousStock, quantities.get(entry.getKey()));
+            int restoredStock = Math.addExact(previousStock, qty);
             inventory.setStockQuantity(restoredStock);
-            inventory.setAvailableQuantity(restoredStock - inventory.getReservedQuantity());
+            if (quarantine) {
+                int currentQuarantine = inventory.getQuarantineQuantity() == null ? 0 : inventory.getQuarantineQuantity();
+                inventory.setQuarantineQuantity(Math.addExact(currentQuarantine, qty));
+            }
+            inventory.recalculateAvailable();
             adjustments.save(InventoryAdjustment.builder()
                     .inventory(inventory)
                     .branch(inventory.getBranch())
@@ -212,8 +225,13 @@ public class ReturnRequestService {
                     .adjustedBy(actor)
                     .previousStock(previousStock)
                     .newStock(restoredStock)
+                    .deltaQuantity(qty)
                     .reservedQuantity(inventory.getReservedQuantity())
-                    .reason("Hoàn kho từ đơn trả hàng " + order.getOrderCode())
+                    .status("APPROVED")
+                    .reviewedBy(actor)
+                    .reviewedAt(LocalDateTime.now())
+                    .reason((quarantine ? "Nhập kho cách ly từ đơn trả hàng " : "Hoàn kho bán lại từ đơn trả hàng ")
+                            + order.getOrderCode())
                     .build());
         }
     }
@@ -237,16 +255,24 @@ public class ReturnRequestService {
     private User requireActiveUser(String email) {
         User user = users.findByEmail(email)
                 .orElseThrow(() -> new AccessDeniedException("Không tìm thấy tài khoản đang đăng nhập."));
-        if (!user.isActive()) {
+        if (!user.isActive() || user.isBlocked()) {
             throw new AccessDeniedException("Tài khoản đã bị khóa.");
         }
         return user;
     }
 
-    private User requireManager(String email) {
+    private User requireBranchPersonnel(String email) {
         User actor = requireActiveUser(email);
-        if (!hasRole(actor, ADMIN_ROLE) && !hasRole(actor, STAFF_ROLE)) {
-            throw new AccessDeniedException("Tài khoản không có quyền xét duyệt trả hàng.");
+        if (!hasRole(actor, ADMIN_ROLE) && !hasRole(actor, MANAGER_ROLE) && !hasRole(actor, STAFF_ROLE)) {
+            throw new AccessDeniedException("Tài khoản không có quyền xử lý trả hàng.");
+        }
+        return actor;
+    }
+
+    private User requireApprover(String email) {
+        User actor = requireActiveUser(email);
+        if (!hasRole(actor, ADMIN_ROLE) && !hasRole(actor, MANAGER_ROLE)) {
+            throw new AccessDeniedException("Chỉ Quản lý chi nhánh hoặc Admin tổng mới có quyền duyệt trả hàng và hoàn tiền.");
         }
         return actor;
     }
