@@ -89,7 +89,6 @@ public class AuthServiceImpl implements AuthService {
 
 	private ApiResponse<String> registerAccount(RegisterRequest request, String email) {
 
-		// 1. Kiểm tra xem email đã tồn tại và đã kích hoạt chưa
 		if (userRepository.existsByEmail(email)) {
 			User existingUser = userRepository.findByEmail(email).get();
 			if (existingUser.isBlocked()) {
@@ -102,18 +101,14 @@ public class AuthServiceImpl implements AuthService {
 						.message("Email này đã được đăng ký và kích hoạt trước đó!").build();
 			}
 
-			// Nếu tài khoản đã tạo nhưng chưa kích hoạt -> cập nhật lại thông tin và MÃ HÓA
-			// MẬT KHẨU
 			existingUser.setFullName(request.getFullname());
 			existingUser.setPhoneNumber(request.getPhoneNumber());
-			existingUser.setPassword(passwordEncoder.encode(request.getPassword())); // [FIXED: Mã hóa BCrypt]
+			existingUser.setPassword(passwordEncoder.encode(request.getPassword())); 
 			userRepository.save(existingUser);
 		} else {
-			// 2. Lấy role mặc định ROLE_CUSTOMER (nếu chưa có trong DB thì tự tạo)
 			Role customerRole = roleRepository.findByName("ROLE_CUSTOMER")
 					.orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_CUSTOMER").build()));
 
-			// 3. Tạo User mới với trạng thái chưa kích hoạt (active = false)
 			User newUser = User.builder().email(email).password(passwordEncoder.encode(request.getPassword()))
 					.fullName(request.getFullname()).phoneNumber(request.getPhoneNumber()).active(false).build();
 
