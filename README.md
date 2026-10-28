@@ -1,6 +1,6 @@
 # WebProject_Nhom_7 — TechSeven
 
-Website bán hàng điện máy theo mô hình chuỗi cửa hàng. Dự án dùng Java 21, Spring Boot, JSP/JSTL, Bootstrap, Spring Data JPA, PostgreSQL/Neon, Redis và WebSocket.
+Website bán hàng điện máy theo mô hình chuỗi cửa hàng. Công nghệ đang dùng: Java 21, Spring Boot, Spring Security, JSP/JSTL, Bootstrap, Spring Data JPA/Hibernate, PostgreSQL (Neon), Redis/Spring Cache, WebSocket, JWT, Cloudinary, VNPay, Docker Compose, Maven và GitHub Actions.
 
 Repository: <https://github.com/JPDeep4122/WebProject_Nhom_7>
 

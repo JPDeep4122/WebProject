@@ -27,7 +27,7 @@
 19. [Google Maps và tính phí giao hàng](#maps)
 20. [Gemini: tìm sản phẩm bằng ngôn ngữ tự nhiên](#gemini)
 21. [WebSocket, STOMP, event và polling](#realtime)
-22. [Maven, Docker, Vercel, Render và GitHub Actions](#deployment)
+22. [Maven, Docker, Render và GitHub Actions](#deployment)
 23. [Testing và cách đọc test](#testing)
 24. [Các ranh giới và phần chưa hoàn thiện](#boundaries)
 25. [Lộ trình học, bài thực hành và câu hỏi bảo vệ](#learning)
@@ -332,7 +332,7 @@ gemini.api-key=${GEMINI_API_KEY:}
 
 `${PORT:8080}` nghĩa là đọc `PORT`, không có thì dùng 8080. Cú pháp này không biến một chuỗi thành secret an toàn; độ an toàn còn phụ thuộc nơi lưu và quyền truy cập.
 
-[application.properties](D:/Semester_5/Project/WebProject/src/main/resources/application.properties) là cấu hình chung. [application-render.properties](D:/Semester_5/Project/WebProject/src/main/resources/application-render.properties) điều chỉnh cho instance nhỏ: thread, pool, JSP precompile, warmup. Dockerfile Vercel hiện cũng dùng profile tên `render`; tên profile không tự xác định nhà cung cấp hosting.
+[application.properties](D:/Semester_5/Project/WebProject/src/main/resources/application.properties) là cấu hình chung. [application-render.properties](D:/Semester_5/Project/WebProject/src/main/resources/application-render.properties) điều chỉnh cho instance nhỏ: thread, pool, JSP precompile, warmup.
 
 ### 5.4. Bean singleton và trạng thái dùng chung
 
@@ -1310,7 +1310,7 @@ Frontend reconnect với khoảng chờ tăng từ 2 giây tới tối đa 30 gi
 Simple broker và kết nối nằm trong bộ nhớ từng instance. Không thấy broker relay/Redis để phát event xuyên container; polling hiện cũng không phải luôn chạy song song khi socket đang kết nối. Đây là điểm cần hiểu khi debug realtime trên hosting nhiều instance.
 
 <a id="deployment"></a>
-## 22. Maven, Docker, Vercel, Render và GitHub Actions
+## 22. Maven, Docker, Render và GitHub Actions
 
 ### 22.1. Maven
 
@@ -1339,7 +1339,7 @@ Spring Boot Maven plugin đóng gói dependency, class ứng dụng và bootstra
 
 ### 22.3. Docker multi-stage
 
-Nguồn: [Dockerfile](D:/Semester_5/Project/WebProject/Dockerfile), [Dockerfile.vercel](D:/Semester_5/Project/WebProject/Dockerfile.vercel).
+Nguồn: [Dockerfile](D:/Semester_5/Project/WebProject/Dockerfile).
 
 ```text
 Build stage: Maven + JDK 21
@@ -1383,9 +1383,9 @@ Workflow Java CI chạy trên Ubuntu, setup Temurin 21/cache Maven rồi `mvn ve
 - Có push vào `main` hoặc `develop`.
 - Chạy thủ công bằng `workflow_dispatch`.
 
-Cấu hình có concurrency group và hủy job cũ khi phù hợp. Workflow đang xem là **build/test**, không có bước gọi Vercel CLI để deploy.
+Cấu hình có concurrency group và hủy job cũ khi phù hợp. Workflow này chỉ chạy **build/test**; việc deploy được cấu hình riêng trên nền tảng hosting.
 
-Repo có Dockerfile dành cho Vercel và tài liệu Render. Không có `vercel.json` tại root ở snapshot này. Tự động deploy của hosting, production branch, secrets và quyền GitHub App còn là cấu hình bên ngoài source; không được kết luận đã hoạt động chỉ từ tên file Dockerfile.
+Repo có Dockerfile dùng chung và tài liệu Render. Tự động deploy, production branch, secrets và quyền kết nối GitHub còn là cấu hình bên ngoài source; không thể kết luận đã hoạt động chỉ từ việc CI thành công.
 
 ### 22.8. Nhóm biến môi trường
 
@@ -1403,7 +1403,7 @@ Repo có Dockerfile dành cho Vercel và tài liệu Render. Không có `vercel.
 | VNPay | `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, `VNPAY_RETURN_URL` | Merchant, chữ ký và return URL |
 | Gemini | `GEMINI_API_KEY`, `GEMINI_MODEL` | Tích hợp tìm kiếm bằng AI |
 
-Không đưa giá trị thực vào Git hoặc file hướng dẫn. `.gitignore`, `.dockerignore`, `.vercelignore` giúp loại các file local/private; vẫn cần kiểm tra nội dung staged trước khi push.
+Không đưa giá trị thực vào Git hoặc file hướng dẫn. `.gitignore` và `.dockerignore` giúp loại các file local/private; vẫn cần kiểm tra nội dung staged trước khi push.
 
 ### 22.9. Git và cộng tác
 
@@ -2188,14 +2188,12 @@ Tại snapshot có **122 method `@Test`** và **3 method `@ParameterizedTest`**.
 | [test.html](D:/Semester_5/Project/WebProject/src/main/resources/static/test.html) | Tài nguyên frontend; một số file thuộc template/vendor |
 | [pom.xml](D:/Semester_5/Project/WebProject/pom.xml) | Build, runtime, CI hoặc schema |
 | [Dockerfile](D:/Semester_5/Project/WebProject/Dockerfile) | Build, runtime, CI hoặc schema |
-| [Dockerfile.vercel](D:/Semester_5/Project/WebProject/Dockerfile.vercel) | Build, runtime, CI hoặc schema |
 | [compose.yaml](D:/Semester_5/Project/WebProject/compose.yaml) | Build, runtime, CI hoặc schema |
 | [DEPLOY_RENDER.md](D:/Semester_5/Project/WebProject/DEPLOY_RENDER.md) | Build, runtime, CI hoặc schema |
 | [.github/workflows/ci.yml](D:/Semester_5/Project/WebProject/.github/workflows/ci.yml) | Build, runtime, CI hoặc schema |
 | [.mvn/wrapper/maven-wrapper.properties](D:/Semester_5/Project/WebProject/.mvn/wrapper/maven-wrapper.properties) | Build, runtime, CI hoặc schema |
 | [.gitignore](D:/Semester_5/Project/WebProject/.gitignore) | Build, runtime, CI hoặc schema |
 | [.dockerignore](D:/Semester_5/Project/WebProject/.dockerignore) | Build, runtime, CI hoặc schema |
-| [.vercelignore](D:/Semester_5/Project/WebProject/.vercelignore) | Build, runtime, CI hoặc schema |
 | [src/main/resources/application.properties](D:/Semester_5/Project/WebProject/src/main/resources/application.properties) | Build, runtime, CI hoặc schema |
 | [src/main/resources/application-render.properties](D:/Semester_5/Project/WebProject/src/main/resources/application-render.properties) | Build, runtime, CI hoặc schema |
 | [src/main/resources/db/manual/README.md](D:/Semester_5/Project/WebProject/src/main/resources/db/manual/README.md) | Build, runtime, CI hoặc schema |
