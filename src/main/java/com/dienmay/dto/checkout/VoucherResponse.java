@@ -12,4 +12,7 @@ public class VoucherResponse {
     private String message;
     private BigDecimal discountAmount;
     private BigDecimal newFinalAmount;
+    
+    private BigDecimal subtotal;
+    private BigDecimal shippingFee;
 }

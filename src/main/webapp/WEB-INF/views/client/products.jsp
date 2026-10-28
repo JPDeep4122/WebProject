@@ -45,7 +45,7 @@
                 </label>
             </div>
 
-<!-- LƯỚI DANH SÁCH SẢN PHẨM SAU KHI LỌC   -->
+
 	<c:choose>
 		<c:when test="${empty products}">
 			<div class="text-center py-5 bg-white rounded-4 shadow-sm border">
@@ -67,7 +67,7 @@
 						<div
 							class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative">
 
-							<!-- Badge Giảm giá -->
+							
 							<c:if
 								test="${sellingPrice < prod.originalPrice}">
 								<span
@@ -75,7 +75,7 @@
 									Ưu đãi </span>
 							</c:if>
 
-							<!-- Ảnh sản phẩm (Bấm vào để mở trang chi tiết) -->
+							
 							<a
 								href="<c:out value='${productUrl}'/>"
 								class="catalog-product-image" aria-label="<c:out value='${prod.name}'/>">
@@ -86,7 +86,7 @@
 								alt="<c:out value='${prod.name}'/>">
 							</a>
 
-							<!-- Nội dung sản phẩm (Bấm vào tên để mở trang chi tiết) -->
+							
 							<div class="card-body d-flex flex-column p-3">
 								<small class="text-muted text-uppercase fw-bold"><c:out value='${prod.brand.name}'/>
 									• <c:out value='${prod.category.name}'/></small> <a
@@ -96,7 +96,7 @@
 										title="<c:out value='${prod.name}'/>"><c:out value='${prod.name}'/></h6>
 								</a>
 
-								<!-- Giá tiền VNĐ -->
+								
 								<div class="mt-auto pt-2">
 									<div class="d-flex align-items-baseline gap-2">
 										<span class="text-danger fs-5 fw-bold"> <fmt:formatNumber
@@ -111,7 +111,7 @@
 										</c:if>
 									</div>
 
-									<!-- Đánh giá sao và Đã bán -->
+									
 									<div class="d-flex align-items-center gap-2 mb-2">
 
 										<c:choose>
@@ -134,7 +134,7 @@
 
 									</div>
 
-									<!-- Nút thao tác -->
+									
 									<button
 										class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm"
 										type="button" onclick="addToCart(${prod.id}, 1, this)">

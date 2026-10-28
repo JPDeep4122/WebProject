@@ -65,7 +65,6 @@ public class DeliveryStatusService {
 			throw new AccessDeniedException("Bạn không có quyền truy cập bản phân công này.");
 		}
 
-		// Truy vấn riêng để tải lịch sử giao trong transaction.
 		Hibernate.initialize(assignment.getAttempts());
 
 		return assignment;

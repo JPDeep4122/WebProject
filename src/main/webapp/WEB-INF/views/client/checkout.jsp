@@ -8,7 +8,7 @@
 
 <div class="container-fluid py-4">
 
-	<!-- BREADCRUMB -->
+	
 	<nav aria-label="breadcrumb" class="mb-4">
 		<ol class="breadcrumb small">
 			<li class="breadcrumb-item"><a
@@ -39,17 +39,17 @@
 
 		<div class="row g-4">
 
-			<!-- CỘT TRÁI: THÔNG TIN GIAO HÀNG & PHƯƠNG THỨC THANH TOÁN -->
+			
 			<div class="col-lg-7">
 
-				<!-- 1. SỔ ĐỊA CHỈ & THÔNG TIN NGƯỜI NHẬN -->
+				
 				<div class="bg-white p-4 rounded-4 shadow-sm border mb-4">
 					<h5 class="fw-bold mb-3 text-dark border-bottom pb-2">
 						<i class="bi bi-geo-alt-fill text-danger me-2"></i>1. Địa Chỉ Nhận
 						Hàng
 					</h5>
 
-					<!-- Nếu user đã có địa chỉ lưu sẵn -->
+					
 					<c:if test="${not empty checkoutData.savedAddresses}">
 						<div class="mb-3">
 							<label class="form-label small fw-bold text-muted">Chọn
@@ -120,7 +120,7 @@
 					</div>
 				</div>
 
-				<!-- 2. PHƯƠNG THỨC THANH TOÁN (COD / VNPAY / MOMO) -->
+				
 				<div class="bg-white p-4 rounded-4 shadow-sm border">
 					<h5 class="fw-bold mb-3 text-dark border-bottom pb-2">
 						<i class="bi bi-wallet2 text-primary me-2"></i>2. Phương Thức
@@ -128,7 +128,7 @@
 					</h5>
 
 					<div class="d-flex flex-column gap-3">
-						<!-- COD -->
+						
 						<label
 							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option ${orderForm.paymentMethod eq 'COD' ? 'active-payment' : ''}">
 							<div class="d-flex align-items-center gap-3">
@@ -147,7 +147,7 @@
 							</div> <i class="bi bi-cash-stack fs-3 text-success"></i>
 						</label>
 
-						<!-- VNPAY -->
+						
 						<label
 							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option ${orderForm.paymentMethod eq 'VNPAY' ? 'active-payment' : ''}">
 							<div class="d-flex align-items-center gap-3">
@@ -173,7 +173,7 @@
 
 			</div>
 
-			<!-- CỘT PHẢI: TÓM TẮT ĐƠN HÀNG & MÃ GIẢM GIÁ -->
+			
 			<div class="col-lg-5">
 				<div class="bg-white p-4 rounded-4 shadow-sm border position-sticky"
 					style="top: 20px;">
@@ -182,7 +182,7 @@
 						Bạn (${checkoutData.items.size()} món)
 					</h5>
 
-					<!-- Danh sách sản phẩm thanh toán -->
+					
 					<div class="d-flex flex-column gap-3 mb-4"
 						style="max-height: 250px; overflow-y: auto;">
 						<c:forEach items="${checkoutData.items}" var="item">
@@ -205,7 +205,7 @@
 						</c:forEach>
 					</div>
 
-					<!-- KHUNG ÁP DỤNG MÃ GIẢM GIÁ (VOUCHER) -->
+					
 					<div class="mb-4 pt-3 border-top">
 						<label class="form-label small fw-bold text-dark"> <i
 							class="bi bi-ticket-perforated-fill text-warning me-1"></i>Mã
@@ -214,7 +214,7 @@
 						<div class="input-group">
 							<input type="text" id="voucherCodeInput"
 								class="form-control rounded-start-pill text-uppercase"
-								placeholder="Nhập mã (VD: DIENMAY50K, SALE10)">
+								placeholder="Nhập mã từ Kho Voucher">
 							<button class="btn btn-dark rounded-end-pill px-3 fw-bold"
 								type="button" onclick="applyVoucher()">Áp dụng</button>
 						</div>
@@ -223,7 +223,7 @@
 							value="">
 					</div>
 
-					<!-- TÍNH TIỀN -->
+					
 					<div class="d-flex flex-column gap-2 border-top pt-3 mb-4">
 						<div class="d-flex justify-content-between text-muted small">
 							<span>Tạm tính:</span> <span class="fw-bold text-dark"> <fmt:formatNumber
@@ -256,7 +256,7 @@
 						</div>
 					</div>
 
-					<!-- NÚT XÁC NHẬN ĐẶT HÀNG -->
+					
 					<button type="submit"
 						class="btn btn-danger w-100 rounded-pill py-3 fw-bold fs-5 shadow">
 						ĐẶT HÀNG NGAY <i class="bi bi-arrow-right ms-1"></i>
@@ -286,102 +286,181 @@
 </style>
 
 <script>
-  const originalSubtotal = ${checkoutData.subtotal};
-  let currentShippingFee = 0;
-  let currentDiscount = 0;
-  let shippingQuoteTimer;
+(() => {
+    const contextPath = '${pageContext.request.contextPath}';
 
-  function refreshTotal() {
-    document.getElementById('finalAmountDisplay').innerText = Math.max(0, originalSubtotal + currentShippingFee - currentDiscount).toLocaleString('vi-VN') + ' ₫';
-  }
+    const codeInput = document.getElementById('voucherCodeInput');
+    const hiddenCode = document.getElementById('hiddenVoucherCode');
+    const addressInput = document.getElementById('shippingAddress');
+    const provinceInput = document.getElementById('shippingProvince');
 
-  // 1. Tự động điền khi chọn địa chỉ lưu sẵn
-  function onSelectSavedAddress(selectEl) {
-    const selectedOption = selectEl.options[selectEl.selectedIndex];
-    if (selectEl.value) {
-      document.getElementById('recipientName').value = selectedOption.getAttribute('data-name');
-      document.getElementById('recipientPhone').value = selectedOption.getAttribute('data-phone');
-      document.getElementById('shippingAddress').value = selectedOption.getAttribute('data-addr');
-      document.getElementById('shippingProvince').value = selectedOption.getAttribute('data-province') || '';
-      requestShippingQuote();
+    const voucherMsg = document.getElementById('voucherMsg');
+    const shippingMsg = document.getElementById('shippingQuoteMessage');
+    const feeDisplay = document.getElementById('shippingFeeDisplay');
+    const discountDisplay = document.getElementById('discountAmountDisplay');
+    const discountRow = document.getElementById('discountRow');
+    const finalDisplay = document.getElementById('finalAmountDisplay');
+
+    const form = hiddenCode.closest('form');
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    let timer;
+    let version = 0;
+    let validSnapshot = null;
+
+    const money = value =>
+        Number(value || 0).toLocaleString('vi-VN') + ' ₫';
+
+    function payload() {
+        return {
+            code: codeInput.value.trim().toUpperCase(),
+            shippingAddress: addressInput.value.trim(),
+            province: provinceInput.value.trim(),
+            paymentMethod:
+                form.querySelector(
+                    'input[name="paymentMethod"]:checked'
+                )?.value || ''
+        };
     }
-  }
 
-  function requestShippingQuote() {
-    clearTimeout(shippingQuoteTimer);
-    shippingQuoteTimer = setTimeout(async () => {
-      const address = document.getElementById('shippingAddress').value.trim();
-      const province = document.getElementById('shippingProvince').value.trim();
-      if (!address || !province) return;
-      const feeEl = document.getElementById('shippingFeeDisplay');
-      const msgEl = document.getElementById('shippingQuoteMessage');
-      feeEl.innerText = 'Đang tính...';
-      try {
-        const response = await csrfFetch('${pageContext.request.contextPath}/api/checkout/shipping-quote', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({shippingAddress: address, province: province})
+    function resetPrice() {
+        hiddenCode.value = '';
+        validSnapshot = null;
+
+        discountDisplay.textContent = '-0 ₫';
+        discountRow.style.setProperty('display', 'none', 'important');
+
+        feeDisplay.textContent = 'Chưa xác nhận';
+        finalDisplay.textContent = 'Đang cập nhật';
+        voucherMsg.textContent = '';
+        shippingMsg.textContent = '';
+        submitButton.disabled = true;
+    }
+
+    async function calculate(requestVersion) {
+        const request = payload();
+
+        if (!request.shippingAddress || !request.province) {
+            if (requestVersion !== version) return;
+
+            feeDisplay.textContent = 'Nhập địa chỉ để tính phí';
+            finalDisplay.textContent = 'Chưa xác định';
+            return;
+        }
+
+        const snapshot = JSON.stringify(request);
+        feeDisplay.textContent = 'Đang tính...';
+
+        try {
+            const response = await csrfFetch(
+                contextPath + '/api/checkout/apply-voucher',
+                {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: snapshot
+                }
+            );
+
+            const result = await response.json();
+
+            
+            if (requestVersion !== version) return;
+
+            if (!response.ok || !result.success || !result.data?.valid) {
+                throw new Error(
+                    result.message || 'Chưa áp dụng được voucher.'
+                );
+            }
+
+            const data = result.data;
+            const discount = Number(data.discountAmount || 0);
+
+            hiddenCode.value = data.code || '';
+            feeDisplay.textContent = money(data.shippingFee);
+            finalDisplay.textContent = money(data.newFinalAmount);
+
+            discountDisplay.textContent = '-' + money(discount);
+            discountRow.style.setProperty(
+                'display',
+                discount > 0 ? 'flex' : 'none',
+                'important'
+            );
+
+            voucherMsg.className = 'small mt-1 text-success';
+            voucherMsg.textContent = request.code ? result.message : '';
+
+            validSnapshot = snapshot;
+            submitButton.disabled = false;
+
+        } catch (error) {
+            if (requestVersion !== version) return;
+
+            resetPrice();
+
+            voucherMsg.className = 'small mt-1 text-danger';
+            voucherMsg.textContent =
+                error.message || 'Không kết nối được máy chủ.';
+
+            finalDisplay.textContent = 'Chưa xác định';
+        }
+    }
+
+    function scheduleQuote(delay = 400) {
+        clearTimeout(timer);
+        const requestVersion = ++version;
+        resetPrice();
+
+        timer = setTimeout(
+            () => calculate(requestVersion),
+            delay
+        );
+    }
+
+    window.applyVoucher = () => scheduleQuote(0);
+
+    window.onSelectSavedAddress = select => {
+        const option = select.options[select.selectedIndex];
+
+        if (!select.value) return;
+
+        document.getElementById('recipientName').value =
+            option.dataset.name || '';
+
+        document.getElementById('recipientPhone').value =
+            option.dataset.phone || '';
+
+        addressInput.value = option.dataset.addr || '';
+        provinceInput.value = option.dataset.province || '';
+
+        scheduleQuote();
+    };
+
+    addressInput.addEventListener('input', () => scheduleQuote());
+    provinceInput.addEventListener('input', () => scheduleQuote());
+    codeInput.addEventListener('input', () => scheduleQuote());
+
+    form.querySelectorAll('input[name="paymentMethod"]')
+        .forEach(radio => {
+            radio.addEventListener('change', () => {
+                form.querySelectorAll('.payment-option')
+                    .forEach(option =>
+                        option.classList.remove('active-payment'));
+
+                radio.closest('.payment-option')
+                    ?.classList.add('active-payment');
+
+                scheduleQuote();
+            });
         });
-        const result = await response.json();
-        if (!result.success) throw new Error(result.message || 'Không thể tính phí vận chuyển');
-        currentShippingFee = Number(result.data.shippingFee || 0);
-        feeEl.innerText = currentShippingFee === 0 ? 'Miễn phí (0 ₫)' : currentShippingFee.toLocaleString('vi-VN') + ' ₫';
-        feeEl.className = currentShippingFee === 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
-        const distance = Number(result.data.distanceKm || 0);
-        msgEl.innerText = result.data.sameProvince ? result.message : result.message + ' Khoảng cách: ' + distance.toLocaleString('vi-VN', {maximumFractionDigits: 1}) + ' km; chi nhánh: ' + result.data.branchName + '.';
-        refreshTotal();
-      } catch (error) {
-        feeEl.innerText = 'Chưa tính được';
-        msgEl.innerText = error.message;
-      }
-    }, 500);
-  }
-  document.getElementById('shippingAddress').addEventListener('change', requestShippingQuote);
-  document.getElementById('shippingProvince').addEventListener('change', requestShippingQuote);
-  if (document.getElementById('shippingAddress').value.trim()
-	        && document.getElementById('shippingProvince').value.trim()) {
-	    requestShippingQuote();
-	}
 
-  // 2. Hiệu ứng chọn phương thức thanh toán
-  document.querySelectorAll('.payment-option input[type="radio"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      document.querySelectorAll('.payment-option').forEach(el => el.classList.remove('active-payment'));
-      this.closest('.payment-option').classList.add('active-payment');
+    form.addEventListener('submit', event => {
+        if (!validSnapshot
+                || validSnapshot !== JSON.stringify(payload())) {
+            event.preventDefault();
+            scheduleQuote(0);
+        }
     });
-  });
 
-  // 3. Gọi AJAX áp dụng Voucher
-  function applyVoucher() {
-    const code = document.getElementById('voucherCodeInput').value.trim();
-    const msgEl = document.getElementById('voucherMsg');
-    if (!code) {
-      msgEl.innerHTML = '<span class="text-danger">Vui lòng nhập mã voucher</span>';
-      return;
-    }
-
-    csrfFetch('${pageContext.request.contextPath}/api/checkout/apply-voucher?code=' + encodeURIComponent(code) + '&subtotal=' + originalSubtotal, {
-      method: 'POST'
-    })
-    .then(res => res.json())
-    .then(res => {
-      if (res.success && res.data.valid) {
-        msgEl.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i>' + res.message + '</span>';
-        document.getElementById('hiddenVoucherCode').value = res.data.code;
-        currentDiscount = Number(res.data.discountAmount || 0);
-        
-        // Cập nhật số tiền giảm và tổng tiền
-        document.getElementById('discountRow').style.setProperty('display', 'flex', 'important');
-        document.getElementById('discountAmountDisplay').innerText = '-' + Number(res.data.discountAmount).toLocaleString('vi-VN') + ' ₫';
-        refreshTotal();
-      } else {
-        msgEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>' + (res.message || 'Mã không hợp lệ') + '</span>';
-        document.getElementById('hiddenVoucherCode').value = '';
-        currentDiscount = 0;
-        refreshTotal();
-      }
-    })
-    .catch(err => {
-      msgEl.innerHTML = '<span class="text-danger">Lỗi kết nối máy chủ</span>';
-    });
-  }
+    scheduleQuote(0);
+})();
 </script>

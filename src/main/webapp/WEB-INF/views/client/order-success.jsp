@@ -22,7 +22,7 @@
 		<div class="col-lg-8">
 
 			<div class="bg-white p-4 p-md-5 rounded-4 shadow-sm border invoice-card">
-				<!-- HEADER HÓA ĐƠN -->
+				
 				<div class="text-center border-bottom pb-4 mb-4">
 					<div class="text-success mb-2">
 						<i class="bi bi-check-circle-fill display-3"></i>
@@ -41,7 +41,7 @@
 					</span>
 				</div>
 
-				<!-- 1. THÔNG TIN CHUNG & NGƯỜI NHẬN -->
+				
 				<div class="row g-3 mb-4">
 					<div class="col-md-6">
 						<div class="p-3 bg-light rounded-4 h-100 border">
@@ -116,7 +116,7 @@
 					</div>
 				</div>
 
-				<!-- 2. BẢNG CHI TIẾT SẢN PHẨM ĐÃ ĐẶT -->
+				
 				<c:if test="${not empty order.orderItems}">
 					<div class="mb-4">
 						<h6 class="fw-bold text-dark text-uppercase small mb-2">
@@ -153,7 +153,7 @@
 					</div>
 				</c:if>
 
-				<!-- 3. TỔNG HỢP THANH TOÁN (BREAKDOWN) -->
+				
 				<div class="p-4 bg-light rounded-4 mb-4 border">
 					<div class="d-flex justify-content-between mb-2 small">
 						<span class="text-muted">Tạm tính tiền hàng:</span>
@@ -189,7 +189,7 @@
 					</div>
 				</div>
 
-				<!-- CẢNH BÁO / THANH TOÁN LẠI VNPAY (NẾU CÓ) -->
+				
 				<c:if test="${not empty paymentError}">
 					<div class="alert alert-warning rounded-3"><c:out value="${paymentError}" /></div>
 				</c:if>
@@ -203,7 +203,7 @@
 					</form>
 				</c:if>
 
-				<!-- 4. CÁC NÚT ĐIỀU HƯỚNG & IN HÓA ĐƠN -->
+				
 				<div class="d-flex flex-wrap gap-2 justify-content-center no-print pt-2">
 					<a href="${pageContext.request.contextPath}/products" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
 						<i class="bi bi-arrow-left me-1"></i>Tiếp tục mua sắm

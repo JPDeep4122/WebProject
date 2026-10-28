@@ -57,8 +57,8 @@
 
 .catalog-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 292px;
-    grid-template-areas: "results filters";
+    grid-template-columns: 292px minmax(0, 1fr);
+    grid-template-areas: "filters results";
     align-items: start;
     gap: 24px;
 }

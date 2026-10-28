@@ -3,12 +3,10 @@ package com.dienmay.service.impl;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,6 +21,7 @@ import com.dienmay.dto.checkout.CheckoutItemDto;
 import com.dienmay.dto.checkout.CheckoutPageDto;
 import com.dienmay.dto.checkout.PlaceOrderRequest;
 import com.dienmay.dto.checkout.ShippingQuoteResponse;
+import com.dienmay.dto.checkout.VoucherPreviewRequest;
 import com.dienmay.dto.checkout.VoucherResponse;
 import com.dienmay.entity.auth.Address;
 import com.dienmay.entity.auth.User;
@@ -51,6 +50,7 @@ import com.dienmay.service.checkout.PurchaseValidator;
 import com.dienmay.service.checkout.ShippingService;
 import com.dienmay.service.order.OrderCodeGenerator;
 import com.dienmay.service.payment.VnPayService;
+import com.dienmay.service.promotion.VoucherService;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -79,6 +79,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 	private final VnPayService vnPayService;
 	private final CartService cartService;
 	private final OrderCodeGenerator orderCodeGenerator;
+	private final VoucherService voucherService;
 	
 	@PersistenceContext
 	private EntityManager entityManager;
@@ -119,79 +120,82 @@ public class CheckoutServiceImpl implements CheckoutService {
 	}
 
 	@Override
-	public VoucherResponse applyVoucher(String code, BigDecimal subtotal) {
-		if (code == null || code.isBlank()) {
-			return VoucherResponse.builder().valid(false).message("Vui lòng nhập mã giảm giá.").build();
-		}
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public VoucherResponse applyVoucher(
+	        VoucherPreviewRequest request,
+	        String userEmail,
+	        HttpSession session) {
 
-		if (subtotal == null || subtotal.signum() < 0) {
-			return VoucherResponse.builder().valid(false).message("Giá trị đơn hàng không hợp lệ.").build();
-		}
+	    requireCustomer(userEmail);
 
-		String normalizedCode = code.trim().toUpperCase(java.util.Locale.ROOT);
+	    try {
+	        PaymentMethod method =
+	                requireSupportedPaymentMethod(
+	                        request.getPaymentMethod());
 
-		Promotion promotion = promotionRepository.findByCodeIgnoreCase(normalizedCode).orElse(null);
+	        ShippingQuoteResponse shippingQuote =
+	                shippingService.quote(
+	                        request.getShippingAddress(),
+	                        request.getProvince());
 
-		return promotion != null ? calculatePromotionVoucher(promotion, subtotal)
-				: calculateLegacyVoucher(normalizedCode, subtotal);
-	}
+	        return transactionTemplate.execute(status -> {
+	            User user = requireCustomer(userEmail);
+	            Cart cart = getCart(userEmail, session);
 
-	private VoucherResponse calculatePromotionVoucher(Promotion promotion, BigDecimal subtotal) {
+	            if (cart == null || cart.getItems().isEmpty()) {
+	                throw new IllegalArgumentException(
+	                        "Giỏ hàng đang trống.");
+	            }
 
-		LocalDateTime now = LocalDateTime.now();
-		int usedCount = promotion.getUsedCount() == null ? 0 : promotion.getUsedCount();
+	            List<CartItem> selected = cart.getItems().stream()
+	                    .filter(item ->
+	                            Boolean.TRUE.equals(item.getSelected()))
+	                    .toList();
 
-		if (!promotion.isActive() || (promotion.getStartsAt() != null && now.isBefore(promotion.getStartsAt()))
-				|| (promotion.getEndsAt() != null && now.isAfter(promotion.getEndsAt()))) {
-			return VoucherResponse.builder().valid(false).message("Khuyến mãi chưa bắt đầu, đã hết hạn hoặc đã tắt.")
-					.build();
-		}
+	            if (selected.isEmpty()) {
+	                throw new IllegalArgumentException(
+	                        "Vui lòng chọn sản phẩm để thanh toán.");
+	            }
 
-		if (promotion.getMaxUses() != null && usedCount >= promotion.getMaxUses()) {
-			return VoucherResponse.builder().valid(false).message("Khuyến mãi đã hết lượt sử dụng.").build();
-		}
+	            validateCheckoutItems(
+	                    selected, shippingQuote.getBranchId());
 
-		BigDecimal percent = promotion.getDiscountPercent();
+	            BigDecimal subtotal = selected.stream()
+	                    .map(CartItem::getSubtotal)
+	                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-		if (percent == null || percent.signum() <= 0 || percent.compareTo(BigDecimal.valueOf(100)) > 0) {
-			return VoucherResponse.builder().valid(false).message("Cấu hình mức giảm không hợp lệ.").build();
-		}
+	            var quote = voucherService.prepare(
+	                    request.getCode(),
+	                    selected,
+	                    user,
+	                    method,
+	                    shippingQuote.getShippingFee(),
+	                    false);
 
-		BigDecimal discount = subtotal.multiply(percent).divide(BigDecimal.valueOf(100)).setScale(2,
-				java.math.RoundingMode.HALF_UP);
+	            BigDecimal finalAmount = subtotal
+	                    .add(shippingQuote.getShippingFee())
+	                    .subtract(quote.discountAmount());
 
-		return VoucherResponse.builder().valid(true).code(promotion.getCode())
-				.message("Áp dụng thành công khuyến mãi " + promotion.getName()).discountAmount(discount)
-				.newFinalAmount(subtotal.subtract(discount).max(BigDecimal.ZERO)).build();
-	}
+	            return VoucherResponse.builder()
+	                    .valid(true)
+	                    .code(quote.promotion() == null
+	                            ? null : quote.promotion().getCode())
+	                    .message(quote.promotion() == null
+	                            ? "Đã cập nhật tổng thanh toán."
+	                            : "Đã áp dụng voucher.")
+	                    .subtotal(subtotal)
+	                    .shippingFee(shippingQuote.getShippingFee())
+	                    .discountAmount(quote.discountAmount())
+	                    .newFinalAmount(finalAmount)
+	                    .build();
+	        });
 
-	private VoucherResponse calculateLegacyVoucher(String code, BigDecimal subtotal) {
-
-		BigDecimal discount;
-
-		switch (code) {
-		case "DIENMAY50K":
-			if (subtotal.compareTo(BigDecimal.valueOf(500000)) < 0) {
-				return VoucherResponse.builder().valid(false).message("Mã DIENMAY50K áp dụng cho đơn từ 500.000₫.")
-						.build();
-			}
-			discount = BigDecimal.valueOf(50000);
-			break;
-
-		case "SALE10":
-			discount = subtotal.multiply(new BigDecimal("0.10"));
-			break;
-
-		case "FREESHIP":
-			discount = BigDecimal.valueOf(30000);
-			break;
-
-		default:
-			return VoucherResponse.builder().valid(false).message("Mã giảm giá không tồn tại.").build();
-		}
-
-		return VoucherResponse.builder().valid(true).code(code).message("Đã áp dụng mã " + code)
-				.discountAmount(discount).newFinalAmount(subtotal.subtract(discount).max(BigDecimal.ZERO)).build();
+	    } catch (IllegalArgumentException | IllegalStateException ex) {
+	        return VoucherResponse.builder()
+	                .valid(false)
+	                .message(ex.getMessage())
+	                .build();
+	    }
 	}
 
 	@Override
@@ -248,43 +252,28 @@ public class CheckoutServiceImpl implements CheckoutService {
 		BigDecimal subtotal = selectedItems.stream().map(CartItem::getSubtotal).reduce(BigDecimal.ZERO,
 				BigDecimal::add);
 
-		BigDecimal discount = BigDecimal.ZERO;
-
-		if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
-
-			String code = request.getVoucherCode().trim().toUpperCase(java.util.Locale.ROOT);
-
-			Promotion promotion = promotionRepository.findByCodeForUpdate(code).orElse(null);
-
-			VoucherResponse voucher = promotion != null ? calculatePromotionVoucher(promotion, subtotal)
-					: calculateLegacyVoucher(code, subtotal);
-
-			if (!voucher.isValid()) {
-				throw new IllegalArgumentException(voucher.getMessage());
-			}
-
-			discount = voucher.getDiscountAmount();
-
-			if (promotion != null) {
-				int usedCount = promotion.getUsedCount() == null ? 0 : promotion.getUsedCount();
-
-				promotion.setUsedCount(Math.addExact(usedCount, 1));
-				promotionRepository.save(promotion);
-
-				eventPublisher.publishEvent(new PromotionEvent(promotion.getId(), "PROMOTION_REDEEMED", userEmail,
-						"Sử dụng mã " + promotion.getCode()));
-			}
-		}
-
 		BigDecimal shippingFee = shippingQuote.getShippingFee();
-		BigDecimal finalAmount = subtotal.add(shippingFee).subtract(discount);
+
+		var voucherQuote = voucherService.prepare(
+		        request.getVoucherCode(),
+		        selectedItems,
+		        user,
+		        method,
+		        shippingFee,
+		        true);
+
+		BigDecimal discount = voucherQuote.discountAmount();
+
+		BigDecimal finalAmount = subtotal
+		        .add(shippingFee)
+		        .subtract(discount);
+		
 		if (finalAmount.compareTo(BigDecimal.ZERO) < 0)
 			finalAmount = BigDecimal.ZERO;
 
-		// 3. Tạo mã đơn hàng duy nhất
 		String orderCode = orderCodeGenerator.nextCandidate();
 
-		// 4. Lưu Entity Order
+
 		Order order = Order.builder().orderCode(orderCode).user(user)
 				.branch(branch).totalAmount(subtotal)
 				.shippingFee(shippingFee).discountAmount(discount).finalAmount(finalAmount).status(OrderStatus.PENDING)
@@ -320,6 +309,9 @@ public class CheckoutServiceImpl implements CheckoutService {
 			payment.setPaymentExpiresAt(expiresAt);
 		}
 
+		voucherService.recordUsage(
+		        savedOrder, voucherQuote, user);
+		
 		// 7. XÓA CÁC MÓN ĐÃ ĐẶT RA KHỎI GIỎ HÀNG
 		cart.getItems().removeAll(selectedItems);
 		cartRepository.save(cart);

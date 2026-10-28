@@ -16,7 +16,7 @@
 		</ol>
 	</nav>
 
-	<!-- THẺ TÓM TẮT TÀI KHOẢN & LỐI TẮT NHANH -->
+	
 	<div class="bg-white border rounded-4 p-3 p-md-4 mb-4 shadow-sm d-flex flex-wrap align-items-center justify-content-between gap-3">
 		<div class="d-flex align-items-center gap-3">
 			<div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold fs-3"

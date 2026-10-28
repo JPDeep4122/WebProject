@@ -85,4 +85,33 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	@Query("select coalesce(sum(o.finalAmount), 0) from Order o where o.branch.id = :branchId and o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
 	BigDecimal sumSuccessfulRevenueByBranch(@Param("branchId") Long branchId);
+
+	@Query("""
+			select count(o)
+			from Order o
+			left join o.payment p
+			where o.user.id = :userId
+			  and o.status <> :cancelled
+			  and (p.id is null or p.paymentStatus <> :failed)
+			""")
+	long countExistingPurchases(@Param("userId") Long userId, @Param("cancelled") OrderStatus cancelled,
+			@Param("failed") PaymentStatus failed);
+	
+	@Query("""
+		    select o.id
+		    from Order o
+		    join o.payment p
+		    where o.status = :orderStatus
+		      and p.paymentMethod = :method
+		      and p.paymentStatus = :paymentStatus
+		      and p.paymentExpiresAt <= :now
+		    order by o.id
+		    """)
+		List<Long> findExpiredPendingOrderIds(
+		        @Param("orderStatus") OrderStatus orderStatus,
+		        @Param("method")
+		            com.dienmay.entity.payment.PaymentMethod method,
+		        @Param("paymentStatus") PaymentStatus paymentStatus,
+		        @Param("now") java.time.Instant now,
+		        Pageable pageable);
 }

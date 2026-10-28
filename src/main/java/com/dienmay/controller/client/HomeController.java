@@ -43,7 +43,6 @@ public class HomeController {
 		return "client/login";
 	}
 
-	// XỬ LÝ ĐĂNG XUẤT SẠCH SẼ COOKIE JWT & SESSION CHO MỌI VAI TRÒ
 	@GetMapping("/logout")
 	public String logoutPage(HttpServletRequest request, HttpServletResponse response) {
 		SecurityContextHolder.clearContext();
@@ -66,7 +65,13 @@ public class HomeController {
 	}
 
 	@GetMapping("/vouchers")
-	public String vouchersPage() {
-		return "client/vouchers";
+	public String vouchersPage(Model model) {
+	    model.addAttribute(
+	            "vouchers", voucherService.listAvailable());
+
+	    return "client/vouchers";
 	}
+	
+	@Autowired
+	private com.dienmay.service.promotion.VoucherService voucherService;
 }

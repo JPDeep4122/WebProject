@@ -16,13 +16,17 @@ import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.entity.payment.Payment;
 import com.dienmay.entity.payment.PaymentMethod;
 import com.dienmay.entity.payment.PaymentStatus;
+import com.dienmay.service.promotion.VoucherService;
 
 @Component
 public class OrderStateMachine implements ApplicationEventPublisherAware {
     private final Map<OrderStatus, Set<OrderStatus>> allowedTransitions = new EnumMap<>(OrderStatus.class);
     private ApplicationEventPublisher eventPublisher;
-
-    public OrderStateMachine() {
+    private final VoucherService voucherService;
+    
+    public OrderStateMachine(VoucherService voucherService) {
+        this.voucherService = voucherService;
+        
         allowedTransitions.put(OrderStatus.PENDING,
                 EnumSet.of(OrderStatus.CONFIRMED, OrderStatus.CANCELLED));
         allowedTransitions.put(OrderStatus.CONFIRMED,
@@ -54,6 +58,12 @@ public class OrderStateMachine implements ApplicationEventPublisherAware {
         requirePaymentBeforeDelivery(order, target);
 
         order.setStatus(target);
+        
+        if (target == OrderStatus.CANCELLED) {
+            voucherService.release(
+                    order.getId(), "ORDER_CANCELLED");
+        }
+        
         publishStatusChanged(order, current, target);
     }
     
