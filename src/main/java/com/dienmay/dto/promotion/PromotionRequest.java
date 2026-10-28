@@ -16,39 +16,39 @@ import lombok.Data;
 @Data
 public class PromotionRequest {
 
-    @NotBlank
-    @Size(max = 120)
+    @NotBlank(message = "Vui lòng nhập tên chương trình voucher.")
+    @Size(max = 120, message = "Tên voucher tối đa 120 ký tự.")
     private String name;
 
-    @NotBlank
-    @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9_-]{1,49}")
+    @NotBlank(message = "Vui lòng nhập mã voucher.")
+    @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9_-]{1,49}", message = "Mã voucher cần 2–50 ký tự, chỉ gồm chữ, số, dấu gạch ngang hoặc gạch dưới.")
     private String code;
 
-    @NotNull
+    @NotNull(message = "Vui lòng chọn loại ưu đãi.")
     private VoucherType discountType = VoucherType.FIXED;
 
-    @DecimalMin("0.01")
-    @DecimalMax("100.00")
+    @DecimalMin(value = "0.01", message = "Phần trăm giảm phải từ 0,01%.")
+    @DecimalMax(value = "100.00", message = "Phần trăm giảm không được vượt quá 100%.")
     private BigDecimal discountPercent;
 
-    @DecimalMin("0.01")
+    @DecimalMin(value = "0.01", message = "Số tiền giảm phải lớn hơn 0.")
     private BigDecimal discountAmount;
 
-    @DecimalMin("0.01")
+    @DecimalMin(value = "0.01", message = "Mức giảm tối đa phải lớn hơn 0 hoặc để trống.")
     private BigDecimal maxDiscountAmount;
 
-    @NotNull
-    @DecimalMin("0.00")
+    @NotNull(message = "Vui lòng nhập giá trị đơn tối thiểu.")
+    @DecimalMin(value = "0.00", message = "Giá trị đơn tối thiểu không được âm.")
     private BigDecimal minOrderAmount = BigDecimal.ZERO;
 
     private PaymentMethod requiredPaymentMethod;
 
     private Boolean newCustomerOnly = false;
 
-    @Min(1)
+    @Min(value = 1, message = "Lượt dùng mỗi khách phải từ 1 trở lên; để trống nếu không giới hạn.")
     private Integer perUserLimit;
 
-    @PositiveOrZero
+    @PositiveOrZero(message = "Tổng số lượt phải từ 0 trở lên; để trống nếu không giới hạn.")
     private Integer maxUses;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)

@@ -31,6 +31,9 @@ import com.dienmay.service.CloudinaryService;
 import com.dienmay.service.product.ProductService;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.Join;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +48,9 @@ public class ProductServiceImpl implements ProductService {
 	private final ProductImageRepository productImageRepository;
 	private final CloudinaryService cloudinaryService;
 
+	@PersistenceContext
+	private EntityManager entityManager;
+
 	@Override
 	public List<Category> getAllCategories() {
 		return categoryRepository.findAll();
@@ -53,6 +59,20 @@ public class ProductServiceImpl implements ProductService {
 	@Override
 	public List<Brand> getAllBrands() {
 		return brandRepository.findAll();
+	}
+
+	@Override
+	public List<Brand> getBrandsForFilter(ProductFilterRequest request) {
+		var cb = entityManager.getCriteriaBuilder();
+		var query = cb.createQuery(Brand.class);
+		var product = query.from(Product.class);
+		Join<Product, Brand> brand = product.join("brand");
+		var scope = ProductSpecification.filter(request, false)
+				.and(rankingFilter(request.getSortBy()));
+		query.select(brand).distinct(true)
+				.where(cb.and(scope.toPredicate(product, query, cb), cb.isTrue(brand.get("active"))))
+				.orderBy(cb.asc(brand.get("name")), cb.asc(brand.get("id")));
+		return entityManager.createQuery(query).getResultList();
 	}
 
 	@Override

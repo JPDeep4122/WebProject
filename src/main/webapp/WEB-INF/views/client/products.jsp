@@ -135,6 +135,10 @@
 									</div>
 
 									
+									<button type="button" class="btn btn-primary w-100 rounded-pill mt-3 fw-bold btn-sm"
+									        onclick="buyProductNow(${prod.id}, 1, this)">
+									    <i class="bi bi-lightning-charge-fill me-1"></i> Mua ngay
+									</button>
 									<button
 										class="btn btn-outline-primary w-100 rounded-pill mt-3 fw-bold btn-sm"
 										type="button" onclick="addToCart(${prod.id}, 1, this)">

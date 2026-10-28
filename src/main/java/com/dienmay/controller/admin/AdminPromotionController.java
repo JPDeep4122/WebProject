@@ -58,7 +58,11 @@ public class AdminPromotionController {
 
         if (errors.hasErrors()) {
             flash.addFlashAttribute(
-                    "error", "Thông tin voucher không hợp lệ.");
+                    "error", errors.getFieldErrors().stream()
+                        .map(error -> error.isBindingFailure()
+                            ? "Giá trị nhập cho " + fieldLabel(error.getField()) + " không hợp lệ."
+                            : error.getDefaultMessage())
+                        .distinct().collect(java.util.stream.Collectors.joining(" ")));
             return "redirect:/admin/promotions";
         }
 
@@ -143,7 +147,9 @@ public class AdminPromotionController {
                         "Mã " + p.getCode()));
             });
 
-            flash.addFlashAttribute("success", "Đã lưu voucher.");
+            flash.addFlashAttribute("success", id == null
+                    ? "Đã tạo voucher " + req.getCode().trim().toUpperCase(Locale.ROOT) + "."
+                    : "Đã cập nhật voucher " + req.getCode().trim().toUpperCase(Locale.ROOT) + ".");
 
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
@@ -155,6 +161,20 @@ public class AdminPromotionController {
         }
 
         return "redirect:/admin/promotions";
+    }
+
+    private String fieldLabel(String field) {
+        return switch (field) {
+            case "startsAt" -> "thời gian bắt đầu";
+            case "endsAt" -> "thời gian kết thúc";
+            case "maxUses" -> "tổng số lượt";
+            case "perUserLimit" -> "lượt dùng mỗi khách";
+            case "discountPercent" -> "phần trăm giảm";
+            case "discountAmount" -> "số tiền giảm";
+            case "maxDiscountAmount" -> "mức giảm tối đa";
+            case "minOrderAmount" -> "giá trị đơn tối thiểu";
+            default -> "thông tin voucher";
+        };
     }
 
     @PostMapping("/{id}/toggle")

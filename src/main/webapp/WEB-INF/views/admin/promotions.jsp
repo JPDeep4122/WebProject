@@ -645,12 +645,20 @@
         if (percentBox) {
             percentBox.classList.toggle('d-none', type !== 'PERCENT');
             const input = percentBox.querySelector('input');
-            if (input) input.disabled = (type !== 'PERCENT');
+            if (input) {
+                input.disabled = (type !== 'PERCENT');
+                input.required = (type === 'PERCENT');
+                input.setCustomValidity('');
+            }
         }
         if (fixedBox) {
             fixedBox.classList.toggle('d-none', type !== 'FIXED');
             const input = fixedBox.querySelector('input');
-            if (input) input.disabled = (type !== 'FIXED');
+            if (input) {
+                input.disabled = (type !== 'FIXED');
+                input.required = (type === 'FIXED');
+                input.setCustomValidity('');
+            }
         }
         if (shippingBox) {
             shippingBox.classList.toggle('d-none', type !== 'SHIPPING');
@@ -730,5 +738,6 @@
         });
     });
 </script>
+<script src="${pageContext.request.contextPath}/js/promotion-form.js"></script>
 </body>
 </html>

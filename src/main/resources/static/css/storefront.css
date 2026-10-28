@@ -2558,3 +2558,17 @@ body {
         padding: 24px 20px;
     }
 }
+
+/* Giữ lựa chọn toàn bộ danh mục nổi bật trong bộ lọc. */
+.catalog-category-all {
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    background: #eff6ff;
+    padding: 12px;
+    color: #0b66c3;
+    font-weight: 700;
+}
+.catalog-category-all:has(input:checked) {
+    border-color: #0b66c3;
+    box-shadow: 0 0 0 2px rgba(11, 102, 195, .1);
+}
