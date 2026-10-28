@@ -24,9 +24,6 @@ public interface UserRepository extends JpaRepository<User, Long>{
 	@EntityGraph(attributePaths = {"branch", "roles"})
 	List<User> findDistinctByRoles_NameAndActiveTrueOrderByFullNameAsc(String roleName);
 
-	@Query("select count(distinct u.id) from User u join u.roles r where upper(r.name) = 'CUSTOMER'")
-	long countCustomers();
-	
 	Optional<User> findByGoogleSub(String googleSub);
 
 	boolean existsByEmailIgnoreCase(String email);

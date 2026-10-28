@@ -31,7 +31,7 @@ public class AdminDashboardController {
 
     @GetMapping("/admin")
     public String adminDashboard(Model model, Principal principal) {
-        model.addAttribute("customerCount", userRepository.countCustomers());
+        model.addAttribute("customerCount", orderRepository.countUniqueCustomersWithPurchases());
         model.addAttribute("totalRevenue", orderRepository.sumSuccessfulRevenue());
         model.addAttribute("branches", branchRepository.findAll().stream().map(branch -> {
             var revenue = orderRepository.sumSuccessfulRevenueByBranch(branch.getId());
