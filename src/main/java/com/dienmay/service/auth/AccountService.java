@@ -10,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.dienmay.dto.auth.AccountProfile;
 import com.dienmay.dto.auth.ChangePasswordRequest;
 import com.dienmay.dto.auth.ProfileUpdateRequest;
+import com.dienmay.entity.auth.Address;
 import com.dienmay.entity.auth.User;
+import com.dienmay.repository.auth.AddressRepository;
 import com.dienmay.repository.auth.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -19,12 +21,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AccountService {
     private final UserRepository users;
+    private final AddressRepository addressRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public AccountProfile getProfile(String email) {
         User user = requireActiveUser(email);
-        return new AccountProfile(user.getEmail(), user.getFullName(), user.getPhoneNumber());
+        Address defaultAddr = addressRepository.findByUser_IdAndIsDefaultTrue(user.getId())
+                .orElse(null);
+        String province = defaultAddr != null ? defaultAddr.getProvince() : null;
+        String ward = defaultAddr != null ? defaultAddr.getWard() : null;
+        String detailAddress = defaultAddr != null ? defaultAddr.getDetailAddress() : null;
+        return new AccountProfile(user.getEmail(), user.getFullName(), user.getPhoneNumber(), province, ward, detailAddress);
     }
 
     @Transactional
@@ -34,6 +42,22 @@ public class AccountService {
         String phone = request.getPhoneNumber();
         user.setPhoneNumber(phone == null || phone.isBlank() ? null : phone.strip());
         users.save(user);
+
+        // Lưu hoặc cập nhật địa chỉ mặc định của khách hàng
+        if (request.getProvince() != null && !request.getProvince().isBlank()) {
+            Address addr = addressRepository.findByUser_IdAndIsDefaultTrue(user.getId())
+                    .orElseGet(() -> Address.builder().user(user).isDefault(true).build());
+            addr.setRecipientName(user.getFullName());
+            addr.setPhoneNumber(user.getPhoneNumber() != null ? user.getPhoneNumber() : "");
+            addr.setProvince(request.getProvince().strip());
+            addr.setWard(request.getWard() != null ? request.getWard().strip() : "");
+            addr.setDetailAddress(request.getDetailAddress() != null ? request.getDetailAddress().strip() : "");
+
+            String full = String.join(", ", java.util.stream.Stream.of(addr.getDetailAddress(), addr.getWard(), addr.getProvince())
+                    .filter(s -> s != null && !s.isBlank()).toList());
+            addr.setFullAddress(full);
+            addressRepository.save(addr);
+        }
     }
 
     @Transactional

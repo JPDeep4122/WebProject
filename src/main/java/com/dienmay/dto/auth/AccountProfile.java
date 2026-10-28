@@ -7,4 +7,7 @@ public class AccountProfile {
     String email;
     String fullName;
     String phoneNumber;
+    String province;
+    String ward;
+    String detailAddress;
 }

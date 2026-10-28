@@ -15,4 +15,8 @@ public class ProfileUpdateRequest {
     @Pattern(regexp = "^$|\\+?[0-9]{9,15}",
             message = "Số điện thoại gồm 9–15 chữ số, có thể bắt đầu bằng dấu +.")
     private String phoneNumber;
+
+    private String province;
+    private String ward;
+    private String detailAddress;
 }

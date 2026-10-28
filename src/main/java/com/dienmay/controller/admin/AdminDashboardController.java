@@ -3,6 +3,7 @@ package com.dienmay.controller.admin;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.branch.BranchRepository;
@@ -40,7 +41,8 @@ public class AdminDashboardController {
     }
 
     @GetMapping("/admin")
-    public String adminDashboard(Model model, Principal principal) {
+    public String adminDashboard(@RequestParam(required = false) Long branchId,
+                                Model model, Principal principal) {
         var currentUser = userRepository.findByEmail(principal.getName()).orElse(null);
         boolean admin = currentUser != null && currentUser.getRoles().stream()
                 .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
@@ -48,20 +50,25 @@ public class AdminDashboardController {
                 .anyMatch(role -> "ROLE_BRANCH_MANAGER".equals(role.getName()));
         boolean canViewRevenue = admin || branchManager;
 
-        Long branchId = admin || currentUser == null || currentUser.getBranch() == null
-                ? null : currentUser.getBranch().getId();
+        Long effectiveBranchId = admin ? branchId : (currentUser != null && currentUser.getBranch() != null ? currentUser.getBranch().getId() : null);
+
+        String currentBranchName = "Toàn chuỗi chi nhánh";
+        if (effectiveBranchId != null) {
+            currentBranchName = branchRepository.findById(effectiveBranchId)
+                    .map(com.dienmay.entity.branch.Branch::getName)
+                    .orElse("Toàn chuỗi chi nhánh");
+        }
 
         model.addAttribute("canViewRevenue", canViewRevenue);
         model.addAttribute("isAdmin", admin);
-        model.addAttribute("currentBranchName",
-                currentUser != null && currentUser.getBranch() != null
-                        ? currentUser.getBranch().getName() : "Toàn chuỗi chi nhánh");
+        model.addAttribute("selectedBranchId", effectiveBranchId);
+        model.addAttribute("currentBranchName", currentBranchName);
+        model.addAttribute("allBranches", branchRepository.findAll(Sort.by("name")));
 
-        // Đếm đơn theo trạng thái theo phạm vi quyền hạn
         Map<OrderStatus, Long> statusCounts = new EnumMap<>(OrderStatus.class);
         long statusChartTotal = 0;
         for (OrderStatus status : OrderStatus.values()) {
-            long count = canViewRevenue ? orderRepository.countDashboardOrdersByStatus(branchId, status) : 0;
+            long count = canViewRevenue ? orderRepository.countDashboardOrdersByStatus(effectiveBranchId, status) : 0;
             statusCounts.put(status, count);
             statusChartTotal += count;
         }
@@ -75,21 +82,31 @@ public class AdminDashboardController {
         var top5Pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         if (admin) {
-            long successfulOrdersCount = orderRepository.countSuccessfulOrders();
-            BigDecimal totalRevenue = orderRepository.sumSuccessfulRevenue();
+            long successfulOrdersCount = effectiveBranchId == null
+                    ? orderRepository.countSuccessfulOrders()
+                    : orderRepository.countSuccessfulOrdersByBranch(effectiveBranchId);
+
+            BigDecimal totalRevenue = effectiveBranchId == null
+                    ? orderRepository.sumSuccessfulRevenue()
+                    : orderRepository.sumSuccessfulRevenueByBranch(effectiveBranchId);
             BigDecimal safeRevenue = totalRevenue == null ? BigDecimal.ZERO : totalRevenue;
+
             BigDecimal aov = successfulOrdersCount > 0
                     ? safeRevenue.divide(BigDecimal.valueOf(successfulOrdersCount), 0, java.math.RoundingMode.HALF_UP)
                     : BigDecimal.ZERO;
 
-            model.addAttribute("customerCount", orderRepository.countUniqueCustomersWithPurchases());
+            long customerCount = effectiveBranchId == null
+                    ? orderRepository.countUniqueCustomersWithPurchases()
+                    : orderRepository.countUniqueCustomersWithPurchasesByBranch(effectiveBranchId);
+
+            model.addAttribute("customerCount", customerCount);
             model.addAttribute("totalRevenue", safeRevenue);
             model.addAttribute("successfulOrdersCount", successfulOrdersCount);
             model.addAttribute("aov", aov);
 
-            var branchRevenues = branchRepository.findAll().stream().map(branch -> {
+            var branchRevenues = branchRepository.findAll(Sort.by("name")).stream().map(branch -> {
                 var revenue = orderRepository.sumSuccessfulRevenueByBranch(branch.getId());
-                return new BranchRevenue(branch.getName(), revenue == null ? BigDecimal.ZERO : revenue, 0);
+                return new BranchRevenue(branch.getId(), branch.getName(), revenue == null ? BigDecimal.ZERO : revenue, 0);
             }).toList();
             BigDecimal revenueTotal = branchRevenues.stream().map(BranchRevenue::revenue)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -97,27 +114,29 @@ public class AdminDashboardController {
                 int share = revenueTotal.signum() == 0 ? 0 : branch.revenue()
                         .multiply(BigDecimal.valueOf(100))
                         .divide(revenueTotal, 0, java.math.RoundingMode.HALF_UP).intValue();
-                return new BranchRevenue(branch.name(), branch.revenue(), Math.min(share, 100));
+                return new BranchRevenue(branch.id(), branch.name(), branch.revenue(), Math.min(share, 100));
             }).toList());
-            model.addAttribute("successfulOrders", orderRepository.findSuccessfulPaidOrders(
-                    PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent());
+
+            model.addAttribute("successfulOrders", effectiveBranchId == null
+                    ? orderRepository.findSuccessfulPaidOrders(PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent()
+                    : orderRepository.findSuccessfulPaidOrdersByBranch(effectiveBranchId, PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent());
             model.addAttribute("topSellingProducts", productRepository.findTop5ByActiveTrueOrderBySoldQuantityDesc());
-        } else if (branchManager && branchId != null) {
-            long successfulOrdersCount = orderRepository.countSuccessfulOrdersByBranch(branchId);
-            BigDecimal branchRev = orderRepository.sumSuccessfulRevenueByBranch(branchId);
+        } else if (branchManager && effectiveBranchId != null) {
+            long successfulOrdersCount = orderRepository.countSuccessfulOrdersByBranch(effectiveBranchId);
+            BigDecimal branchRev = orderRepository.sumSuccessfulRevenueByBranch(effectiveBranchId);
             BigDecimal safeRev = branchRev == null ? BigDecimal.ZERO : branchRev;
             BigDecimal aov = successfulOrdersCount > 0
                     ? safeRev.divide(BigDecimal.valueOf(successfulOrdersCount), 0, java.math.RoundingMode.HALF_UP)
                     : BigDecimal.ZERO;
 
-            model.addAttribute("customerCount", orderRepository.countUniqueCustomersWithPurchasesByBranch(branchId));
+            model.addAttribute("customerCount", orderRepository.countUniqueCustomersWithPurchasesByBranch(effectiveBranchId));
             model.addAttribute("totalRevenue", safeRev);
             model.addAttribute("successfulOrdersCount", successfulOrdersCount);
             model.addAttribute("aov", aov);
-            model.addAttribute("branches", List.of(new BranchRevenue(currentUser.getBranch().getName(), safeRev,
+            model.addAttribute("branches", List.of(new BranchRevenue(currentUser.getBranch().getId(), currentUser.getBranch().getName(), safeRev,
                     safeRev.signum() == 0 ? 0 : 100)));
             model.addAttribute("successfulOrders", orderRepository.findSuccessfulPaidOrdersByBranch(
-                    branchId, PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent());
+                    effectiveBranchId, PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent());
             model.addAttribute("topSellingProducts", productRepository.findTop5ByActiveTrueOrderBySoldQuantityDesc());
         } else {
             model.addAttribute("customerCount", 0L);
@@ -133,33 +152,37 @@ public class AdminDashboardController {
             LocalDate today = LocalDate.now();
             LocalDateTime from = today.minusDays(6).atStartOfDay();
             LocalDateTime to = today.plusDays(1).atStartOfDay();
-            model.addAttribute("revenueTrend", buildRevenueTrend(branchId, from, to));
+            model.addAttribute("revenueTrend", buildRevenueTrend(effectiveBranchId, from, to));
         }
 
         model.addAttribute("orderRealtimeDestination", admin
                 ? OrderStatusWebSocketNotifier.ADMIN_DESTINATION
-                : branchId == null ? "" : OrderStatusWebSocketNotifier.branchDestination(branchId));
+                : effectiveBranchId == null ? "" : OrderStatusWebSocketNotifier.branchDestination(effectiveBranchId));
         model.addAttribute("orderStatusPollUrl", "/admin/orders/status-snapshot"
-                + (branchId == null ? "" : "?branchId=" + branchId));
+                + (effectiveBranchId == null ? "" : "?branchId=" + effectiveBranchId));
         return "admin/dashboard";
     }
 
-    public record BranchRevenue(String name, BigDecimal revenue, int sharePercent) {
+    public record BranchRevenue(Long id, String name, BigDecimal revenue, int sharePercent) {
         public String formattedRevenue() {
             return String.format(Locale.forLanguageTag("vi-VN"), "%,.0f đ", revenue);
         }
     }
 
-    public record RevenueDay(String dayLabel, String dateLabel, BigDecimal revenue, int barPercent) { }
+    public record RevenueDay(String dayLabel, String dateLabel, BigDecimal revenue, int barPercent, long orderCount) { }
 
     public record OrderStatusSlice(String label, long count, double percent, String color) { }
 
     private List<RevenueDay> buildRevenueTrend(Long branchId, LocalDateTime from, LocalDateTime to) {
         Map<LocalDate, BigDecimal> values = new java.util.HashMap<>();
+        Map<LocalDate, Long> orderCounts = new java.util.HashMap<>();
+
         for (Object[] row : orderRepository.summarizeDailyRevenue(branchId, from, to)) {
             LocalDate day = toLocalDate(row[0]);
             BigDecimal revenue = row[1] instanceof BigDecimal amount ? amount : new BigDecimal(row[1].toString());
+            long orders = row.length > 2 && row[2] != null ? ((Number) row[2]).longValue() : 0L;
             values.put(day, revenue);
+            orderCounts.put(day, orders);
         }
 
         List<LocalDate> days = new ArrayList<>();
@@ -174,10 +197,11 @@ public class AdminDashboardController {
         List<RevenueDay> chart = new ArrayList<>();
         for (LocalDate day : days) {
             BigDecimal amount = values.getOrDefault(day, BigDecimal.ZERO);
+            long orders = orderCounts.getOrDefault(day, 0L);
             int percent = max.signum() == 0 ? 0 : amount.multiply(BigDecimal.valueOf(100))
                     .divide(max, 0, java.math.RoundingMode.HALF_UP).intValue();
             chart.add(new RevenueDay(day.getDayOfWeek().getDisplayName(java.time.format.TextStyle.SHORT,
-                    Locale.forLanguageTag("vi-VN")), day.format(dateFormat), amount, percent));
+                    Locale.forLanguageTag("vi-VN")), day.format(dateFormat), amount, percent, orders));
         }
         return chart;
     }
@@ -200,9 +224,9 @@ public class AdminDashboardController {
         labels.put(OrderStatus.RETURN_REQUESTED, "Yêu cầu trả hàng");
         labels.put(OrderStatus.RETURNED, "Đã trả hàng");
         Map<OrderStatus, String> colors = Map.of(
-                OrderStatus.PENDING, "#f4b400", OrderStatus.CONFIRMED, "#5b8def",
-                OrderStatus.PROCESSING, "#16a6c9", OrderStatus.SHIPPING, "#718096",
-                OrderStatus.DELIVERED, "#198754", OrderStatus.CANCELLED, "#dc3545",
+                OrderStatus.PENDING, "#3b82f6", OrderStatus.CONFIRMED, "#5b8def",
+                OrderStatus.PROCESSING, "#06b6d4", OrderStatus.SHIPPING, "#718096",
+                OrderStatus.DELIVERED, "#10b981", OrderStatus.CANCELLED, "#dc3545",
                 OrderStatus.RETURN_REQUESTED, "#9b59b6", OrderStatus.RETURNED, "#7952b3");
         return labels.entrySet().stream().map(entry -> {
             long count = counts.getOrDefault(entry.getKey(), 0L);
