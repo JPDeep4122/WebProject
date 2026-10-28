@@ -58,7 +58,7 @@ public class AdminPromotionController {
 
         if (errors.hasErrors()) {
             flash.addFlashAttribute(
-                    "error", "Thông tin voucher không hợp lệ.");
+                    "error", validationMessage(errors));
             return "redirect:/admin/promotions";
         }
 
@@ -155,6 +155,26 @@ public class AdminPromotionController {
         }
 
         return "redirect:/admin/promotions";
+    }
+
+    private String validationMessage(BindingResult errors) {
+        var firstError = errors.getFieldErrors().stream().findFirst().orElse(null);
+        if (firstError == null) {
+            return "Thông tin voucher chưa hợp lệ. Vui lòng kiểm tra lại các trường.";
+        }
+        if (firstError.isBindingFailure()) {
+            return switch (firstError.getField()) {
+                case "maxUses" -> "Tổng số lượt phải là số nguyên dương hoặc để trống nếu không giới hạn.";
+                case "perUserLimit" -> "Lượt dùng mỗi khách phải là số nguyên dương hoặc để trống nếu không giới hạn.";
+                case "startsAt", "endsAt" -> "Thời gian không hợp lệ. Vui lòng chọn lại ngày giờ.";
+                case "discountAmount", "discountPercent", "maxDiscountAmount", "minOrderAmount" ->
+                        "Giá trị tiền hoặc phần trăm không hợp lệ. Vui lòng kiểm tra lại.";
+                default -> "Dữ liệu tại trường “" + firstError.getField() + "” không hợp lệ.";
+            };
+        }
+        return firstError.getDefaultMessage() == null
+                ? "Thông tin voucher chưa hợp lệ. Vui lòng kiểm tra lại các trường."
+                : firstError.getDefaultMessage();
     }
 
     @PostMapping("/{id}/toggle")

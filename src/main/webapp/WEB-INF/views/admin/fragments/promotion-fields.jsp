@@ -53,6 +53,7 @@
                     <div class="input-group">
                         <input class="form-control" name="discountPercent"
                                type="number" min="0.01" max="100" step="0.01"
+                               data-voucher-required="true"
                                value="${formPromotion.discountPercent}">
                         <span class="input-group-text fw-bold">%</span>
                     </div>
@@ -65,6 +66,7 @@
                 <div class="input-group">
                     <input class="form-control" name="discountAmount"
                            type="number" min="1" step="1"
+                           data-voucher-required="true"
                            placeholder="VD: 100000"
                            value="${formPromotion.discountAmount}">
                     <span class="input-group-text fw-bold">₫</span>
@@ -125,17 +127,19 @@
             <div class="col-md-2">
                 <label class="form-label fw-semibold small">Tổng số lượt</label>
                 <input class="form-control" name="maxUses"
-                       type="number" min="0"
+                       type="number" min="1" step="1"
                        placeholder="Vô hạn"
                        value="${formPromotion.maxUses}">
+                <small class="form-text text-muted">Để trống = không giới hạn; nếu nhập, tối thiểu 1 lượt.</small>
             </div>
 
             <div class="col-md-2">
                 <label class="form-label fw-semibold small">Lượt / 1 khách</label>
                 <input class="form-control" name="perUserLimit"
-                       type="number" min="1"
+                       type="number" min="1" step="1"
                        placeholder="Vô hạn"
                        value="${formPromotion.perUserLimit}">
+                <small class="form-text text-muted">Để trống = không giới hạn; nếu nhập, tối thiểu 1 lượt.</small>
             </div>
 
             <div class="col-md-5">

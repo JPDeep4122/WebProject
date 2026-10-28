@@ -334,7 +334,7 @@
                 </div>
 
                 <div class="card-body p-4">
-                    <form method="post" action="${pageContext.request.contextPath}/admin/promotions">
+                    <form method="post" action="${pageContext.request.contextPath}/admin/promotions" novalidate>
                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 
                         <c:set var="formPromotion" value="${newPromotion}" scope="request"/>
@@ -597,7 +597,7 @@
                                                         aria-label="Đóng"></button>
                                             </div>
                                             <div class="card-body p-4">
-                                                <form method="post"
+                                                <form method="post" novalidate
                                                       action="${pageContext.request.contextPath}/admin/promotions/${p.id}/update">
                                                     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 
@@ -645,16 +645,84 @@
         if (percentBox) {
             percentBox.classList.toggle('d-none', type !== 'PERCENT');
             const input = percentBox.querySelector('input');
-            if (input) input.disabled = (type !== 'PERCENT');
+            if (input) {
+                input.disabled = (type !== 'PERCENT');
+                input.required = (type === 'PERCENT');
+            }
         }
         if (fixedBox) {
             fixedBox.classList.toggle('d-none', type !== 'FIXED');
             const input = fixedBox.querySelector('input');
-            if (input) input.disabled = (type !== 'FIXED');
+            if (input) {
+                input.disabled = (type !== 'FIXED');
+                input.required = (type === 'FIXED');
+            }
         }
         if (shippingBox) {
             shippingBox.classList.toggle('d-none', type !== 'SHIPPING');
         }
+    }
+
+    function voucherValidationMessage(input) {
+        const name = input.name;
+        if (input.validity.valueMissing) {
+            return ({
+                name: 'Vui lòng nhập tên chương trình voucher.',
+                code: 'Vui lòng nhập mã voucher.',
+                discountAmount: 'Vui lòng nhập số tiền giảm.',
+                discountPercent: 'Vui lòng nhập phần trăm giảm.',
+                minOrderAmount: 'Vui lòng nhập giá trị đơn hàng tối thiểu.'
+            })[name] || 'Vui lòng điền trường này.';
+        }
+        if (input.validity.patternMismatch) return 'Mã voucher gồm 2–50 ký tự: chữ, số, dấu gạch ngang hoặc gạch dưới.';
+        if (input.validity.rangeUnderflow) {
+            if (name === 'maxUses') return 'Tổng số lượt phải từ 1 trở lên; để trống nếu không giới hạn.';
+            if (name === 'perUserLimit') return 'Lượt dùng mỗi khách phải từ 1 trở lên; để trống nếu không giới hạn.';
+            if (name === 'discountPercent') return 'Phần trăm giảm phải lớn hơn 0.';
+            if (name === 'minOrderAmount') return 'Giá trị đơn hàng tối thiểu không được âm.';
+            return 'Giá trị phải lớn hơn 0.';
+        }
+        if (input.validity.rangeOverflow) return 'Phần trăm giảm không được vượt quá 100%.';
+        if (input.validity.stepMismatch) return 'Vui lòng nhập số nguyên hợp lệ.';
+        if (input.type === 'datetime-local' && input.validity.badInput) return 'Thời gian không hợp lệ. Vui lòng chọn lại ngày giờ.';
+        return 'Giá trị không hợp lệ. Vui lòng kiểm tra lại.';
+    }
+
+    function validateVoucherDates(formWrap) {
+        const form = formWrap.closest('form');
+        const startsAt = form?.querySelector('[name="startsAt"]');
+        const endsAt = form?.querySelector('[name="endsAt"]');
+        if (!startsAt || !endsAt) return;
+        endsAt.setCustomValidity('');
+        if (startsAt.value && endsAt.value && endsAt.value <= startsAt.value) {
+            endsAt.setCustomValidity('Thời gian kết thúc phải sau thời gian bắt đầu.');
+        }
+    }
+
+    function bindVoucherValidation(formWrap) {
+        const form = formWrap.closest('form');
+        if (!form || form.dataset.validationBound === 'true') return;
+        form.dataset.validationBound = 'true';
+        form.addEventListener('input', event => {
+            event.target.setCustomValidity('');
+            validateVoucherDates(formWrap);
+        });
+        form.addEventListener('change', event => {
+            event.target.setCustomValidity('');
+            validateVoucherDates(formWrap);
+        });
+        form.addEventListener('submit', event => {
+            validateVoucherDates(formWrap);
+            const invalidInput = Array.from(form.querySelectorAll('input, select, textarea'))
+                .find(input => input.willValidate && !input.validity.valid);
+            if (invalidInput) {
+                if (!invalidInput.validationMessage || invalidInput.validity.customError === false) {
+                    invalidInput.setCustomValidity(voucherValidationMessage(invalidInput));
+                }
+                event.preventDefault();
+                invalidInput.reportValidity();
+            }
+        });
     }
 
     function updateCategoryCounter(formWrap) {
@@ -727,6 +795,7 @@
             const select = formWrap.querySelector('select[name="discountType"]');
             if (select) syncVoucherTypeFields(select);
             updateCategoryCounter(formWrap);
+            bindVoucherValidation(formWrap);
         });
     });
 </script>
