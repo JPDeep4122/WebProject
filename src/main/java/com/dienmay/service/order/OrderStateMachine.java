@@ -1,10 +1,10 @@
 package com.dienmay.service.order;
 
+import java.time.LocalDateTime;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
-import java.time.LocalDateTime;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -53,18 +53,20 @@ public class OrderStateMachine implements ApplicationEventPublisherAware {
         }
         requirePaymentBeforeDelivery(order, target);
 
-        // COD is collected when delivery is confirmed. Mark the payment complete
-        // here so revenue reports include successfully delivered cash orders.
-        if (target == OrderStatus.DELIVERED
-                && order.getPayment() != null
-                && order.getPayment().getPaymentMethod() == PaymentMethod.COD
-                && order.getPayment().getPaymentStatus() == PaymentStatus.PENDING) {
-            order.getPayment().setPaymentStatus(PaymentStatus.SUCCESS);
-            order.getPayment().setPaymentTime(LocalDateTime.now());
-        }
-
         order.setStatus(target);
         publishStatusChanged(order, current, target);
+    }
+    
+    public void confirmCodPaymentCollected(Order order, LocalDateTime paidAt) {
+        if (order == null || order.getPayment() == null) {
+            throw new IllegalArgumentException("Đơn hàng chưa có thông tin thanh toán.");
+        }
+        Payment payment = order.getPayment();
+        if (payment.getPaymentMethod() == PaymentMethod.COD
+                && payment.getPaymentStatus() == PaymentStatus.PENDING) {
+            payment.setPaymentStatus(PaymentStatus.SUCCESS);
+            payment.setPaymentTime(paidAt != null ? paidAt : LocalDateTime.now());
+        }
     }
 
     @Override

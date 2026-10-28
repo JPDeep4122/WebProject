@@ -3,16 +3,23 @@ package com.dienmay.controller.admin;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.dienmay.dto.order.OrderStatusSnapshot;
 import com.dienmay.entity.auth.User;
@@ -40,18 +47,25 @@ public class AdminOrderController {
     private final com.dienmay.service.order.OrderFulfillmentService fulfillmentService;
     private final com.dienmay.service.order.DeliveryAssignmentService deliveryAssignmentService;
 
-    @org.springframework.web.bind.annotation.PostMapping("/{id}/confirm")
-    public String confirm(@org.springframework.web.bind.annotation.PathVariable Long id,
-            Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+    @PostMapping("/{id}/confirm")
+    public String confirm(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "list") String returnTo,
+            Principal principal,
+            RedirectAttributes flash) {
+
         try {
             confirmationService.confirm(id, principal.getName());
-            flash.addFlashAttribute("success", "Đã xác nhận đơn hàng và trừ tồn kho chi nhánh.");
+
+            flash.addFlashAttribute(
+                    "success",
+                    "Đã xác nhận đơn hàng và trừ tồn kho chi nhánh.");
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/admin/orders";
-    }
 
+        return orderActionRedirect(id, returnTo);
+    }
     @org.springframework.web.bind.annotation.PostMapping("/{id}/start-picking")
     public String startPicking(@org.springframework.web.bind.annotation.PathVariable Long id,
             Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
@@ -64,17 +78,28 @@ public class AdminOrderController {
         return "redirect:/admin/orders";
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/{id}/assign")
-    public String assign(@org.springframework.web.bind.annotation.PathVariable Long id,
-            @RequestParam Long shipperId, Principal principal,
-            org.springframework.web.servlet.mvc.support.RedirectAttributes flash) {
+    @PostMapping("/{id}/assign")
+    public String assign(
+            @PathVariable Long id,
+            @RequestParam Long shipperId,
+            @RequestParam(defaultValue = "list") String returnTo,
+            Principal principal,
+            RedirectAttributes flash) {
+
         try {
-            deliveryAssignmentService.assign(id, shipperId, principal.getName());
-            flash.addFlashAttribute("success", "Đã phân công đơn hàng cho shipper.");
+            deliveryAssignmentService.assign(
+                    id,
+                    shipperId,
+                    principal.getName());
+
+            flash.addFlashAttribute(
+                    "success",
+                    "Đã phân công đơn hàng cho shipper.");
         } catch (IllegalArgumentException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/admin/orders";
+
+        return orderActionRedirect(id, returnTo);
     }
 
     @org.springframework.web.bind.annotation.PostMapping("/{id}/cancel")
@@ -138,11 +163,79 @@ public class AdminOrderController {
     }
 
     @GetMapping("/{id}")
-    public String orderDetail(@org.springframework.web.bind.annotation.PathVariable Long id, Model model) {
+    public String orderDetail(
+            @PathVariable Long id,
+            Principal principal,
+            Model model) {
+
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+
+        User actor = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() ->
+                        new AccessDeniedException("Không có quyền xem đơn hàng."));
+
+        boolean admin = actor.getRoles().stream()
+                .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
+
+        boolean staff = actor.getRoles().stream()
+                .anyMatch(role -> "ROLE_STAFF".equals(role.getName()));
+
+        if (!actor.isActive() || actor.isBlocked() || (!admin && !staff)) {
+            throw new AccessDeniedException("Không có quyền xem đơn hàng.");
+        }
+
         Order order = orderRepository.findDetailedById(id)
-                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
-                        org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng."));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Không tìm thấy đơn hàng."));
+
+        // Staff chỉ được xem đơn thuộc chi nhánh được gán.
+        if (!admin && (
+                actor.getBranch() == null
+                || order.getBranch() == null
+                || !Objects.equals(
+                        actor.getBranch().getId(),
+                        order.getBranch().getId()))) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Không tìm thấy đơn hàng.");
+        }
+
+        var shippers = userRepository
+                .findDistinctByRoles_NameAndActiveTrueOrderByFullNameAsc(
+                        "ROLE_SHIPPER")
+                .stream()
+                .filter(shipper -> !shipper.isBlocked())
+                .filter(shipper ->
+                        order.getBranch() != null
+                        && shipper.getBranch() != null
+                        && Objects.equals(
+                                shipper.getBranch().getId(),
+                                order.getBranch().getId()))
+                .toList();
+
+        var assignment = order.getDeliveryAssignment();
+
+        boolean assignableOrder =
+                order.getBranch() != null
+                && (order.getStatus() == OrderStatus.CONFIRMED
+                    || order.getStatus() == OrderStatus.PROCESSING);
+
+        boolean notPickedUp =
+                assignment == null
+                || (assignment.getStatus()
+                        == com.dienmay.entity.order.DeliveryStatus.ASSIGNED
+                    && assignment.getPickedUpAt() == null);
+
         model.addAttribute("order", order);
+        model.addAttribute("shippers", shippers);
+        model.addAttribute("canConfirm",
+                order.getStatus() == OrderStatus.PENDING);
+        model.addAttribute("canAssign", assignableOrder && notPickedUp);
+
         return "admin/order-detail";
     }
 
@@ -196,5 +289,11 @@ public class AdminOrderController {
     @FunctionalInterface
     private interface OrderAction {
         void run(Long orderId, String email);
+    }
+    
+    private String orderActionRedirect(Long id, String returnTo) {
+        return "detail".equals(returnTo)
+                ? "redirect:/admin/orders/" + id
+                : "redirect:/admin/orders";
     }
 }
