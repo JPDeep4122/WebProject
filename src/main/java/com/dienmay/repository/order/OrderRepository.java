@@ -52,6 +52,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	@EntityGraph(attributePaths = {"user", "branch", "payment"})
 	Page<Order> findByStatusNot(OrderStatus status, Pageable pageable);
 
+	@EntityGraph(attributePaths = {"user", "branch", "payment"})
+	@Query("select o from Order o where o.status <> :excludedStatus "
+			+ "and (lower(o.orderCode) like lower(concat('%', :keyword, '%')) "
+			+ "or (:customerId is not null and o.user.id = :customerId))")
+	Page<Order> searchInvoices(@Param("excludedStatus") OrderStatus excludedStatus,
+			@Param("keyword") String keyword, @Param("customerId") Long customerId, Pageable pageable);
+
 	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByStatus(OrderStatus status, Pageable pageable);
 

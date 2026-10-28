@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -23,6 +24,18 @@
             </div>
             <span class="badge text-bg-primary fs-6">${invoicesPage.totalElements} hóa đơn</span>
         </div>
+        <form method="get" action="${pageContext.request.contextPath}/admin/invoices"
+              class="card card-body border-0 shadow-sm mb-3">
+            <label for="invoice-search" class="form-label fw-semibold">Tìm hóa đơn</label>
+            <div class="input-group">
+                <input id="invoice-search" class="form-control" type="search" name="q"
+                       value="${fn:escapeXml(searchQuery)}"
+                       placeholder="Nhập mã hóa đơn hoặc mã khách hàng (ID tài khoản)">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Tìm</button>
+                <a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/admin/invoices">Xóa lọc</a>
+            </div>
+            <small class="text-secondary mt-2">Mã khách hàng là ID tài khoản trong hệ thống.</small>
+        </form>
         <section class="card border-0 shadow-sm">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -49,7 +62,11 @@
             <nav class="mt-3" aria-label="Phân trang hóa đơn"><ul class="pagination justify-content-center">
                 <c:forEach begin="0" end="${invoicesPage.totalPages - 1}" var="index">
                     <li class="page-item ${invoicesPage.number eq index ? 'active' : ''}">
-                        <a class="page-link" href="${pageContext.request.contextPath}/admin/invoices?page=${index}">${index + 1}</a>
+                        <c:url var="invoicePageUrl" value="/admin/invoices">
+                            <c:param name="page" value="${index}"/>
+                            <c:if test="${not empty searchQuery}"><c:param name="q" value="${searchQuery}"/></c:if>
+                        </c:url>
+                        <a class="page-link" href="${pageContext.request.contextPath}${invoicePageUrl}">${index + 1}</a>
                     </li>
                 </c:forEach>
             </ul></nav>
