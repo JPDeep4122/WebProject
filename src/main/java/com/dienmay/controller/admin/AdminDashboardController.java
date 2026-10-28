@@ -11,6 +11,12 @@ import com.dienmay.entity.payment.PaymentStatus;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.EnumMap;
+import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.security.Principal;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -48,12 +54,21 @@ public class AdminDashboardController {
                 currentUser != null && currentUser.getBranch() != null
                         ? currentUser.getBranch().getName() : "Toàn chuỗi chi nhánh");
 
-        // Operational indicators follow the same scope as the current account:
-        // admins see the whole chain, branch managers see only their branch.
-        model.addAttribute("pendingOrderCount", orderRepository.countDashboardOrdersByStatus(branchId, OrderStatus.PENDING));
-        model.addAttribute("processingOrderCount", orderRepository.countDashboardOrdersByStatus(branchId, OrderStatus.PROCESSING));
-        model.addAttribute("shippingOrderCount", orderRepository.countDashboardOrdersByStatus(branchId, OrderStatus.SHIPPING));
-        model.addAttribute("deliveredOrderCount", orderRepository.countDashboardOrdersByStatus(branchId, OrderStatus.DELIVERED));
+        // Operational indicators and charts follow the current account's scope.
+        // Admins see the chain; branch managers see only their own branch.
+        Map<OrderStatus, Long> statusCounts = new EnumMap<>(OrderStatus.class);
+        long statusChartTotal = 0;
+        for (OrderStatus status : OrderStatus.values()) {
+            long count = canViewRevenue ? orderRepository.countDashboardOrdersByStatus(branchId, status) : 0;
+            statusCounts.put(status, count);
+            statusChartTotal += count;
+        }
+        model.addAttribute("pendingOrderCount", statusCounts.getOrDefault(OrderStatus.PENDING, 0L));
+        model.addAttribute("processingOrderCount", statusCounts.getOrDefault(OrderStatus.PROCESSING, 0L));
+        model.addAttribute("shippingOrderCount", statusCounts.getOrDefault(OrderStatus.SHIPPING, 0L));
+        model.addAttribute("deliveredOrderCount", statusCounts.getOrDefault(OrderStatus.DELIVERED, 0L));
+        model.addAttribute("statusChartTotal", statusChartTotal);
+        model.addAttribute("orderStatusChart", buildOrderStatusChart(statusCounts, statusChartTotal));
 
         var top5Pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
@@ -90,6 +105,13 @@ public class AdminDashboardController {
             model.addAttribute("successfulOrders", List.of());
         }
 
+        if (canViewRevenue) {
+            LocalDate today = LocalDate.now();
+            LocalDateTime from = today.minusDays(6).atStartOfDay();
+            LocalDateTime to = today.plusDays(1).atStartOfDay();
+            model.addAttribute("revenueTrend", buildRevenueTrend(branchId, from, to));
+        }
+
         model.addAttribute("orderRealtimeDestination", admin
                 ? OrderStatusWebSocketNotifier.ADMIN_DESTINATION
                 : branchId == null ? "" : OrderStatusWebSocketNotifier.branchDestination(branchId));
@@ -102,5 +124,66 @@ public class AdminDashboardController {
         public String formattedRevenue() {
             return String.format(Locale.forLanguageTag("vi-VN"), "%,.0f đ", revenue);
         }
+    }
+
+    public record RevenueDay(String dayLabel, String dateLabel, BigDecimal revenue, int barPercent) { }
+
+    public record OrderStatusSlice(String label, long count, double percent, String color) { }
+
+    private List<RevenueDay> buildRevenueTrend(Long branchId, LocalDateTime from, LocalDateTime to) {
+        Map<LocalDate, BigDecimal> values = new java.util.HashMap<>();
+        for (Object[] row : orderRepository.summarizeDailyRevenue(branchId, from, to)) {
+            LocalDate day = toLocalDate(row[0]);
+            BigDecimal revenue = row[1] instanceof BigDecimal amount ? amount : new BigDecimal(row[1].toString());
+            values.put(day, revenue);
+        }
+
+        List<LocalDate> days = new ArrayList<>();
+        BigDecimal max = BigDecimal.ZERO;
+        for (int offset = 0; offset < 7; offset++) {
+            LocalDate day = from.toLocalDate().plusDays(offset);
+            days.add(day);
+            BigDecimal amount = values.getOrDefault(day, BigDecimal.ZERO);
+            if (amount.compareTo(max) > 0) max = amount;
+        }
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM");
+        List<RevenueDay> chart = new ArrayList<>();
+        for (LocalDate day : days) {
+            BigDecimal amount = values.getOrDefault(day, BigDecimal.ZERO);
+            int percent = max.signum() == 0 ? 0 : amount.multiply(BigDecimal.valueOf(100))
+                    .divide(max, 0, java.math.RoundingMode.HALF_UP).intValue();
+            chart.add(new RevenueDay(day.getDayOfWeek().getDisplayName(java.time.format.TextStyle.SHORT,
+                    Locale.forLanguageTag("vi-VN")), day.format(dateFormat), amount, percent));
+        }
+        return chart;
+    }
+
+    private LocalDate toLocalDate(Object value) {
+        if (value instanceof java.sql.Date date) return date.toLocalDate();
+        if (value instanceof LocalDate date) return date;
+        if (value instanceof java.sql.Timestamp timestamp) return timestamp.toLocalDateTime().toLocalDate();
+        return LocalDate.parse(value.toString());
+    }
+
+    private List<OrderStatusSlice> buildOrderStatusChart(Map<OrderStatus, Long> counts, long total) {
+        Map<OrderStatus, String> labels = new java.util.LinkedHashMap<>();
+        labels.put(OrderStatus.PENDING, "Chờ xác nhận");
+        labels.put(OrderStatus.CONFIRMED, "Đã xác nhận");
+        labels.put(OrderStatus.PROCESSING, "Đang chuẩn bị");
+        labels.put(OrderStatus.SHIPPING, "Đang giao");
+        labels.put(OrderStatus.DELIVERED, "Đã giao thành công");
+        labels.put(OrderStatus.CANCELLED, "Đã hủy");
+        labels.put(OrderStatus.RETURN_REQUESTED, "Yêu cầu trả hàng");
+        labels.put(OrderStatus.RETURNED, "Đã trả hàng");
+        Map<OrderStatus, String> colors = Map.of(
+                OrderStatus.PENDING, "#f4b400", OrderStatus.CONFIRMED, "#5b8def",
+                OrderStatus.PROCESSING, "#16a6c9", OrderStatus.SHIPPING, "#718096",
+                OrderStatus.DELIVERED, "#198754", OrderStatus.CANCELLED, "#dc3545",
+                OrderStatus.RETURN_REQUESTED, "#9b59b6", OrderStatus.RETURNED, "#7952b3");
+        return labels.entrySet().stream().map(entry -> {
+            long count = counts.getOrDefault(entry.getKey(), 0L);
+            double percent = total == 0 ? 0 : count * 100.0 / total;
+            return new OrderStatusSlice(entry.getValue(), count, percent, colors.get(entry.getKey()));
+        }).toList();
     }
 }

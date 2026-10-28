@@ -21,6 +21,31 @@
 
     <jsp:include page="/WEB-INF/views/shared/security.jsp" />
     <jsp:include page="fragments/theme.jsp" />
+    <style>
+        .dashboard-chart-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            align-items: end;
+            gap: clamp(.5rem, 2vw, 1.25rem);
+            min-height: 15rem;
+            padding: 1rem .5rem 0;
+            border-bottom: 1px solid var(--bs-border-color);
+            background: repeating-linear-gradient(to top, transparent 0, transparent 3.65rem, rgba(108,117,125,.12) 3.7rem, transparent 3.75rem);
+        }
+        .dashboard-chart-column { display:flex; flex-direction:column; justify-content:flex-end; align-items:center; min-width:0; }
+        .dashboard-chart-bar-area { display:flex; align-items:flex-end; justify-content:center; width:100%; height:9rem; }
+        .dashboard-chart-bar { width:min(100%, 2.8rem); min-height:3px; border-radius:.45rem .45rem 0 0; background:linear-gradient(180deg,#4f9bff,#0755c9); transition:height .25s ease; }
+        .dashboard-chart-label { font-size:.75rem; white-space:nowrap; }
+        .dashboard-chart-date { color:var(--bs-secondary-color); font-size:.7rem; }
+        .dashboard-status-row { display:grid; grid-template-columns:minmax(7rem, 1fr) minmax(5rem, 2fr) auto; gap:.75rem; align-items:center; margin-bottom:1rem; }
+        .dashboard-status-track { height:.65rem; overflow:hidden; border-radius:999px; background:#e9ecef; }
+        .dashboard-status-fill { height:100%; border-radius:inherit; }
+        @media (max-width: 575.98px) {
+            .dashboard-chart-grid { gap:.3rem; }
+            .dashboard-chart-label { font-size:.65rem; }
+            .dashboard-status-row { grid-template-columns:minmax(6.5rem, 1fr) minmax(3rem, 1fr) auto; gap:.5rem; font-size:.85rem; }
+        }
+    </style>
 </head>
 
 <body>
@@ -158,6 +183,64 @@
                             </div>
                             </a>
                         </div>
+                        </div>
+                    </section>
+
+                    <section class="row g-3 mb-4" aria-label="Biểu đồ thống kê">
+                        <div class="col-12 col-xl-7">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <span><i class="bi bi-bar-chart-line me-1 text-primary"></i>Doanh thu 7 ngày gần nhất</span>
+                                    <small class="text-muted fw-normal">Đơn thanh toán thành công · đ</small>
+                                </div>
+                                <div class="card-body">
+                                    <c:choose>
+                                        <c:when test="${empty revenueTrend}">
+                                            <div class="text-center text-secondary py-5">Chưa có dữ liệu doanh thu.</div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <div class="dashboard-chart-grid" role="img" aria-label="Biểu đồ cột doanh thu theo ngày trong 7 ngày gần nhất">
+                                                <c:forEach items="${revenueTrend}" var="day">
+                                                    <div class="dashboard-chart-column" title="${day.dateLabel}">
+                                                        <span class="small text-primary text-center text-nowrap mb-1">
+                                                            <fmt:formatNumber value="${day.revenue}" maxFractionDigits="0" groupingUsed="true" />
+                                                        </span>
+                                                        <div class="dashboard-chart-bar-area" aria-hidden="true"><div class="dashboard-chart-bar" style="height:${day.barPercent}%;"></div></div>
+                                                        <span class="dashboard-chart-label fw-semibold mt-2"><c:out value="${day.dayLabel}" /></span>
+                                                        <span class="dashboard-chart-date"><c:out value="${day.dateLabel}" /></span>
+                                                    </div>
+                                                </c:forEach>
+                                            </div>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-5">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <span><i class="bi bi-pie-chart me-1 text-primary"></i>Cơ cấu trạng thái đơn hàng</span>
+                                    <small class="text-muted fw-normal"><fmt:formatNumber value="${statusChartTotal}" maxFractionDigits="0" /> đơn</small>
+                                </div>
+                                <div class="card-body">
+                                    <c:choose>
+                                        <c:when test="${statusChartTotal == 0}">
+                                            <div class="text-center text-secondary py-5">Chưa có đơn hàng trong phạm vi này.</div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <c:forEach items="${orderStatusChart}" var="slice">
+                                                <div class="dashboard-status-row">
+                                                    <span class="text-truncate" title="${slice.label}"><c:out value="${slice.label}" /></span>
+                                                    <div class="dashboard-status-track" role="progressbar" aria-label="${slice.label}" aria-valuenow="${slice.percent}" aria-valuemin="0" aria-valuemax="100">
+                                                        <div class="dashboard-status-fill" style="width:${slice.percent}%;background-color:${slice.color};"></div>
+                                                    </div>
+                                                    <strong class="text-nowrap"><fmt:formatNumber value="${slice.count}" maxFractionDigits="0" /></strong>
+                                                </div>
+                                            </c:forEach>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
