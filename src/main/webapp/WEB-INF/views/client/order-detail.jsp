@@ -115,7 +115,7 @@
 					<i class="bi bi-arrow-repeat me-1"></i>Mua lại đơn này
 				</button>
 			</form>
-			<c:if test="${order.status == 'PENDING'}">
+			<c:if test="${order.status == 'PENDING' or order.status == 'CONFIRMED' or order.status == 'PROCESSING'}">
 				<button type="button"
 					class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold"
 					data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
