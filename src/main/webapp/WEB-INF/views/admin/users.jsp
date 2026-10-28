@@ -27,9 +27,13 @@
 	.admin-users-table .user-email-cell { overflow-wrap: anywhere; }
 	.admin-users-table .user-role-cell .badge { white-space: nowrap; }
 	.admin-users-table .user-permission-form { min-width: 175px; }
-	.admin-users-table .user-update-form { min-width: 305px; flex-wrap: nowrap; }
-	.admin-users-table .user-update-form input[name="fullName"] { flex: 0 0 125px; width: 125px !important; }
-	.admin-users-table .user-update-form input[type="password"] { flex: 1 0 150px; min-width: 150px; }
+	.admin-users-table .user-update-form { min-width: 285px; flex-wrap: nowrap; }
+	.admin-users-table .user-update-form input[name="fullName"] { flex: 1 1 150px; min-width: 100px; }
+	.admin-users-table .user-password-details { margin-top: .4rem; }
+	.admin-users-table .user-password-details summary { cursor: pointer; list-style: none; width: fit-content; }
+	.admin-users-table .user-password-details summary::-webkit-details-marker { display: none; }
+	.admin-users-table .user-password-form { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .45rem; }
+	.admin-users-table .user-password-form input[type="password"] { flex: 1 1 160px; min-width: 150px; }
 	.admin-users-table .user-action-form { min-width: 88px; }
 	.admin-sidebar + main .admin-users-table .btn {
 		flex-shrink: 0;
@@ -167,7 +171,7 @@
 								<th>Phân quyền</th>
 								<th>Chi nhánh</th>
 								<th>Trạng thái</th>
-								<th>Đổi thông tin</th>
+								<th>Cập nhật thông tin</th>
 								<th></th>
 							</tr>
 						</thead>
@@ -209,23 +213,32 @@
 											${u.blocked ? 'Đã khóa'
             : (u.active ? 'Đang hoạt động' : 'Chờ xác thực')}
 									</span></td>
-									<td><form method="post"
-											action="/admin/users/${u.id}/update" class="d-flex gap-1 user-update-form">
-											<input type="hidden" name="${_csrf.parameterName}"
-												value="${_csrf.token}"> <input type="hidden"
-												name="email" value="${fn:escapeXml(u.email)}"> <input
-												class="form-control form-control-sm" name="fullName"
-												value="${fn:escapeXml(u.fullName)}" required
-												style="width: 130px"> <input type="hidden"
-												name="role" value="${u.roles.iterator().next().name}">
-											<input type="hidden" name="active" value="${u.active}">
-											<input type="password" class="form-control form-control-sm"
-												placeholder="Mật khẩu mới" autocomplete="new-password"
-												minlength="6" maxlength="100"
-												oninput="this.name = this.value ? 'password' : ''">
-											<button class="btn btn-sm btn-outline-primary">Lưu
-												tên</button>
-										</form></td>
+					<td>
+						<form method="post" action="/admin/users/${u.id}/update"
+							class="d-flex gap-1 user-update-form">
+							<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+							<input type="hidden" name="email" value="${fn:escapeXml(u.email)}">
+							<input class="form-control form-control-sm" name="fullName"
+								value="${fn:escapeXml(u.fullName)}" required aria-label="Họ tên ${u.email}">
+							<input type="hidden" name="role" value="${u.roles.iterator().next().name}">
+							<input type="hidden" name="active" value="${u.active}">
+							<button class="btn btn-sm btn-outline-primary" type="submit">Lưu tên</button>
+						</form>
+						<details class="user-password-details">
+							<summary class="btn btn-sm btn-outline-secondary">Đổi mật khẩu</summary>
+							<form method="post" action="/admin/users/${u.id}/update" class="user-password-form">
+								<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+								<input type="hidden" name="email" value="${fn:escapeXml(u.email)}">
+								<input type="hidden" name="fullName" value="${fn:escapeXml(u.fullName)}">
+								<input type="hidden" name="role" value="${u.roles.iterator().next().name}">
+								<input type="hidden" name="active" value="${u.active}">
+								<input type="password" class="form-control form-control-sm" name="password"
+									placeholder="Mật khẩu mới (ít nhất 6 ký tự)" autocomplete="new-password"
+									minlength="6" maxlength="100" required aria-label="Mật khẩu mới cho ${u.email}">
+								<button class="btn btn-sm btn-primary" type="submit">Lưu mật khẩu</button>
+							</form>
+						</details>
+					</td>
 									<td><form method="post" class="user-action-form"
 											action="/admin/users/${u.id}/toggle">
 											<input type="hidden" name="${_csrf.parameterName}"
