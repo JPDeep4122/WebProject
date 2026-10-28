@@ -62,6 +62,7 @@
 				<div class="card-body">
 					<form method="get" action="/admin/users"
 						class="row g-2 align-items-end">
+						<input type="hidden" name="page" value="0">
 						<div class="col-md-2">
 							<label class="form-label">ID tài khoản</label><input
 								class="form-control" type="number" name="id"
@@ -108,6 +109,13 @@
 								<option value="desc"
 									${selectedDirection eq 'desc' ? 'selected' : ''}>Giảm
 									dần</option></select>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">Số dòng</label><select class="form-select" name="size">
+								<option value="10" ${pageSize eq 10 ? 'selected' : ''}>10</option>
+								<option value="20" ${pageSize eq 20 ? 'selected' : ''}>20</option>
+								<option value="50" ${pageSize eq 50 ? 'selected' : ''}>50</option>
+							</select>
 						</div>
 						<div class="col-md-2">
 							<button class="btn btn-primary">Lọc tài khoản</button>
@@ -195,7 +203,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							<c:forEach items="${users}" var="u">
+							<c:forEach items="${usersPage.content}" var="u">
 								<tr>
 									<td>${u.id}</td>
 									<td class="user-email-cell">${u.email}<br> <small>${u.phoneNumber}</small></td>
@@ -289,6 +297,37 @@
 						</tbody>
 					</table>
 				</div>
+			</div>
+			<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 mb-4">
+				<small class="text-secondary">Hiển thị ${usersPage.numberOfElements} / ${usersPage.totalElements} tài khoản</small>
+				<c:if test="${usersPage.totalPages gt 1}">
+					<nav aria-label="Phân trang tài khoản"><ul class="pagination mb-0">
+						<c:url var="usersPreviousUrl" value="/admin/users">
+							<c:param name="page" value="${usersPage.number - 1}"/><c:param name="size" value="${pageSize}"/>
+							<c:if test="${not empty selectedId}"><c:param name="id" value="${selectedId}"/></c:if>
+							<c:if test="${not empty selectedType}"><c:param name="type" value="${selectedType}"/></c:if>
+							<c:param name="sort" value="${selectedSort}"/><c:param name="direction" value="${selectedDirection}"/>
+						</c:url>
+						<li class="page-item ${usersPage.first ? 'disabled' : ''}"><a class="page-link" href="${usersPreviousUrl}" aria-label="Trang trước">‹</a></li>
+						<c:forEach items="${paginationPages}" var="pageNumber">
+							<c:if test="${pageNumber.gapBefore}"><li class="page-item disabled"><span class="page-link">…</span></li></c:if>
+							<c:url var="usersPageUrl" value="/admin/users">
+								<c:param name="page" value="${pageNumber.index}"/><c:param name="size" value="${pageSize}"/>
+								<c:if test="${not empty selectedId}"><c:param name="id" value="${selectedId}"/></c:if>
+								<c:if test="${not empty selectedType}"><c:param name="type" value="${selectedType}"/></c:if>
+								<c:param name="sort" value="${selectedSort}"/><c:param name="direction" value="${selectedDirection}"/>
+							</c:url>
+							<li class="page-item ${usersPage.number eq pageNumber.index ? 'active' : ''}"><a class="page-link" href="${usersPageUrl}">${pageNumber.index + 1}</a></li>
+						</c:forEach>
+						<c:url var="usersNextUrl" value="/admin/users">
+							<c:param name="page" value="${usersPage.number + 1}"/><c:param name="size" value="${pageSize}"/>
+							<c:if test="${not empty selectedId}"><c:param name="id" value="${selectedId}"/></c:if>
+							<c:if test="${not empty selectedType}"><c:param name="type" value="${selectedType}"/></c:if>
+							<c:param name="sort" value="${selectedSort}"/><c:param name="direction" value="${selectedDirection}"/>
+						</c:url>
+						<li class="page-item ${usersPage.last ? 'disabled' : ''}"><a class="page-link" href="${usersNextUrl}" aria-label="Trang tiếp">›</a></li>
+					</ul></nav>
+				</c:if>
 			</div>
 		</main>
 	</div>

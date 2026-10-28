@@ -9,6 +9,10 @@ import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.branch.BranchRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -19,6 +23,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.TreeSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -47,6 +53,7 @@ public class AdminUserController {
 	@GetMapping
 	public String list(@RequestParam(required = false) Long id, @RequestParam(required = false) String type,
 			@RequestParam(defaultValue = "id") String sort, @RequestParam(defaultValue = "asc") String direction,
+			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
 			Principal principal, Model model) {
 		if (id != null && id < 0) {
 			id = 0L;
@@ -57,32 +64,39 @@ public class AdminUserController {
 
 		Sort order = Sort.by("desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC,
 				List.of("id", "email", "fullName", "createdAt", "active").contains(sort) ? sort : "id");
-		List<User> result;
+		int safePage = Math.max(0, page);
+		int safeSize = List.of(10, 20, 50).contains(size) ? size : 20;
+		Pageable pageable = PageRequest.of(safePage, safeSize, order);
+		Page<User> result;
 		if (admin) {
-			if (id != null)
-				result = users.findById(id).map(List::of).orElse(List.of());
+			if (id != null) {
+				List<User> matches = users.findById(id).map(List::of).orElse(List.of());
+				result = new PageImpl<>(matches, PageRequest.of(0, safeSize, order), matches.size());
+			}
 			else if (type != null && !type.isBlank())
-				result = users.findByRoles_Name(normalizeRole(type), order);
+				result = users.findByRoles_Name(normalizeRole(type), pageable);
 			else
-				result = users.findAll(order);
+				result = users.findAll(pageable);
 		} else {
 			Long branchId = requireManagerBranch(actor).getId();
 			if (type != null && !type.isBlank()) {
 				String normalizedType = normalizeRole(type);
 				result = MANAGER_ALLOWED_TARGET_ROLES.contains(normalizedType)
-						? users.findByBranch_IdAndRoles_Name(branchId, normalizedType, order)
-						: List.of();
+						? users.findByBranch_IdAndRoles_Name(branchId, normalizedType, pageable)
+						: Page.empty(pageable);
 			} else {
-				result = users.findByBranch_Id(branchId, order).stream()
-						.filter(this::isStaffOrShipper)
-						.toList();
+				result = users.findDistinctByBranch_IdAndRoles_NameIn(branchId,
+						List.of(ROLE_STAFF, ROLE_SHIPPER), pageable);
 			}
 			if (id != null) {
-				result = result.stream().filter(u -> Objects.equals(u.getId(), selectedId)).toList();
+				List<User> matches = users.findById(id)
+						.filter(u -> Objects.equals(u.getBranch().getId(), branchId) && isStaffOrShipper(u))
+						.map(List::of).orElse(List.of());
+				result = new PageImpl<>(matches, PageRequest.of(0, safeSize, order), matches.size());
 			}
 		}
 
-		model.addAttribute("users", result);
+		model.addAttribute("usersPage", result);
 		model.addAttribute("branches", admin ? branches.findAll(Sort.by("name")) : List.of(requireManagerBranch(actor)));
 		model.addAttribute("isAdminActor", admin);
 		model.addAttribute("actorBranch", actor.getBranch());
@@ -91,8 +105,27 @@ public class AdminUserController {
 		model.addAttribute("selectedType", type);
 		model.addAttribute("selectedSort", sort);
 		model.addAttribute("selectedDirection", direction);
+		model.addAttribute("pageSize", safeSize);
+		model.addAttribute("paginationPages", paginationPages(result.getNumber(), result.getTotalPages()));
 		return "admin/users";
 	}
+
+	private List<PageNumber> paginationPages(int currentPage, int totalPages) {
+		if (totalPages <= 0) return List.of();
+		TreeSet<Integer> visible = new TreeSet<>();
+		int start = currentPage == 0 ? 0 : currentPage;
+		for (int index = start; index < Math.min(start + 3, totalPages); index++) visible.add(index);
+		if (totalPages > 3) for (int index = Math.max(0, totalPages - 3); index < totalPages; index++) visible.add(index);
+		List<PageNumber> result = new ArrayList<>();
+		int previous = -1;
+		for (int index : visible) {
+			result.add(new PageNumber(index, previous >= 0 && index - previous > 1));
+			previous = index;
+		}
+		return result;
+	}
+
+	public record PageNumber(int index, boolean gapBefore) { }
 
 	@PostMapping
 	public String create(@Valid @ModelAttribute("newUser") AdminUserRequest request, BindingResult errors,

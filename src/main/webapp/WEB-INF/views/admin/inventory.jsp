@@ -147,15 +147,32 @@
         </div>
 
         <c:if test="${inventoryPage.totalPages gt 1}">
-            <nav class="mb-4"><ul class="pagination justify-content-center">
-                <c:forEach begin="0" end="${inventoryPage.totalPages - 1}" var="index">
+            <nav class="mb-4" aria-label="Phân trang tồn kho"><ul class="pagination justify-content-center flex-wrap">
+                <c:url var="previousPageUrl" value="/admin/inventory">
+                    <c:param name="page" value="${inventoryPage.number - 1}"/><c:param name="size" value="${pageSize}"/>
+                    <c:param name="keyword" value="${keyword}"/>
+                    <c:if test="${not empty selectedBranchId}"><c:param name="branchId" value="${selectedBranchId}"/></c:if>
+                </c:url>
+                <li class="page-item ${inventoryPage.first ? 'disabled' : ''}">
+                    <a class="page-link" href="${previousPageUrl}" aria-label="Trang trước">‹</a>
+                </li>
+                <c:forEach items="${paginationPages}" var="pageNumber">
+                    <c:if test="${pageNumber.gapBefore}"><li class="page-item disabled" aria-hidden="true"><span class="page-link">…</span></li></c:if>
                     <c:url var="pageUrl" value="/admin/inventory">
-                        <c:param name="page" value="${index}"/><c:param name="size" value="${pageSize}"/>
+                        <c:param name="page" value="${pageNumber.index}"/><c:param name="size" value="${pageSize}"/>
                         <c:param name="keyword" value="${keyword}"/>
                         <c:if test="${not empty selectedBranchId}"><c:param name="branchId" value="${selectedBranchId}"/></c:if>
                     </c:url>
-                    <li class="page-item ${inventoryPage.number eq index ? 'active' : ''}"><a class="page-link" href="${pageUrl}">${index + 1}</a></li>
+                    <li class="page-item ${inventoryPage.number eq pageNumber.index ? 'active' : ''}"><a class="page-link" href="${pageUrl}">${pageNumber.index + 1}</a></li>
                 </c:forEach>
+                <c:url var="nextPageUrl" value="/admin/inventory">
+                    <c:param name="page" value="${inventoryPage.number + 1}"/><c:param name="size" value="${pageSize}"/>
+                    <c:param name="keyword" value="${keyword}"/>
+                    <c:if test="${not empty selectedBranchId}"><c:param name="branchId" value="${selectedBranchId}"/></c:if>
+                </c:url>
+                <li class="page-item ${inventoryPage.last ? 'disabled' : ''}">
+                    <a class="page-link" href="${nextPageUrl}" aria-label="Trang tiếp">›</a>
+                </li>
             </ul></nav>
         </c:if>
 

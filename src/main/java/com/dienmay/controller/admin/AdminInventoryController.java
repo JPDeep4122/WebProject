@@ -2,6 +2,9 @@ package com.dienmay.controller.admin;
 
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -46,8 +49,33 @@ public class AdminInventoryController {
         model.addAttribute("warning", overview.getWarning());
         model.addAttribute("keyword", keyword == null ? "" : keyword.trim());
         model.addAttribute("pageSize", safeSize);
+        model.addAttribute("paginationPages", paginationPages(overview.getInventories().getNumber(),
+                overview.getInventories().getTotalPages()));
         return "admin/inventory";
     }
+
+    private List<PageNumber> paginationPages(int currentPage, int totalPages) {
+        if (totalPages <= 0) return List.of();
+        TreeSet<Integer> visible = new TreeSet<>();
+        int start = currentPage == 0 ? 0 : currentPage;
+        for (int page = start; page < Math.min(start + 3, totalPages); page++) {
+            visible.add(page);
+        }
+        if (totalPages > 3) {
+            for (int page = Math.max(0, totalPages - 3); page < totalPages; page++) {
+                visible.add(page);
+            }
+        }
+        List<PageNumber> result = new ArrayList<>();
+        int previous = -1;
+        for (int page : visible) {
+            result.add(new PageNumber(page, previous >= 0 && page - previous > 1));
+            previous = page;
+        }
+        return result;
+    }
+
+    public record PageNumber(int index, boolean gapBefore) { }
 
     @PostMapping("/{id}/adjust")
     public String adjust(@PathVariable Long id,

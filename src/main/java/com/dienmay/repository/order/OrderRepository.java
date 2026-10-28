@@ -77,10 +77,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	Optional<Order> findByOrderCodeAndRecipientPhone(String orderCode, String recipientPhone);
 
-	@Query("select count(distinct u.id) from Order o join o.user u join u.roles r "
+		@Query("select count(distinct u.id) from Order o join o.user u "
 			+ "join o.payment p "
-			+ "where upper(r.name) = 'ROLE_CUSTOMER' "
-			+ "and p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
+			+ "where p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
 			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
 			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
 	long countUniqueCustomersWithPurchases();
@@ -126,10 +125,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 			@Param("paymentStatus") PaymentStatus paymentStatus,
 			@Param("excludedStatus") OrderStatus excludedStatus, Pageable pageable);
 
-	@Query("select count(distinct u.id) from Order o join o.user u join u.roles r "
+	@Query("select count(distinct u.id) from Order o join o.user u "
 			+ "join o.payment p "
 			+ "where o.branch.id = :branchId "
-			+ "and upper(r.name) = 'ROLE_CUSTOMER' "
 			+ "and p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
 			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
 			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
@@ -139,4 +137,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 			+ "and o.status = :status")
 	long countDashboardOrdersByStatus(@Param("branchId") Long branchId,
 			@Param("status") OrderStatus status);
+
+	@Query(value = "select cast(o.created_at as date) as revenue_day, "
+			+ "coalesce(sum(o.final_amount), 0) as daily_revenue "
+			+ "from orders o join payments p on p.order_id = o.id "
+			+ "where p.payment_status = 'SUCCESS' and o.status <> 'CANCELLED' "
+			+ "and o.created_at >= :from and o.created_at < :to "
+			+ "and (cast(:branchId as bigint) is null or o.branch_id = cast(:branchId as bigint)) "
+			+ "group by cast(o.created_at as date) order by revenue_day",
+			nativeQuery = true)
+	List<Object[]> summarizeDailyRevenue(@Param("branchId") Long branchId,
+			@Param("from") java.time.LocalDateTime from,
+			@Param("to") java.time.LocalDateTime to);
 }

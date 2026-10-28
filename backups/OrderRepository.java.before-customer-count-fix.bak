@@ -1,0 +1,154 @@
+package com.dienmay.repository.order;
+
+import com.dienmay.entity.order.Order;
+import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.payment.PaymentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.math.BigDecimal;
+
+@Repository
+public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.id = :id")
+    Optional<Order> findForUpdate(@Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.orderCode = :code")
+    Optional<Order> findByCodeForUpdate(@Param("code") String code);
+
+	@EntityGraph(attributePaths = {"user", "branch", "orderItems", "orderItems.product", "payment"})
+	Optional<Order> findByOrderCode(String orderCode);
+
+    @Query("select o from Order o where upper(replace(o.orderCode, '-', '')) = :reference")
+    Optional<Order> findByPaymentReference(@Param("reference") String reference);
+
+	@EntityGraph(attributePaths = {"user", "branch", "orderItems", "orderItems.product", "payment", "deliveryAssignment", "deliveryAssignment.shipper"})
+	@Query("select distinct o from Order o where o.id = :id")
+	Optional<Order> findDetailedById(@Param("id") Long id);
+
+	Page<Order> findByUserId(Long userId, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	Page<Order> findByBranchId(Long branchId, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	Page<Order> findByBranchIdAndStatus(Long branchId, OrderStatus status, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch", "payment"})
+	@Query("select o from Order o where o.payment.paymentStatus = :paymentStatus and o.status <> :excludedStatus")
+	Page<Order> findSuccessfulPaidOrders(@Param("paymentStatus") PaymentStatus paymentStatus,
+			@Param("excludedStatus") OrderStatus excludedStatus, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch", "payment"})
+	Page<Order> findByStatusNot(OrderStatus status, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch", "payment"})
+	@Query("select o from Order o where o.status <> :excludedStatus "
+			+ "and (:status is null or o.status = :status) "
+			+ "and (:branchId is null or o.branch.id = :branchId) "
+			+ "and (:keyword = '' or lower(o.orderCode) like lower(concat('%', :keyword, '%')) "
+			+ "or (:customerId is not null and o.user.id = :customerId))")
+	Page<Order> filterInvoices(@Param("excludedStatus") OrderStatus excludedStatus,
+			@Param("status") OrderStatus status, @Param("branchId") Long branchId,
+			@Param("keyword") String keyword, @Param("customerId") Long customerId, Pageable pageable);
+
+	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	Page<Order> findByStatus(OrderStatus status, Pageable pageable);
+
+	@Override
+	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	Page<Order> findAll(Pageable pageable);
+
+	List<Order> findByStatus(OrderStatus status);
+
+	List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+	List<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, OrderStatus status);
+
+	Optional<Order> findByOrderCodeAndRecipientPhone(String orderCode, String recipientPhone);
+
+	@Query("select count(distinct u.id) from Order o join o.user u join u.roles r "
+			+ "join o.payment p "
+			+ "where upper(r.name) = 'ROLE_CUSTOMER' "
+			+ "and p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
+			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
+			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
+	long countUniqueCustomersWithPurchases();
+
+	@Query("select coalesce(sum(o.finalAmount), 0) from Order o where o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
+	BigDecimal sumSuccessfulRevenue();
+
+	@Query("select coalesce(sum(o.finalAmount), 0) from Order o where o.branch.id = :branchId and o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
+	BigDecimal sumSuccessfulRevenueByBranch(@Param("branchId") Long branchId);
+
+	@Query("""
+			select count(o)
+			from Order o
+			left join o.payment p
+			where o.user.id = :userId
+			  and o.status <> :cancelled
+			  and (p.id is null or p.paymentStatus <> :failed)
+			""")
+	long countExistingPurchases(@Param("userId") Long userId, @Param("cancelled") OrderStatus cancelled,
+			@Param("failed") PaymentStatus failed);
+	
+	@Query("""
+		    select o.id
+		    from Order o
+		    join o.payment p
+		    where o.status = :orderStatus
+		      and p.paymentMethod = :method
+		      and p.paymentStatus = :paymentStatus
+		      and p.paymentExpiresAt <= :now
+		    order by o.id
+		    """)
+		List<Long> findExpiredPendingOrderIds(
+		        @Param("orderStatus") OrderStatus orderStatus,
+		        @Param("method")
+		            com.dienmay.entity.payment.PaymentMethod method,
+		        @Param("paymentStatus") PaymentStatus paymentStatus,
+		        @Param("now") java.time.Instant now,
+		        Pageable pageable);
+	
+	@EntityGraph(attributePaths = {"user", "branch", "payment"})
+	@Query("select o from Order o where o.branch.id = :branchId and o.payment.paymentStatus = :paymentStatus and o.status <> :excludedStatus")
+	Page<Order> findSuccessfulPaidOrdersByBranch(@Param("branchId") Long branchId,
+			@Param("paymentStatus") PaymentStatus paymentStatus,
+			@Param("excludedStatus") OrderStatus excludedStatus, Pageable pageable);
+
+	@Query("select count(distinct u.id) from Order o join o.user u join u.roles r "
+			+ "join o.payment p "
+			+ "where o.branch.id = :branchId "
+			+ "and upper(r.name) = 'ROLE_CUSTOMER' "
+			+ "and p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
+			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
+			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
+	long countUniqueCustomersWithPurchasesByBranch(@Param("branchId") Long branchId);
+
+	@Query("select count(o) from Order o where (:branchId is null or o.branch.id = :branchId) "
+			+ "and o.status = :status")
+	long countDashboardOrdersByStatus(@Param("branchId") Long branchId,
+			@Param("status") OrderStatus status);
+
+	@Query(value = "select cast(o.created_at as date) as revenue_day, "
+			+ "coalesce(sum(o.final_amount), 0) as daily_revenue "
+			+ "from orders o join payments p on p.order_id = o.id "
+			+ "where p.payment_status = 'SUCCESS' and o.status <> 'CANCELLED' "
+			+ "and o.created_at >= :from and o.created_at < :to "
+			+ "and (cast(:branchId as bigint) is null or o.branch_id = cast(:branchId as bigint)) "
+			+ "group by cast(o.created_at as date) order by revenue_day",
+			nativeQuery = true)
+	List<Object[]> summarizeDailyRevenue(@Param("branchId") Long branchId,
+			@Param("from") java.time.LocalDateTime from,
+			@Param("to") java.time.LocalDateTime to);
+}
