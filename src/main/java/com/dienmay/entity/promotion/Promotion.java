@@ -49,7 +49,7 @@ public class Promotion {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "discount_type", nullable = false, length = 20)
 	@Builder.Default
-	private VoucherType discountType = VoucherType.PERCENT;
+	private VoucherType discountType = VoucherType.FIXED;
 
 	@Column(name = "discount_amount", precision = 15, scale = 2)
 	private BigDecimal discountAmount;
