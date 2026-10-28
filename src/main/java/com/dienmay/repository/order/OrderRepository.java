@@ -150,7 +150,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 			@Param("status") OrderStatus status);
 
 	@Query(value = "select cast(o.created_at as date) as revenue_day, "
-			+ "coalesce(sum(o.final_amount), 0) as daily_revenue "
+			+ "coalesce(sum(o.final_amount), 0) as daily_revenue, "
+			+ "count(o.id) as daily_orders "
 			+ "from orders o join payments p on p.order_id = o.id "
 			+ "where p.payment_status = 'SUCCESS' and o.status <> 'CANCELLED' "
 			+ "and o.created_at >= :from and o.created_at < :to "

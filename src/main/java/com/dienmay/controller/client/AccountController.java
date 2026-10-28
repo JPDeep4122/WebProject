@@ -35,7 +35,7 @@ public class AccountController {
 
     @InitBinder("profileForm")
     void bindProfile(WebDataBinder binder) {
-        binder.setAllowedFields("fullName", "phoneNumber");
+        binder.setAllowedFields("fullName", "phoneNumber", "province", "ward", "detailAddress");
     }
 
     @InitBinder("passwordForm")
@@ -90,6 +90,9 @@ public class AccountController {
             ProfileUpdateRequest form = new ProfileUpdateRequest();
             form.setFullName(profile.getFullName());
             form.setPhoneNumber(profile.getPhoneNumber());
+            form.setProvince(profile.getProvince());
+            form.setWard(profile.getWard());
+            form.setDetailAddress(profile.getDetailAddress());
             model.addAttribute("profileForm", form);
         }
         return "client/profile";

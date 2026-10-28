@@ -38,6 +38,9 @@ public class CheckoutController {
 
     private final CheckoutService checkoutService;
     private final ShippingService shippingService;
+    
+    private final com.dienmay.repository.auth.UserRepository userRepository;
+    private final com.dienmay.repository.auth.AddressRepository addressRepository;
 
     @GetMapping("/checkout")
     public String viewCheckout(Model model, Principal principal, HttpSession session) {
@@ -48,8 +51,26 @@ public class CheckoutController {
             return "redirect:/cart";
         }
 
+        PlaceOrderRequest orderForm = new PlaceOrderRequest();
+        if (principal != null) {
+            userRepository.findByEmail(principal.getName()).ifPresent(user -> {
+                orderForm.setRecipientName(user.getFullName());
+                orderForm.setRecipientPhone(user.getPhoneNumber());
+                orderForm.setRecipientEmail(user.getEmail());
+
+                addressRepository.findByUser_IdAndIsDefaultTrue(user.getId()).ifPresent(addr -> {
+                    orderForm.setRecipientName(addr.getRecipientName());
+                    orderForm.setRecipientPhone(addr.getPhoneNumber());
+                    orderForm.setProvince(addr.getProvince());
+                    orderForm.setWard(addr.getWard());
+                    orderForm.setShippingAddress(addr.getDetailAddress() != null && !addr.getDetailAddress().isBlank()
+                            ? addr.getDetailAddress() : addr.getFullAddress());
+                });
+            });
+        }
+
         model.addAttribute("checkoutData", checkoutData);
-        model.addAttribute("orderForm", new PlaceOrderRequest());
+        model.addAttribute("orderForm", orderForm);
         return "client/checkout";
     }
 
