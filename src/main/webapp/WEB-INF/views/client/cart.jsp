@@ -45,7 +45,8 @@
 							class="d-flex align-items-center justify-content-between pb-2 border-bottom">
 							<div class="form-check">
 								<input class="form-check-input" type="checkbox" id="checkAll"
-									onchange="toggleSelectAll(this.checked)" checked> <label
+									onchange="toggleSelectAll(this.checked)"
+									${allItemsSelected ? 'checked' : ''}> <label
 									class="form-check-label fw-bold" for="checkAll">Chọn
 									tất cả (${cart.items.size()} sản phẩm)</label>
 							</div>
@@ -201,6 +202,8 @@
   const ctx = '${pageContext.request.contextPath}';
   let itemToDeleteId = null;
   const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+  const checkAll = document.getElementById('checkAll');
+  if (checkAll) checkAll.indeterminate = ${someItemsSelected};
 
   
   function removeItem(itemId) {
@@ -252,23 +255,29 @@
 
   
   function toggleSelectItem(itemId, selected) {
-    csrfFetch(ctx + '/api/cart/items/' + itemId + '/select?selected=' + selected, { method: 'PUT' })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
-          location.reload();
-        }
-      });
+    updateSelection(ctx + '/api/cart/items/' + itemId + '/select?selected=' + selected);
   }
 
   
   function toggleSelectAll(selected) {
-    csrfFetch(ctx + '/api/cart/select-all?selected=' + selected, { method: 'PUT' })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
-          location.reload();
+    updateSelection(ctx + '/api/cart/select-all?selected=' + selected);
+  }
+
+  function updateSelection(url) {
+    const checkboxes = document.querySelectorAll('#checkAll, .item-checkbox');
+    checkboxes.forEach(checkbox => checkbox.disabled = true);
+
+    csrfFetch(url, { method: 'PUT' })
+      .then(async response => {
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Không thể cập nhật lựa chọn sản phẩm.');
         }
+        location.reload();
+      })
+      .catch(error => {
+        alert(error.message || 'Không thể cập nhật lựa chọn sản phẩm. Vui lòng thử lại.');
+        location.reload();
       });
   }
 </script>
