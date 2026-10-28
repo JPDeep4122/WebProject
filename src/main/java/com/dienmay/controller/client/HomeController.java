@@ -7,7 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import com.dienmay.service.product.ProductService;
+import com.dienmay.service.catalog.CustomerCatalogService;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpSession;
 public class HomeController {
 
 	@Autowired
-	private ProductService productService;
+	private CustomerCatalogService catalogService;
 
 	@Value("${google.auth.client-id:}")
 	private String googleClientId;
@@ -26,13 +26,13 @@ public class HomeController {
 	@GetMapping("/")
 	public String index(Model model) {
 		// 1. Danh mục sản phẩm
-		model.addAttribute("categories", productService.getAllCategories());
+		model.addAttribute("categories", catalogService.homeCategories());
 
 		// 2. Dữ liệu Top 20 Sản Phẩm cho 4 Tab
-		model.addAttribute("topNewest", productService.getTop20ByTab("newest"));
-		model.addAttribute("topBestseller", productService.getTop20ByTab("bestseller"));
-		model.addAttribute("topRating", productService.getTop20ByTab("rating"));
-		model.addAttribute("topFavorite", productService.getTop20ByTab("favorite"));
+		model.addAttribute("topNewest", catalogService.homeProducts("newest"));
+		model.addAttribute("topBestseller", catalogService.homeProducts("bestseller"));
+		model.addAttribute("topRating", catalogService.homeProducts("rating"));
+		model.addAttribute("topFavorite", catalogService.homeProducts("favorite"));
 
 		return "client/home";
 	}

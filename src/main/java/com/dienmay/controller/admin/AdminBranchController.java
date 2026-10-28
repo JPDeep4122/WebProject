@@ -5,6 +5,7 @@ import java.text.Normalizer;
 import java.util.Locale;
 
 import org.springframework.stereotype.Controller;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +35,7 @@ public class AdminBranchController {
     }
 
     @PostMapping
+    @CacheEvict(cacheNames = { "customerBranches", "customerCatalogPages" }, allEntries = true)
     public String create(@RequestParam String name,
             @RequestParam String address,
             @RequestParam(required = false) String province,
@@ -53,6 +55,7 @@ public class AdminBranchController {
     }
 
     @PostMapping("/{id}/update")
+    @CacheEvict(cacheNames = { "customerBranches", "customerCatalogPages" }, allEntries = true)
     public String update(@PathVariable Long id,
             @RequestParam String name,
             @RequestParam String address,

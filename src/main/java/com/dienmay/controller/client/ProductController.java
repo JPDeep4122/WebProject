@@ -19,8 +19,8 @@ import com.dienmay.dto.product.ProductFilterRequest;
 import com.dienmay.dto.review.ProductReviewStatsDto;
 import com.dienmay.dto.review.ReviewResponse;
 import com.dienmay.entity.branch.BranchInventory;
-import com.dienmay.entity.product.Product;
 import com.dienmay.service.product.ProductService;
+import com.dienmay.service.catalog.CustomerCatalogService;
 import com.dienmay.service.review.ReviewService;
 
 @Controller
@@ -33,21 +33,26 @@ public class ProductController {
     @Autowired
     private ReviewService reviewService;
 
+    @Autowired
+    private CustomerCatalogService catalogService;
+
     // Xem danh sách sản phẩm có bộ lọc (hoặc theo danh mục)
     @GetMapping
     public String listProducts(@ModelAttribute ProductFilterRequest filter, Model model,
             HttpServletRequest request) {
         if (filter.getBranchId() != null) filter.setInStockOnly(true);
-        var page = productService.filterProductsPage(filter);
+        normalizeCatalogFilter(filter);
+        var pageView = catalogService.filteredProducts(filter);
+        var page = pageView.toPage();
         if (page.getTotalPages() > 0 && page.getNumber() >= page.getTotalPages()) {
             filter.setPage(page.getTotalPages() - 1);
-            page = productService.filterProductsPage(filter);
+            page = catalogService.filteredProducts(filter).toPage();
         }
         model.addAttribute("products", page.getContent());
         model.addAttribute("productPage", page);
-        model.addAttribute("categories", productService.getAllCategories());
-        model.addAttribute("brands", productService.getBrandsForFilter(filter));
-        model.addAttribute("branches", productService.getActiveBranches());
+        model.addAttribute("categories", catalogService.homeCategories());
+        model.addAttribute("brands", catalogService.brandsForFilter(filter));
+        model.addAttribute("branches", catalogService.activeBranches());
         model.addAttribute("filter", filter);
         model.addAttribute("catalogPage", true);
         model.addAttribute("filterCount", filterCount(filter));
@@ -68,6 +73,17 @@ public class ProductController {
         }
 
         return "client/products";
+    }
+
+    private void normalizeCatalogFilter(ProductFilterRequest filter) {
+        String sortBy = filter.getSortBy() == null ? "newest"
+                : filter.getSortBy().toLowerCase(java.util.Locale.ROOT);
+        if (!List.of("newest", "price_asc", "price_desc", "bestseller", "rating", "favorite").contains(sortBy)) {
+            sortBy = "newest";
+        }
+        filter.setSortBy(sortBy);
+        filter.setPage(filter.getPage() == null ? 0 : Math.max(0, Math.min(filter.getPage(), 1_000_000)));
+        filter.setSize(filter.getSize() == null || filter.getSize() <= 0 ? 12 : Math.min(filter.getSize(), 48));
     }
 
     // Đường dẫn xem theo danh mục: /products/category/tivi
@@ -119,11 +135,13 @@ public class ProductController {
             @PathVariable String slug,
             Principal principal,
             Model model) {
-        Product product = productService.getProductBySlug(slug);
+        var product = catalogService.productDetails(slug);
+        if (product == null) return "redirect:/products";
         List<BranchInventory> branchStocks =
                 productService.getBranchStock(product.getId());
 
-        List<Product> relatedProducts = productService.getRelatedProducts(product.getCategory().getId(), product.getId());
+        var relatedProducts = productService.getRelatedProducts(product.getCategory().getId(), product.getId())
+                .stream().map(com.dienmay.dto.catalog.CustomerProductView::from).toList();
         
         // Tính tổng số lượng hàng còn lại trên toàn hệ thống
         int totalStock = branchStocks.stream()
