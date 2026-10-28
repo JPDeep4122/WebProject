@@ -177,6 +177,12 @@ public class ShipperOrderController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         try {
+            // Never use a client-supplied file identifier as authorization. Verify
+            // that the proof belongs to a delivery currently assigned to this shipper.
+            if (proofPublicId == null || proofPublicId.isBlank()
+                    || assignments.countProofsOwnedByShipper(proofPublicId, principal.getName()) == 0) {
+                return ResponseEntity.notFound().build();
+            }
             byte[] bytes = proofStorageService.loadLocalProofBytes(proofPublicId);
             MediaType type = proofPublicId.toLowerCase().endsWith(".png") ? MediaType.IMAGE_PNG : MediaType.IMAGE_JPEG;
             return ResponseEntity.ok()

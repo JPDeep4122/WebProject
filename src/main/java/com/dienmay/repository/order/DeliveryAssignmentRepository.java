@@ -20,6 +20,18 @@ public interface DeliveryAssignmentRepository extends JpaRepository<DeliveryAssi
 
     Optional<DeliveryAssignment> findByOrderId(Long orderId);
 
+    /**
+     * Checks ownership before a private delivery-proof file is streamed. Proofs from
+     * either the assignment summary or one of its attempts belong to the current
+     * shipper assigned to that delivery.
+     */
+    @Query("select count(a) from DeliveryAssignment a where lower(a.shipper.email) = lower(:email) "
+            + "and (a.proofPublicId = :proofPublicId or exists ("
+            + "select attempt.id from DeliveryAttempt attempt "
+            + "where attempt.assignment = a and attempt.proofPublicId = :proofPublicId))")
+    long countProofsOwnedByShipper(@Param("proofPublicId") String proofPublicId,
+            @Param("email") String email);
+
     @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select assignment from DeliveryAssignment assignment where assignment.id = :id")
     Optional<DeliveryAssignment> findForUpdate(@Param("id") Long id);
