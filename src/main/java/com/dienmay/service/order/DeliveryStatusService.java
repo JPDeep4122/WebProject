@@ -197,7 +197,6 @@ public class DeliveryStatusService {
 			throw new IllegalArgumentException("Đơn hàng chưa có thông tin thanh toán hợp lệ.");
 		}
 
-		// Tách biệt rõ ràng xử lý COD vs VNPay
 		DeliveryCollectionMethod resolvedMethod;
 		BigDecimal resolvedAmount;
 
@@ -227,14 +226,14 @@ public class DeliveryStatusService {
 		Instant nowInstant = Instant.now();
 		LocalDateTime nowLocal = LocalDateTime.ofInstant(nowInstant, VN_ZONE);
 
-		// Chuyển trạng thái Order sang DELIVERED
 		orderStateMachine.transition(order, OrderStatus.DELIVERED);
 
-		// Nếu là COD: sau khi đủ 5 điều kiện mới chuyển payment sang SUCCESS
 		if (payment.getPaymentMethod() == PaymentMethod.COD) {
 			orderStateMachine.confirmCodPaymentCollected(order, nowLocal);
+			assignment.setCodHandoverStatus("PENDING_HANDOVER");
+		} else {
+			assignment.setCodHandoverStatus("NONE");
 		}
-
 		assignment.setStatus(DeliveryStatus.DELIVERED_SUCCESS);
 		assignment.setCompletedAt(nowLocal);
 		assignment.setFailureCode(null);

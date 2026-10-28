@@ -22,6 +22,9 @@
             <c:if test="${not empty filter.keyword}">
                 <input type="hidden" name="keyword" value="${fn:escapeXml(filter.keyword)}">
             </c:if>
+            <c:if test="${not empty filter.categorySlug}">
+                <input type="hidden" name="categorySlug" value="${fn:escapeXml(filter.categorySlug)}">
+            </c:if>
             <input type="hidden" name="size" value="${filter.size}">
 
             <div class="catalog-filter-content" id="catalogFilterContent">
@@ -50,31 +53,15 @@
                     </details>
 
                     <details class="catalog-filter-section" open>
-                        <summary>Danh mục <i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
-                        <div class="catalog-filter-section-body catalog-options">
-                            <label class="catalog-option catalog-category-all" for="filterCategoryAll">
-                                <input type="radio" name="categorySlug" id="filterCategoryAll" value=""
-                                       ${empty filter.categorySlug && empty filter.categoryId ? 'checked' : ''}>
-                                <i class="bi bi-grid-fill" aria-hidden="true"></i><span>Tất cả danh mục</span>
-                            </label>
-                            <c:forEach items="${categories}" var="category">
-                                <c:if test="${category.active}">
-                                    <label class="catalog-option" for="filterCategory${category.id}">
-                                        <input type="radio" name="categorySlug" id="filterCategory${category.id}"
-                                               value="${fn:escapeXml(category.slug)}"
-                                               ${filter.categorySlug == category.slug || (empty filter.categorySlug && filter.categoryId == category.id) ? 'checked' : ''}>
-                                        <span><c:out value="${category.name}"/></span>
-                                    </label>
-                                </c:if>
-                            </c:forEach>
-                        </div>
-                    </details>
-
-                    <details class="catalog-filter-section" open>
                         <summary>Thương hiệu <i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
                         <div class="catalog-filter-section-body catalog-options">
+                            <label class="catalog-option catalog-brand-all" for="filterBrandAll">
+                                <input type="checkbox" id="filterBrandAll"
+                                       ${empty filter.brandIds ? 'checked' : ''}>
+                                <span>Tất cả thương hiệu</span>
+                            </label>
                             <c:forEach items="${brands}" var="brand">
-                                <c:if test="${brand.active}">
+                                <c:if test="${brand.active and not fn:startsWith(brand.name, 'TV08')}">
                                     <label class="catalog-option" for="filterBrand${brand.id}">
                                         <input type="checkbox" name="brandIds" id="filterBrand${brand.id}" value="${brand.id}"
                                                ${filter.brandIds != null && filter.brandIds.contains(brand.id) ? 'checked' : ''}>
@@ -82,9 +69,6 @@
                                     </label>
                                 </c:if>
                             </c:forEach>
-                            <c:if test="${empty brands}">
-                                <p class="catalog-field-help">Chưa có thương hiệu phù hợp với bộ lọc này.</p>
-                            </c:if>
                         </div>
                     </details>
 

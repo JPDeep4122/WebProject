@@ -99,6 +99,17 @@ public class DeliveryAssignment {
     @Column(name = "completion_note", length = 500)
     private String completionNote;
     
+    @Column(name = "cod_handover_status", length = 30)
+    @Builder.Default
+    private String codHandoverStatus = "NONE"; 
+
+    @Column(name = "cod_handed_over_at")
+    private LocalDateTime codHandedOverAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cod_received_by_id")
+    private User codReceivedBy;
+    
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("attemptNo ASC")
     @Builder.Default

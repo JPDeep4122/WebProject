@@ -54,26 +54,40 @@ public class ProductServiceImpl implements ProductService {
 
 	@Override
 	public List<Category> getAllCategories() {
-		return categoryRepository.findAll();
+		return categoryRepository.findAll().stream()
+				.filter(Category::isActive)
+				.filter(c -> !isTestCategory(c))
+				.toList();
 	}
 
 	@Override
 	public List<Brand> getAllBrands() {
-		return brandRepository.findAll();
+		return brandRepository.findAll().stream()
+				.filter(Brand::isActive)
+				.filter(b -> !isTestBrand(b))
+				.sorted(java.util.Comparator.comparing(Brand::getName, String.CASE_INSENSITIVE_ORDER))
+				.toList();
 	}
 
 	@Override
 	public List<Brand> getBrandsForFilter(ProductFilterRequest request) {
-		var cb = entityManager.getCriteriaBuilder();
-		var query = cb.createQuery(Brand.class);
-		var product = query.from(Product.class);
-		Join<Product, Brand> brand = product.join("brand");
-		var scope = ProductSpecification.filter(request, false)
-				.and(rankingFilter(request.getSortBy()));
-		query.select(brand).distinct(true)
-				.where(cb.and(scope.toPredicate(product, query, cb), cb.isTrue(brand.get("active"))))
-				.orderBy(cb.asc(brand.get("name")), cb.asc(brand.get("id")));
-		return entityManager.createQuery(query).getResultList();
+		return getAllBrands();
+	}
+
+	private boolean isTestCategory(Category c) {
+		if (c == null) return true;
+		String name = c.getName() == null ? "" : c.getName().trim().toLowerCase(java.util.Locale.ROOT);
+		String slug = c.getSlug() == null ? "" : c.getSlug().trim().toLowerCase(java.util.Locale.ROOT);
+		return name.startsWith("[tv08]")
+				|| slug.startsWith("tv08-")
+				|| name.contains("kiểm thử")
+				|| slug.contains("kiem-thu");
+	}
+
+	private boolean isTestBrand(Brand b) {
+		if (b == null) return true;
+		String name = b.getName() == null ? "" : b.getName().trim().toLowerCase(java.util.Locale.ROOT);
+		return name.startsWith("tv08") || name.contains("test");
 	}
 
 	@Override
@@ -109,7 +123,6 @@ public class ProductServiceImpl implements ProductService {
 		return productRepository.findTop4ByCategory_IdAndIdNotAndActiveTrue(categoryId, currentProductId);
 	}
 
-	// LỌC SẢN PHẨM BẰNG ProductSpecification (MỤC 6)
 	@Override
 	public List<Product> filterProducts(ProductFilterRequest request) {
 		return filterProductsPage(request).getContent();
@@ -151,7 +164,6 @@ public class ProductServiceImpl implements ProductService {
 		return productRepository.findAll(spec, pageable);
 	}
 
-	// TOP 20 SẢN PHẨM THEO 4 TAB (MỤC 7)
 	@Override
 	public List<Product> getTop20ByTab(String tab) {
 		String key = tab == null ? "newest" : tab.toLowerCase(java.util.Locale.ROOT);

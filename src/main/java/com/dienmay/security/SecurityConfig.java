@@ -47,8 +47,6 @@ public class SecurityConfig {
 
 		csrfHandler.setCsrfRequestAttributeName(null);
 		http
-				// Store the double-submit CSRF token in a browser cookie so POST requests
-				// remain valid when Vercel routes them to a different container instance.
 				.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
 						.csrfTokenRequestHandler(csrfHandler))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
@@ -63,9 +61,14 @@ public class SecurityConfig {
 						.hasRole("ADMIN").requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
 						.requestMatchers("/admin/categories/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.POST, "/admin/products/**").hasRole("ADMIN")
+						.requestMatchers("/admin/products/*/edit").hasRole("ADMIN")
+						.requestMatchers("/admin/users/**", "/admin/invoices/**")
+						.hasAnyRole("ADMIN", "BRANCH_MANAGER")
 						.requestMatchers("/admin/products/**", "/admin/orders/**", "/admin/inventory/**",
-								"/admin/returns/**", "/admin")
-						.hasAnyRole("ADMIN", "STAFF").requestMatchers("/admin/**").hasRole("ADMIN")
+								"/admin/returns/**", "/admin", "/admin/transfers/**")
+						.hasAnyRole("ADMIN", "BRANCH_MANAGER", "STAFF")
+						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/shipper", "/shipper/**").hasRole("SHIPPER")
 						.requestMatchers("/account", "/account/**").authenticated().requestMatchers("/api/account/**")
 						.authenticated()

@@ -119,4 +119,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 		        @Param("paymentStatus") PaymentStatus paymentStatus,
 		        @Param("now") java.time.Instant now,
 		        Pageable pageable);
+	
+	@EntityGraph(attributePaths = {"user", "branch", "payment"})
+	@Query("select o from Order o where o.branch.id = :branchId and o.payment.paymentStatus = :paymentStatus and o.status <> :excludedStatus")
+	Page<Order> findSuccessfulPaidOrdersByBranch(@Param("branchId") Long branchId,
+			@Param("paymentStatus") PaymentStatus paymentStatus,
+			@Param("excludedStatus") OrderStatus excludedStatus, Pageable pageable);
+
+	@Query("select count(distinct u.id) from Order o join o.user u join u.roles r "
+			+ "join o.payment p "
+			+ "where o.branch.id = :branchId "
+			+ "and upper(r.name) = 'ROLE_CUSTOMER' "
+			+ "and p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
+			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
+			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
+	long countUniqueCustomersWithPurchasesByBranch(@Param("branchId") Long branchId);
 }

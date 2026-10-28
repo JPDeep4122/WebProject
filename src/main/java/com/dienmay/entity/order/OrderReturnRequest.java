@@ -79,6 +79,10 @@ public class OrderReturnRequest {
     @Column(name = "completion_note", length = 500)
     private String completionNote;
 
+    @Column(name = "return_disposition", length = 30)
+    @Builder.Default
+    private String returnDisposition = "RESTOCK"; 
+
     @PrePersist
     void onCreate() {
         if (status == null) {

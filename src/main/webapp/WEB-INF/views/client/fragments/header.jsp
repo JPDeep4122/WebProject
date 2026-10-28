@@ -163,7 +163,7 @@
 
 					<i class="bi bi-geo-alt" aria-hidden="true"></i> <span
 						class="sf-location-text"> <small>Chi nhánh của bạn</small>
-						<strong id="currentBranchLabel">Hồ Chí Minh</strong>
+						<strong id="currentBranchLabel"><c:out value="${empty headerSelectedBranch ? 'Chọn chi nhánh' : headerSelectedBranch.name}"/></strong>
 					</span>
 				</button>
 
@@ -443,46 +443,55 @@
 		</div>
 	</div>
 
-	<div class="modal fade" id="branchSelectModal" tabindex="-1"
-		aria-hidden="true">
-		<div class="modal-dialog modal-dialog-centered">
-			<div class="modal-content rounded-4 border-0 shadow">
-				<div class="modal-header">
-					<h5 class="modal-title fw-bold text-primary">
-						<i class="bi bi-geo-alt-fill me-2"></i>Chọn Chi Nhánh Xem Tồn Kho
-					</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-				</div>
-				<div class="modal-body p-3">
-					<p class="text-muted small">Chọn siêu thị gần bạn để kiểm tra
-						chính xác lượng hàng có sẵn và nhận hàng nhanh trong 2 giờ:</p>
-					<div class="list-group">
-						<button type="button"
-							class="list-group-item list-group-item-action d-flex justify-content-between align-items-center active"
-							onclick="selectBranch('Chi nhánh Quận 1')">
-							<div>
-								<div class="fw-bold">Chi nhánh Quận 1</div>
-								<small class="text-light">123 Lê Lợi, Bến Nghé, Q1,
-									TP.HCM</small>
+	<div class="modal fade" id="branchSelectModal" tabindex="-1" aria-labelledby="branchSelectTitle" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+		<div class="modal-content rounded-4 border-0 shadow">
+			<div class="modal-header">
+				<h5 class="modal-title fw-bold text-primary" id="branchSelectTitle">
+					<i class="bi bi-geo-alt-fill me-2"></i>Chọn Chi Nhánh Xem Tồn Kho
+				</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+			</div>
+			<div class="modal-body p-3">
+				<p class="text-muted small">Chọn cửa hàng gần bạn để kiểm tra hàng có sẵn và nhận hàng nhanh trong 2 giờ:</p>
+				<c:choose>
+					<c:when test="${empty headerBranchGroups}">
+						<div class="alert alert-light border small mb-0">Hệ thống đang cập nhật danh sách chi nhánh.</div>
+					</c:when>
+					<c:otherwise>
+						<c:forEach items="${headerBranchGroups}" var="group">
+							<h6 class="sf-branch-region">
+								<i class="bi bi-buildings me-1"></i><c:out value="${group.key}"/>
+								<span class="badge bg-primary-subtle text-primary ms-1">${fn:length(group.value)}</span>
+							</h6>
+							<div class="list-group mb-3">
+								<c:forEach items="${group.value}" var="b">
+									<c:set var="isCurrent" value="${headerSelectedBranch.id == b.id}"/>
+									<div class="list-group-item sf-branch-item d-flex justify-content-between align-items-center gap-3 ${isCurrent ? 'is-current' : ''}">
+										<div class="min-w-0">
+											<div class="fw-bold"><c:out value="${b.name}"/></div>
+											<small class="text-muted d-block"><c:out value="${b.address}"/></small>
+											<c:if test="${not empty b.phone}">
+												<small class="text-muted"><i class="bi bi-telephone me-1"></i><c:out value="${b.phone}"/></small>
+											</c:if>
+										</div>
+										<div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
+											<button type="button" class="btn btn-sm rounded-pill px-3 ${isCurrent ? 'btn-primary' : 'btn-outline-primary'}"
+												data-branch-id="${b.id}" data-branch-name="${fn:escapeXml(b.name)}"
+												aria-pressed="${isCurrent}" onclick="selectBranch(this)">${isCurrent ? 'Đang chọn' : 'Chọn'}</button>
+											<a class="small text-decoration-none"
+												href="${pageContext.request.contextPath}/products?branchId=${b.id}&amp;inStockOnly=true">Xem hàng</a>
+										</div>
+									</div>
+								</c:forEach>
 							</div>
-							<span class="badge bg-light text-dark rounded-pill">Đang
-								chọn</span>
-						</button>
-						<button type="button"
-							class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-							onclick="selectBranch('Chi nhánh Bình Thạnh')">
-							<div>
-								<div class="fw-bold">Chi nhánh Bình Thạnh</div>
-								<small class="text-muted">456 Điện Biên Phủ, P25, Bình
-									Thạnh, TP.HCM</small>
-							</div>
-							<span class="badge bg-primary rounded-pill">Xem hàng</span>
-						</button>
-					</div>
-				</div>
+						</c:forEach>
+					</c:otherwise>
+				</c:choose>
 			</div>
 		</div>
 	</div>
+</div>
 
 	<div class="toast-container position-fixed bottom-0 end-0 p-3"
 		style="z-index: 2050;">
@@ -528,12 +537,35 @@
             .catch(() => {});
     });
 
-    // 3. Hàm chọn chi nhánh
-    function selectBranch(branchName) {
-        const branchLabel = document.getElementById('currentBranchLabel');
-        if (branchLabel) branchLabel.innerText = branchName;
+    // 3. Chọn chi nhánh: lưu cookie, đổi nhãn, lọc lại trang sản phẩm nếu đang ở đó
+    function selectBranch(button) {
+        const id = button.dataset.branchId;
+        const name = button.dataset.branchName;
+        document.cookie = 'selectedBranchId=' + encodeURIComponent(id)
+            + '; path=/; max-age=31536000; SameSite=Lax';
+
+        const label = document.getElementById('currentBranchLabel');
+        if (label) label.textContent = name;
+
+        document.querySelectorAll('#branchSelectModal [data-branch-id]').forEach(function (btn) {
+            const current = btn === button;
+            btn.classList.toggle('btn-primary', current);
+            btn.classList.toggle('btn-outline-primary', !current);
+            btn.setAttribute('aria-pressed', String(current));
+            btn.textContent = current ? 'Đang chọn' : 'Chọn';
+            btn.closest('.sf-branch-item').classList.toggle('is-current', current);
+        });
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('branchSelectModal'));
         if (modal) modal.hide();
+
+        if (document.getElementById('catalogFiltersForm')) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('branchId', id);
+            url.searchParams.set('inStockOnly', 'true');
+            url.searchParams.delete('page');
+            window.location.assign(url);
+        }
     }
 
     // 4. Hàm thêm vào giỏ hàng AJAX dùng chung toàn website

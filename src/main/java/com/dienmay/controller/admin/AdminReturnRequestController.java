@@ -71,12 +71,15 @@ public class AdminReturnRequestController {
     @PostMapping("/{id}/complete")
     public String complete(@PathVariable Long id,
             @RequestParam(required = false) String completionNote,
+            @RequestParam(defaultValue = "RESTOCK") String disposition,
             @RequestParam(required = false) Long branchId,
             Principal principal, RedirectAttributes flash) {
         try {
-            returnRequestService.complete(id, completionNote, principal.getName());
+            returnRequestService.complete(id, completionNote, disposition, principal.getName());
             flash.addFlashAttribute("success",
-                    "Đã hoàn tất trả hàng, hoàn kho và ghi nhận hoàn tiền.");
+                    "QUARANTINE".equalsIgnoreCase(disposition)
+                            ? "Đã nhận hàng trả vào Kho cách ly (chờ kiểm định) và ghi nhận hoàn tiền."
+                            : "Đã nhận hàng trả vào Kho khả dụng và ghi nhận hoàn tiền.");
         } catch (IllegalArgumentException | AccessDeniedException ex) {
             flash.addFlashAttribute("error", ex.getMessage());
         }

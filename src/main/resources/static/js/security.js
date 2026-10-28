@@ -29,8 +29,11 @@ window.csrfFetch = function (url, options = {}) {
 
 window.loginDestination = function (user, contextPath = '') {
     const roles = Array.isArray(user?.roles) ? user.roles : [];
-    const isInternal = roles.includes('ROLE_ADMIN') || roles.includes('ROLE_STAFF') || roles.includes('ROLE_SHIPPER');
-    const fallback = roles.includes('ROLE_ADMIN') ? '/admin'
+    const isInternal = roles.includes('ROLE_ADMIN')
+        || roles.includes('ROLE_BRANCH_MANAGER')
+        || roles.includes('ROLE_STAFF')
+        || roles.includes('ROLE_SHIPPER');
+    const fallback = (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_BRANCH_MANAGER')) ? '/admin'
         : roles.includes('ROLE_STAFF') ? '/admin/orders'
         : roles.includes('ROLE_SHIPPER') ? '/shipper/orders' : '/';
 

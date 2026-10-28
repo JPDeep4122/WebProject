@@ -28,8 +28,9 @@ public class OrderConfirmationService {
         var actor = users.findByEmail(email)
                 .orElseThrow(() -> new AccessDeniedException("Không có quyền xác nhận đơn."));
         boolean admin = actor.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+        boolean manager = actor.getRoles().stream().anyMatch(r -> "ROLE_BRANCH_MANAGER".equals(r.getName()));
         boolean staff = actor.getRoles().stream().anyMatch(r -> "ROLE_STAFF".equals(r.getName()));
-        if (!actor.isActive() || (!admin && !staff)) {
+        if (!actor.isActive() || actor.isBlocked() || (!admin && !manager && !staff)) {
             throw new AccessDeniedException("Không có quyền xác nhận đơn.");
         }
         var order = orders.findForUpdate(orderId)
@@ -47,7 +48,6 @@ public class OrderConfirmationService {
         if (order.getOrderItems().isEmpty()) {
             throw new IllegalArgumentException("Đơn hàng không có sản phẩm.");
         }
-        // Aggregate duplicate products and lock in a stable order to avoid deadlocks.
         var quantities = new TreeMap<Long, Integer>();
         for (var item : order.getOrderItems()) {
             if (item.getProduct() == null || item.getQuantity() == null || item.getQuantity() <= 0) {
@@ -59,19 +59,24 @@ public class OrderConfirmationService {
         for (var entry : quantities.entrySet()) {
             var inventory = inventories.findForUpdate(branchId, entry.getKey())
                     .orElseThrow(() -> new IllegalArgumentException("Chi nhánh chưa có tồn kho cho sản phẩm #" + entry.getKey()));
+            int qty = entry.getValue();
             int stock = inventory.getStockQuantity();
             int reserved = inventory.getReservedQuantity();
-            if (stock - reserved < entry.getValue()) {
+            int consumedFromReserved = Math.min(reserved, qty);
+            int remainingReserved = reserved - consumedFromReserved;
+            if (stock - remainingReserved < qty) {
                 throw new IllegalArgumentException("Không đủ hàng cho sản phẩm #" + entry.getKey()
-                        + ". Có thể bán: " + (stock - reserved) + ", cần: " + entry.getValue());
+                        + ". Khả dụng: " + Math.max(0, stock - remainingReserved) + ", cần: " + qty);
             }
             locked.add(inventory);
         }
-        // Validate all lines before changing anything; transaction commits stock and status together.
         for (var inventory : locked) {
-            int stock = inventory.getStockQuantity() - quantities.get(inventory.getProduct().getId());
-            inventory.setStockQuantity(stock);
-            inventory.setAvailableQuantity(stock - inventory.getReservedQuantity());
+            int qty = quantities.get(inventory.getProduct().getId());
+            int newReserved = Math.max(0, inventory.getReservedQuantity() - qty);
+            int newStock = inventory.getStockQuantity() - qty;
+            inventory.setReservedQuantity(newReserved);
+            inventory.setStockQuantity(newStock);
+            inventory.setAvailableQuantity(newStock - newReserved);
         }
         stateMachine.transition(order, OrderStatus.CONFIRMED);
     }

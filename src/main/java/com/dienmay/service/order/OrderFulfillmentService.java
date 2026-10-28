@@ -86,10 +86,13 @@ public class OrderFulfillmentService {
         var actor = users.findByEmail(email)
                 .orElseThrow(() -> new AccessDeniedException("Không có quyền xử lý đơn."));
         boolean admin = actor.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+        boolean manager = actor.getRoles().stream().anyMatch(r -> "ROLE_BRANCH_MANAGER".equals(r.getName()));
         boolean staff = actor.getRoles().stream().anyMatch(r -> "ROLE_STAFF".equals(r.getName()));
-        if (!actor.isActive() || (!admin && !staff)) {
+        if (!actor.isActive() || (!admin && !manager && !staff)) { 
             throw new AccessDeniedException("Không có quyền xử lý đơn.");
         }
+
+  
 
         var order = orders.findForUpdate(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
@@ -109,8 +112,12 @@ public class OrderFulfillmentService {
             throw new IllegalArgumentException("Cần phân công shipper trước khi bắt đầu giao hàng.");
         }
 
-        if (restoreStock && order.getStatus() != OrderStatus.PENDING) {
-            restoreInventory(order, branchId);
+        if (restoreStock) {
+            if (order.getStatus() == OrderStatus.PENDING) {
+                releaseReservedInventory(order, branchId);
+            } else {
+                restoreInventory(order, branchId);
+            }
         }
         stateMachine.transition(order, target);
         syncDeliveryStatus(order, target);
@@ -154,6 +161,25 @@ public class OrderFulfillmentService {
             int restoredStock = Math.addExact(inventory.getStockQuantity(), entry.getValue());
             inventory.setStockQuantity(restoredStock);
             inventory.setAvailableQuantity(restoredStock - inventory.getReservedQuantity());
+        }
+    }
+    
+    private void releaseReservedInventory(Order order, Long branchId) {
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            return;
+        }
+        var quantities = new TreeMap<Long, Integer>();
+        for (var item : order.getOrderItems()) {
+            if (item.getProduct() != null && item.getQuantity() != null && item.getQuantity() > 0) {
+                quantities.merge(item.getProduct().getId(), item.getQuantity(), Math::addExact);
+            }
+        }
+        for (var entry : quantities.entrySet()) {
+            inventories.findForUpdate(branchId, entry.getKey()).ifPresent(inventory -> {
+                int newReserved = Math.max(0, inventory.getReservedQuantity() - entry.getValue());
+                inventory.setReservedQuantity(newReserved);
+                inventory.setAvailableQuantity(inventory.getStockQuantity() - newReserved);
+            });
         }
     }
 }

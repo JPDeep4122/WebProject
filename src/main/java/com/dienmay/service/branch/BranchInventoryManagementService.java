@@ -1,5 +1,6 @@
 package com.dienmay.service.branch;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class BranchInventoryManagementService {
     private static final String ADMIN_ROLE = "ROLE_ADMIN";
+    private static final String MANAGER_ROLE = "ROLE_BRANCH_MANAGER";
     private static final String STAFF_ROLE = "ROLE_STAFF";
 
     private final BranchInventoryRepository inventories;
@@ -36,17 +38,20 @@ public class BranchInventoryManagementService {
             String keyword, Pageable pageable) {
         User actor = requireActor(actorEmail);
         boolean admin = hasRole(actor, ADMIN_ROLE);
+        Long ownBranchId = actor.getBranch() == null ? null : actor.getBranch().getId();
         Long effectiveBranchId = effectiveBranchId(actor, admin, requestedBranchId);
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
 
-        Page<BranchInventory> result = !admin && effectiveBranchId == null
+        boolean viewingOwnBranchOrAdmin = admin
+                || (ownBranchId != null && Objects.equals(ownBranchId, effectiveBranchId));
+
+        Page<BranchInventory> result = (!admin && ownBranchId == null)
                 ? Page.empty(pageable)
                 : inventories.search(effectiveBranchId, normalizedKeyword, pageable);
-        List<com.dienmay.entity.branch.Branch> visibleBranches = admin
-                ? branches.findByActiveTrue()
-                : actor.getBranch() == null ? List.of() : List.of(actor.getBranch());
+        List<com.dienmay.entity.branch.Branch> visibleBranches = branches.findByActiveTrue();
+
         List<InventoryAdjustment> recent;
-        if (!admin && effectiveBranchId == null) {
+        if (!viewingOwnBranchOrAdmin) {
             recent = List.of();
         } else if (effectiveBranchId == null) {
             recent = adjustments.findTop20ByOrderByCreatedAtDesc();
@@ -59,9 +64,12 @@ public class BranchInventoryManagementService {
                 .branches(visibleBranches)
                 .recentAdjustments(recent)
                 .selectedBranchId(effectiveBranchId)
-                .canChooseBranch(admin)
-                .warning(!admin && effectiveBranchId == null
-                        ? "Tài khoản nhân viên chưa được gán chi nhánh." : null)
+                .canChooseBranch(true)
+                .warning(!admin && ownBranchId == null
+                        ? "Tài khoản nhân sự chưa được gán chi nhánh."
+                        : (!viewingOwnBranchOrAdmin
+                                ? "Chế độ tra cứu tồn kho liên chi nhánh: Chỉ hiển thị số lượng khả dụng và thông tin liên hệ của chi nhánh khác."
+                                : null))
                 .build();
     }
 
@@ -74,10 +82,9 @@ public class BranchInventoryManagementService {
         validateAdjustment(inventory, newStock, reason);
 
         int previousStock = inventory.getStockQuantity();
+        int delta = newStock - previousStock;
         String normalizedReason = reason.trim();
-        inventory.setStockQuantity(newStock);
-        inventory.setAvailableQuantity(newStock - inventory.getReservedQuantity());
-        inventories.save(inventory);
+
         adjustments.save(InventoryAdjustment.builder()
                 .inventory(inventory)
                 .branch(inventory.getBranch())
@@ -85,28 +92,94 @@ public class BranchInventoryManagementService {
                 .adjustedBy(actor)
                 .previousStock(previousStock)
                 .newStock(newStock)
+                .deltaQuantity(delta)
                 .reservedQuantity(inventory.getReservedQuantity())
                 .reason(normalizedReason)
+                .status("PENDING")
                 .build());
+    }
+
+    @Transactional
+    public void reviewAdjustment(Long adjustmentId, String decision, String reviewNote, String actorEmail) {
+        User actor = requireActor(actorEmail);
+        boolean admin = hasRole(actor, ADMIN_ROLE);
+        boolean manager = hasRole(actor, MANAGER_ROLE);
+        if (!admin && !manager) {
+            throw new AccessDeniedException("Nhân viên không có quyền phê duyệt phiếu điều chỉnh kho.");
+        }
+
+        InventoryAdjustment adjustment = adjustments.findByIdForUpdate(adjustmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu điều chỉnh kho."));
+        if (!"PENDING".equals(adjustment.getStatus())) {
+            throw new IllegalArgumentException("Phiếu điều chỉnh kho này đã được xử lý trước đó.");
+        }
+
+        if (!admin && (actor.getBranch() == null
+                || !Objects.equals(actor.getBranch().getId(), adjustment.getBranch().getId()))) {
+            throw new AccessDeniedException("Bạn chỉ được phê duyệt phiếu điều chỉnh thuộc chi nhánh của mình.");
+        }
+
+        User creator = adjustment.getAdjustedBy();
+        if (creator != null && Objects.equals(creator.getId(), actor.getId())) {
+            throw new AccessDeniedException("Nguyên tắc kiểm soát nội bộ: Người tạo phiếu không được tự phê duyệt phiếu của chính mình.");
+        }
+        if (creator != null && hasRole(creator, MANAGER_ROLE) && !admin) {
+            throw new AccessDeniedException("Phiếu điều chỉnh do Quản lý chi nhánh tạo phải do Admin tổng phê duyệt.");
+        }
+
+        String normalizedDecision = decision == null ? "" : decision.trim().toUpperCase();
+        if (!"APPROVED".equals(normalizedDecision) && !"REJECTED".equals(normalizedDecision)) {
+            throw new IllegalArgumentException("Quyết định phê duyệt không hợp lệ.");
+        }
+
+        if ("APPROVED".equals(normalizedDecision)) {
+            BranchInventory inventory = inventories.findByIdForUpdate(adjustment.getInventory().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bản ghi tồn kho."));
+            int currentStock = inventory.getStockQuantity();
+            int delta = adjustment.getDeltaQuantity() != null
+                    ? adjustment.getDeltaQuantity()
+                    : (adjustment.getNewStock() - adjustment.getPreviousStock());
+            int updatedStock = currentStock + delta;
+            int minRequired = inventory.getTotalHeldAndQuarantine();
+            if (updatedStock < minRequired) {
+                throw new IllegalArgumentException("Không thể duyệt: Tồn thực tế sau điều chỉnh (" + updatedStock
+                        + ") thấp hơn tổng hàng giữ và cách ly hiện tại (" + minRequired + ").");
+            }
+            adjustment.setPreviousStock(currentStock);
+            adjustment.setNewStock(updatedStock);
+            inventory.setStockQuantity(updatedStock);
+            inventory.recalculateAvailable();
+            inventories.save(inventory);
+        }
+
+        adjustment.setStatus(normalizedDecision);
+        adjustment.setReviewedBy(actor);
+        adjustment.setReviewedAt(LocalDateTime.now());
+        adjustment.setReviewNote(reviewNote == null || reviewNote.isBlank() ? null : reviewNote.trim());
+        adjustments.save(adjustment);
+    }
+
+    private Long effectiveBranchId(User actor, boolean admin, Long requestedBranchId) {
+        if (requestedBranchId != null) {
+            if (!branches.existsById(requestedBranchId)) {
+                throw new IllegalArgumentException("Chi nhánh không tồn tại.");
+            }
+            return requestedBranchId;
+        }
+        if (admin) {
+            return null;
+        }
+        return actor.getBranch() == null ? null : actor.getBranch().getId();
     }
 
     private User requireActor(String email) {
         User actor = users.findByEmail(email)
                 .orElseThrow(() -> new AccessDeniedException("Không tìm thấy tài khoản đang đăng nhập."));
-        if (!actor.isActive() || (!hasRole(actor, ADMIN_ROLE) && !hasRole(actor, STAFF_ROLE))) {
+        if (!actor.isActive() || actor.isBlocked()
+                || (!hasRole(actor, ADMIN_ROLE) && !hasRole(actor, MANAGER_ROLE) && !hasRole(actor, STAFF_ROLE))) {
             throw new AccessDeniedException("Tài khoản không có quyền quản lý tồn kho.");
         }
         return actor;
-    }
-
-    private Long effectiveBranchId(User actor, boolean admin, Long requestedBranchId) {
-        if (admin) {
-            if (requestedBranchId != null && !branches.existsById(requestedBranchId)) {
-                throw new IllegalArgumentException("Chi nhánh không tồn tại.");
-            }
-            return requestedBranchId;
-        }
-        return actor.getBranch() == null ? null : actor.getBranch().getId();
     }
 
     private void authorizeBranch(User actor, BranchInventory inventory) {
@@ -115,7 +188,7 @@ public class BranchInventoryManagementService {
         }
         if (actor.getBranch() == null
                 || !Objects.equals(actor.getBranch().getId(), inventory.getBranch().getId())) {
-            throw new AccessDeniedException("Bạn chỉ được điều chỉnh tồn kho tại chi nhánh của mình.");
+            throw new AccessDeniedException("Bạn chỉ được lập yêu cầu điều chỉnh tồn kho tại chi nhánh của mình.");
         }
     }
 
@@ -123,9 +196,10 @@ public class BranchInventoryManagementService {
         if (newStock == null || newStock < 0) {
             throw new IllegalArgumentException("Tồn kho mới phải là số không âm.");
         }
-        if (newStock < inventory.getReservedQuantity()) {
-            throw new IllegalArgumentException("Tồn kho mới không được thấp hơn số lượng đang giữ chỗ ("
-                    + inventory.getReservedQuantity() + ").");
+        int minRequired = inventory.getTotalHeldAndQuarantine();
+        if (newStock < minRequired) {
+            throw new IllegalArgumentException("Tồn kho mới không được thấp hơn tổng lượng đang giữ và cách ly ("
+                    + minRequired + ").");
         }
         if (newStock.equals(inventory.getStockQuantity())) {
             throw new IllegalArgumentException("Tồn kho mới không thay đổi so với hiện tại.");

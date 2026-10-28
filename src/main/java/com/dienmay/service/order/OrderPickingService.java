@@ -24,8 +24,9 @@ public class OrderPickingService {
         var actor = users.findByEmail(email)
                 .orElseThrow(() -> new AccessDeniedException("Không có quyền xử lý đơn."));
         boolean admin = actor.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+        boolean manager = actor.getRoles().stream().anyMatch(r -> "ROLE_BRANCH_MANAGER".equals(r.getName()));
         boolean staff = actor.getRoles().stream().anyMatch(r -> "ROLE_STAFF".equals(r.getName()));
-        if (!actor.isActive() || (!admin && !staff)) {
+        if (!actor.isActive() || actor.isBlocked() || (!admin && !manager && !staff)) {
             throw new AccessDeniedException("Không có quyền xử lý đơn.");
         }
 

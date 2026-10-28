@@ -2,7 +2,6 @@
 	pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core"%>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions"%>
-<%@ taglib prefix="ui" tagdir="/WEB-INF/tags"%>
 
 <jsp:include page="fragments/header.jsp" />
 
@@ -106,12 +105,7 @@
 				</form>
 
 				<hr class="my-4">
-
-				<h3 class="h6 fw-bold">Số điện thoại đăng nhập</h3>
-				<p class="small text-muted">Xác minh số điện thoại để sử dụng
-					OTP khi đăng nhập.</p>
-
-				<ui:phone-auth mode="link" />
+				
 			</div>
 		</section>
 
@@ -216,6 +210,5 @@ function toggleProfilePwd(inputId, btn) {
 </script>
 <script src="${pageContext.request.contextPath}/js/account-profile.js"
 	defer></script>
-<script type="module"
-	src="${pageContext.request.contextPath}/js/phone-auth.js"></script>
+	
 <jsp:include page="fragments/footer.jsp" />

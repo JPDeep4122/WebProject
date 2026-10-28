@@ -6,10 +6,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Entity đại diện cho bảng branch_inventory (Quản lý tồn kho theo từng chi nhánh)
- * Phân công: TV2 - Ngày 03/09
- */
 @Entity
 @Table(
     name = "branch_inventory",
@@ -35,32 +31,56 @@ public class BranchInventory {
     private Product product;
 
     @Column(name = "stock_quantity", nullable = false)
-    private Integer stockQuantity; // Tổng tồn kho thực tế tại chi nhánh
+    private Integer stockQuantity; // Tồn thực tế tại chi nhánh
 
     @Column(name = "reserved_quantity", nullable = false)
-    private Integer reservedQuantity; // Số lượng hàng đã giữ chỗ (chờ giao)
+    private Integer reservedQuantity; // Giữ cho đơn hàng
+
+    @Column(name = "transfer_reserved_quantity", nullable = false)
+    @Builder.Default
+    private Integer transferReservedQuantity = 0; // Giữ cho phiếu điều chuyển
+
+    @Column(name = "quarantine_quantity", nullable = false)
+    @Builder.Default
+    private Integer quarantineQuantity = 0; // Hàng cách ly (lỗi/hỏng/chờ kiểm định)
 
     @Column(name = "available_quantity", nullable = false)
-    private Integer availableQuantity; // Số lượng có thể bán = stockQuantity - reservedQuantity
+    private Integer availableQuantity; // Khả dụng = Thực tế - Giữ đơn - Giữ điều chuyển - Cách ly
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Transient
+    public int getTotalHeldAndQuarantine() {
+        int orderRes = reservedQuantity == null ? 0 : reservedQuantity;
+        int transferRes = transferReservedQuantity == null ? 0 : transferReservedQuantity;
+        int quarantine = quarantineQuantity == null ? 0 : quarantineQuantity;
+        return orderRes + transferRes + quarantine;
+    }
+
+    public void recalculateAvailable() {
+        if (this.stockQuantity == null) this.stockQuantity = 0;
+        if (this.reservedQuantity == null) this.reservedQuantity = 0;
+        if (this.transferReservedQuantity == null) this.transferReservedQuantity = 0;
+        if (this.quarantineQuantity == null) this.quarantineQuantity = 0;
+        this.availableQuantity = this.stockQuantity - getTotalHeldAndQuarantine();
+    }
 
     @PrePersist
     @PreUpdate
     protected void onSave() {
         if (this.stockQuantity == null) this.stockQuantity = 0;
         if (this.reservedQuantity == null) this.reservedQuantity = 0;
-        if (this.stockQuantity < 0) {
-            throw new IllegalStateException("Tồn kho không được âm");
+        if (this.transferReservedQuantity == null) this.transferReservedQuantity = 0;
+        if (this.quarantineQuantity == null) this.quarantineQuantity = 0;
+        if (this.stockQuantity < 0 || this.reservedQuantity < 0
+                || this.transferReservedQuantity < 0 || this.quarantineQuantity < 0) {
+            throw new IllegalStateException("Các loại số lượng tồn kho không được âm");
         }
-        if (this.reservedQuantity < 0) {
-            throw new IllegalStateException("Số lượng giữ chỗ không được âm");
+        if (getTotalHeldAndQuarantine() > this.stockQuantity) {
+            throw new IllegalStateException("Tổng hàng giữ và hàng cách ly không được vượt quá tồn thực tế");
         }
-        if (this.reservedQuantity > this.stockQuantity) {
-            throw new IllegalStateException("Số lượng giữ chỗ không được vượt quá tồn kho");
-        }
-        this.availableQuantity = this.stockQuantity - this.reservedQuantity;
+        recalculateAvailable();
         this.updatedAt = LocalDateTime.now();
     }
 }
