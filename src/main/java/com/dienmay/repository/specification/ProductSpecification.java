@@ -57,8 +57,14 @@ public class ProductSpecification {
 
             // 5. Tìm kiếm theo từ khóa tên sản phẩm (nếu có)
             if (req.getKeyword() != null && !req.getKeyword().trim().isEmpty()) {
-                String searchPattern = "%" + req.getKeyword().trim().toLowerCase() + "%";
-                predicates.add(cb.like(cb.lower(root.get("name")), searchPattern));
+                // The value is a bound Criteria parameter (so it cannot alter SQL syntax).
+                // Escape LIKE metacharacters as well so user input is treated literally.
+                String keyword = req.getKeyword().trim().toLowerCase(java.util.Locale.ROOT)
+                        .replace("\\", "\\\\")
+                        .replace("%", "\\%")
+                        .replace("_", "\\_");
+                String searchPattern = "%" + keyword + "%";
+                predicates.add(cb.like(cb.lower(root.get("name")), searchPattern, '\\'));
             }
 
             // EXISTS avoids duplicate products when several branches have stock.

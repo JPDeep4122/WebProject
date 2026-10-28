@@ -48,6 +48,10 @@ public class AdminUserController {
 	public String list(@RequestParam(required = false) Long id, @RequestParam(required = false) String type,
 			@RequestParam(defaultValue = "id") String sort, @RequestParam(defaultValue = "asc") String direction,
 			Principal principal, Model model) {
+		if (id != null && id < 0) {
+			id = 0L;
+		}
+		final Long selectedId = id;
 		User actor = requireActor(principal);
 		boolean admin = hasRole(actor, ROLE_ADMIN);
 
@@ -74,7 +78,7 @@ public class AdminUserController {
 						.toList();
 			}
 			if (id != null) {
-				result = result.stream().filter(u -> Objects.equals(u.getId(), id)).toList();
+				result = result.stream().filter(u -> Objects.equals(u.getId(), selectedId)).toList();
 			}
 		}
 

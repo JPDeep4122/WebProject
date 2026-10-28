@@ -82,6 +82,10 @@ public class ProductController {
             sortBy = "newest";
         }
         filter.setSortBy(sortBy);
+        if (filter.getKeyword() != null) {
+            String keyword = filter.getKeyword().trim();
+            filter.setKeyword(keyword.length() > 120 ? keyword.substring(0, 120) : keyword);
+        }
         filter.setPage(filter.getPage() == null ? 0 : Math.max(0, Math.min(filter.getPage(), 1_000_000)));
         filter.setSize(filter.getSize() == null || filter.getSize() <= 0 ? 12 : Math.min(filter.getSize(), 48));
     }

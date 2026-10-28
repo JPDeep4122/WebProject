@@ -65,7 +65,7 @@
 						<div class="col-md-2">
 							<label class="form-label">ID tài khoản</label><input
 								class="form-control" type="number" name="id"
-								value="${selectedId}" placeholder="Ví dụ: 15">
+								value="${selectedId}" placeholder="Ví dụ: 15" min="0">
 						</div>
 						<div class="col-md-2">
 							<label class="form-label">Loại tài khoản</label><select
