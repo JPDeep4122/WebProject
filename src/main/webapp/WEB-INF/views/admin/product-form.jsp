@@ -24,20 +24,21 @@
 				action="${editProductUrl}" class="card card-body row g-3">
 				<input type="hidden" name="${_csrf.parameterName}"
 					value="${_csrf.token}">
+				<div class="col-12"><small class="text-secondary">Các mục có dấu <span class="text-danger fw-bold">*</span> là bắt buộc.</small></div>
 				<div class="col-md-6">
-					<label class="form-label">Tên</label><input class="form-control"
+					<label class="form-label">Tên <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><input class="form-control"
 						name="name" value="${form.name}" required>
 				</div>
 				<div class="col-md-6">
-					<label class="form-label">Slug</label><input class="form-control"
+					<label class="form-label">Slug <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><input class="form-control"
 						name="slug" value="${form.slug}" required>
 				</div>
 				<div class="col-md-4">
-					<label class="form-label">SKU</label><input class="form-control"
+					<label class="form-label">SKU <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><input class="form-control"
 						name="sku" value="${form.sku}" required>
 				</div>
 				<div class="col-md-4">
-					<label class="form-label">Giá gốc</label><input
+					<label class="form-label">Giá gốc <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><input
 						class="form-control" name="originalPrice" type="number" min="0"
 						step="0.01" value="${form.originalPrice}" required>
 				</div>
@@ -47,7 +48,7 @@
 						step="0.01" value="${form.discountPrice}">
 				</div>
 				<div class="col-md-6">
-					<label class="form-label">Danh mục</label><select
+					<label class="form-label">Danh mục <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><select
 						class="form-select" name="categoryId"><c:forEach
 							items="${categories}" var="c">
 							<option value="${c.id}"
@@ -55,7 +56,7 @@
 						</c:forEach></select>
 				</div>
 				<div class="col-md-6">
-					<label class="form-label">Thương hiệu</label><select
+					<label class="form-label">Thương hiệu <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><select
 						class="form-select" name="brandId"><c:forEach
 							items="${brands}" var="b">
 							<option value="${b.id}" ${b.id == form.brandId ? 'selected' : ''}>${b.name}</option>

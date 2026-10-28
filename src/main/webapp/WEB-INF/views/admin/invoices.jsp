@@ -27,12 +27,39 @@
         <form method="get" action="${pageContext.request.contextPath}/admin/invoices"
               class="card card-body border-0 shadow-sm mb-3">
             <label for="invoice-search" class="form-label fw-semibold">Tìm hóa đơn</label>
-            <div class="input-group">
+            <div class="input-group mb-3">
                 <input id="invoice-search" class="form-control" type="search" name="q"
                        value="${fn:escapeXml(searchQuery)}"
                        placeholder="Nhập mã hóa đơn hoặc mã khách hàng (ID tài khoản)">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Tìm</button>
                 <a class="btn btn-outline-secondary" href="${pageContext.request.contextPath}/admin/invoices">Xóa lọc</a>
+            </div>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5 col-lg-4">
+                    <label for="invoice-status" class="form-label mb-1">Trạng thái đơn hàng</label>
+                    <select id="invoice-status" class="form-select" name="status">
+                        <option value="">Tất cả trạng thái</option>
+                        <c:forEach items="${statuses}" var="invoiceStatus">
+                            <option value="${invoiceStatus.name()}" ${selectedStatus eq invoiceStatus.name() ? 'selected' : ''}>
+                                <c:out value="${invoiceStatus}"/>
+                            </option>
+                        </c:forEach>
+                    </select>
+                </div>
+                <div class="col-md-5 col-lg-4">
+                    <label for="invoice-branch" class="form-label mb-1">Chi nhánh</label>
+                    <select id="invoice-branch" class="form-select" name="branchId">
+                        <option value="">Tất cả chi nhánh</option>
+                        <c:forEach items="${branches}" var="branch">
+                            <option value="${branch.id}" ${selectedBranchId eq branch.id ? 'selected' : ''}>
+                                <c:out value="${branch.name}"/>
+                            </option>
+                        </c:forEach>
+                    </select>
+                </div>
+                <div class="col-md-2 col-lg-4">
+                    <button class="btn btn-outline-primary w-100" type="submit"><i class="bi bi-funnel me-1"></i>Lọc hóa đơn</button>
+                </div>
             </div>
             <small class="text-secondary mt-2">Mã khách hàng là ID tài khoản trong hệ thống.</small>
         </form>
@@ -65,6 +92,8 @@
                         <c:url var="invoicePageUrl" value="/admin/invoices">
                             <c:param name="page" value="${index}"/>
                             <c:if test="${not empty searchQuery}"><c:param name="q" value="${searchQuery}"/></c:if>
+                            <c:if test="${not empty selectedStatus}"><c:param name="status" value="${selectedStatus}"/></c:if>
+                            <c:if test="${not empty selectedBranchId}"><c:param name="branchId" value="${selectedBranchId}"/></c:if>
                         </c:url>
                         <a class="page-link" href="${pageContext.request.contextPath}${invoicePageUrl}">${index + 1}</a>
                     </li>
