@@ -33,34 +33,41 @@
 						action="${createProductUrl}" class="row g-2">
 						<input type="hidden" name="${_csrf.parameterName}"
 							value="${_csrf.token}">
+						<div class="col-12"><small class="text-secondary">Các mục có dấu <span class="text-danger fw-bold">*</span> là bắt buộc.</small></div>
 						<div class="col-md-4">
+							<label class="form-label" for="product-name">Tên sản phẩm <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label>
 							<input class="form-control" name="name"
-								placeholder="Tên sản phẩm" required>
+								id="product-name" placeholder="Tên sản phẩm" required>
 						</div>
 						<div class="col-md-4">
+							<label class="form-label" for="product-slug">Slug <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label>
 							<input class="form-control" name="slug" placeholder="Slug"
-								required>
+								id="product-slug" required>
 						</div>
 						<div class="col-md-4">
-							<input class="form-control" name="sku" placeholder="SKU" required>
+							<label class="form-label" for="product-sku">SKU <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label>
+							<input class="form-control" name="sku" id="product-sku" placeholder="SKU" required>
 						</div>
 						<div class="col-md-3">
+							<label class="form-label" for="product-original-price">Giá gốc <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label>
 							<input class="form-control" name="originalPrice" type="number"
-								min="0" step="0.01" placeholder="Giá gốc" required>
+								id="product-original-price" min="0" step="0.01" placeholder="Giá gốc" required>
 						</div>
 						<div class="col-md-3">
 							<input class="form-control" name="discountPrice" type="number"
 								min="0" step="0.01" placeholder="Giá khuyến mãi">
 						</div>
 						<div class="col-md-3">
-							<select class="form-select" name="categoryId" required><option
+							<label class="form-label" for="product-category">Danh mục <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label>
+							<select class="form-select" name="categoryId" id="product-category" required><option
 									value="">Danh mục</option>
 								<c:forEach items="${categories}" var="c">
 									<option value="${c.id}">${c.name}</option>
 								</c:forEach></select>
 						</div>
 						<div class="col-md-3">
-							<select class="form-select" name="brandId" required><option
+							<label class="form-label" for="product-brand">Thương hiệu <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label>
+							<select class="form-select" name="brandId" id="product-brand" required><option
 									value="">Thương hiệu</option>
 								<c:forEach items="${brands}" var="b">
 									<option value="${b.id}">${b.name}</option>
