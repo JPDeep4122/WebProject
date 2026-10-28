@@ -159,8 +159,8 @@ public class CheckoutController {
         try {
             return "redirect:" + checkoutService.continuePayment(order.getOrderCode(), email, session);
         } catch (IllegalArgumentException ex) {
-            flash.addFlashAttribute("paymentError", ex.getMessage());
-            return "redirect:/order-success/" + order.getOrderCode();
+            flash.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:/orders/" + order.getOrderCode();
         }
     }
 

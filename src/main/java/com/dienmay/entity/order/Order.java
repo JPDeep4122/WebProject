@@ -3,6 +3,8 @@ package com.dienmay.entity.order;
 import com.dienmay.entity.auth.User;
 import com.dienmay.entity.branch.Branch;
 import com.dienmay.entity.payment.Payment;
+import com.dienmay.entity.payment.PaymentMethod;
+import com.dienmay.entity.payment.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -75,6 +77,7 @@ public class Order {
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
     private DeliveryAssignment deliveryAssignment; 
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -103,4 +106,60 @@ public class Order {
     
     @Column(name = "voucher_code", length = 50)
     private String voucherCode;
+    
+    @Transient
+    public boolean isAwaitingPayment() {
+        if (status != OrderStatus.PENDING || payment == null) {
+            return false;
+        }
+
+        return payment.getPaymentMethod() == PaymentMethod.VNPAY
+                && (payment.getPaymentStatus() == PaymentStatus.PENDING
+                    || payment.getPaymentStatus() == PaymentStatus.FAILED);
+    }
+
+    @Transient
+    public boolean isReadyForConfirmation() {
+        if (status != OrderStatus.PENDING
+                || payment == null
+                || payment.getPaymentMethod() == null
+                || payment.getPaymentStatus() == null) {
+            return false;
+        }
+
+        return switch (payment.getPaymentMethod()) {
+            case VNPAY ->
+                    payment.getPaymentStatus() == PaymentStatus.SUCCESS;
+
+            case COD ->
+                    payment.getPaymentStatus() == PaymentStatus.PENDING
+                    || payment.getPaymentStatus() == PaymentStatus.SUCCESS;
+
+            default -> false;
+        };
+    }
+
+    @Transient
+    public boolean isPrepaidVnPay() {
+        return payment != null
+                && payment.getPaymentMethod() == PaymentMethod.VNPAY
+                && (payment.getPaymentStatus() == PaymentStatus.SUCCESS
+                    || payment.getPaymentStatus() == PaymentStatus.REFUNDED);
+    }
+
+    @Transient
+    public boolean isRefundRequired() {
+        return status == OrderStatus.CANCELLED
+                && payment != null
+                && payment.getPaymentMethod() == PaymentMethod.VNPAY
+                && payment.getPaymentStatus() == PaymentStatus.SUCCESS;
+    }
+
+    @Transient
+    public boolean isRefundCompleted() {
+        return status == OrderStatus.CANCELLED
+                && payment != null
+                && payment.getPaymentMethod() == PaymentMethod.VNPAY
+                && payment.getPaymentStatus() == PaymentStatus.REFUNDED;
+    }
 }

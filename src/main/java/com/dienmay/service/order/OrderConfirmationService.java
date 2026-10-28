@@ -45,6 +45,13 @@ public class OrderConfirmationService {
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new IllegalArgumentException("Chỉ có thể xác nhận đơn đang chờ xác nhận.");
         }
+        
+        if (!order.isReadyForConfirmation()) {
+            throw new IllegalArgumentException(
+                    "Đơn thanh toán VNPay phải thanh toán thành công "
+                            + "trước khi được xác nhận.");
+        }
+        
         if (order.getOrderItems().isEmpty()) {
             throw new IllegalArgumentException("Đơn hàng không có sản phẩm.");
         }

@@ -1,94 +1,208 @@
 (function () {
-  const contextPath = window.CONTEXT_PATH || '';
-  const apiUrl = contextPath + '/api/notifications';
-  const badge = document.getElementById('notificationUnreadBadge');
-  const list = document.getElementById('notificationList');
-  const errorBox = document.getElementById('notificationPageMessage');
-  const markAllButton = document.getElementById('markAllNotificationsRead');
+  'use strict';
 
-  function updateBadge(count) {
-    if (!badge) return;
-    badge.textContent = count > 99 ? '99+' : String(count || 0);
-    badge.classList.toggle('d-none', !count);
-  }
+  function init() {
+    var contextPath = window.CONTEXT_PATH || '';
+    var apiUrl = contextPath + '/api/notifications';
+    var badge = document.getElementById('notificationUnreadBadge');
+    var list = document.getElementById('notificationList');
+    var errorBox = document.getElementById('notificationPageMessage');
+    var markAllButton = document.getElementById('markAllNotificationsRead');
+    var unreadCount = 0;
+    var markingAll = false;
 
-  function notificationHref(item) {
-    if (item.referenceType === 'ORDER' && item.referenceKey) {
-      return contextPath + '/orders/' + encodeURIComponent(item.referenceKey);
+    if (!badge && !list) return;
+
+    function updateBadge(count) {
+      var value = Number(count);
+      unreadCount = isFinite(value) && value > 0 ? Math.floor(value) : 0;
+
+      if (!badge) return;
+
+      badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+      badge.classList.toggle('d-none', unreadCount === 0);
     }
-    if (item.referenceType === 'PROMOTION') {
-      return contextPath + '/vouchers' + (item.referenceKey ? '?code=' + encodeURIComponent(item.referenceKey) : '');
+
+    function clearError() {
+      if (!errorBox) return;
+
+      errorBox.textContent = '';
+      errorBox.classList.add('d-none');
     }
-    return contextPath + '/notifications';
-  }
 
-  function showError(message) {
-    if (!errorBox) return;
-    errorBox.textContent = message;
-    errorBox.classList.remove('d-none');
-  }
+    function showError(message) {
+      if (!errorBox) return;
 
-  async function loadNotifications() {
-    try {
-      const response = await fetch(apiUrl, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
-      if (!response.ok) throw new Error(response.status === 401 ? 'Vui lòng đăng nhập để xem thông báo.' : 'Không tải được thông báo.');
-      const feed = await response.json();
-      updateBadge(feed.unreadCount);
-      if (!list) return;
-      list.replaceChildren();
-      if (!feed.items || !feed.items.length) {
-        const empty = document.createElement('div');
-        empty.className = 'list-group-item text-center text-muted py-5';
-        empty.textContent = 'Bạn chưa có thông báo nào.';
-        list.appendChild(empty);
-        if (markAllButton) markAllButton.disabled = true;
-        return;
+      errorBox.textContent = message || 'Không thể xử lý thông báo.';
+      errorBox.classList.remove('d-none');
+    }
+
+    function notificationHref(item) {
+      if (item.referenceType === 'ORDER' && item.referenceKey) {
+        return contextPath + '/orders/' + encodeURIComponent(item.referenceKey);
       }
-      if (markAllButton) markAllButton.disabled = feed.unreadCount === 0;
-      feed.items.forEach(item => {
-        const link = document.createElement('a');
-        link.className = 'list-group-item list-group-item-action py-3' + (item.read ? '' : ' notification-unread');
-        link.href = notificationHref(item);
-        const title = document.createElement('div');
-        title.className = 'd-flex justify-content-between gap-3 fw-semibold';
-        const titleText = document.createElement('span');
-        titleText.textContent = item.title;
-        const date = document.createElement('small');
-        date.className = 'text-muted text-nowrap fw-normal';
-        date.textContent = item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : '';
-        title.append(titleText, date);
-        const message = document.createElement('div');
-        message.className = 'text-muted mt-1';
-        message.textContent = item.message;
-        link.append(title, message);
-        link.addEventListener('click', () => {
-          if (!item.read && window.csrfFetch) csrfFetch(apiUrl + '/' + item.id + '/read', {
-            method: 'POST', credentials: 'same-origin'
-          }).catch(() => {});
-        });
-        list.appendChild(link);
+
+      if (item.referenceType === 'PROMOTION') {
+        return contextPath + '/vouchers' +
+          (item.referenceKey ? '?code=' + encodeURIComponent(item.referenceKey) : '');
+      }
+
+      return contextPath + '/notifications';
+    }
+
+    function post(url) {
+      if (typeof window.csrfFetch !== 'function') {
+        return Promise.reject(
+          new Error('Thiếu hỗ trợ CSRF. Vui lòng tải lại trang.')
+        );
+      }
+
+      return window.csrfFetch(url, {
+        method: 'POST',
+        credentials: 'same-origin'
+      }).then(function (response) {
+        if (!response.ok) {
+          throw new Error(response.status === 401
+            ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+            : 'Không thể cập nhật trạng thái đã đọc.');
+        }
       });
-    } catch (error) {
-      updateBadge(0);
-      if (list) list.innerHTML = '<div class="list-group-item text-muted">Không thể tải thông báo.</div>';
-      showError(error.message || 'Không thể tải thông báo.');
     }
-  }
 
-  if (markAllButton) {
-    markAllButton.addEventListener('click', async () => {
-      try {
-        const response = window.csrfFetch
-          ? await csrfFetch(apiUrl + '/read-all', { method: 'POST', credentials: 'same-origin' })
-          : await fetch(apiUrl + '/read-all', { method: 'POST', credentials: 'same-origin' });
-        if (!response.ok) throw new Error('Không thể cập nhật trạng thái đã đọc.');
-        await loadNotifications();
-      } catch (error) {
+    function createLink(item) {
+      var link = document.createElement('a');
+      var title = document.createElement('div');
+      var titleText = document.createElement('span');
+      var date = document.createElement('small');
+      var message = document.createElement('div');
+      var reading = false;
+
+      link.className = 'list-group-item list-group-item-action py-3' +
+        (item.read ? '' : ' notification-unread');
+      link.href = notificationHref(item);
+
+      title.className = 'd-flex justify-content-between gap-3 fw-semibold';
+      titleText.textContent = item.title || '';
+
+      date.className = 'text-muted text-nowrap fw-normal';
+      date.textContent = item.createdAt
+        ? new Date(item.createdAt).toLocaleString('vi-VN') : '';
+
+      message.className = 'text-muted mt-1';
+      message.textContent = item.message || '';
+
+      title.appendChild(titleText);
+      title.appendChild(date);
+      link.appendChild(title);
+      link.appendChild(message);
+
+      link.addEventListener('click', function (event) {
+        if (item.read || event.ctrlKey || event.metaKey ||
+            event.shiftKey || event.altKey || event.button > 0) {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (reading) return;
+
+        reading = true;
+        clearError();
+
+        post(apiUrl + '/' + encodeURIComponent(item.id) + '/read')
+          .then(function () {
+            item.read = true;
+            updateBadge(unreadCount - 1);
+            window.location.assign(link.href);
+          })
+          .catch(function (error) {
+            reading = false;
+            showError(error.message);
+          });
+      });
+
+      return link;
+    }
+
+    function loadNotifications() {
+      return window.fetch(apiUrl, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin'
+      }).then(function (response) {
+        if (!response.ok) {
+          throw new Error(response.status === 401
+            ? 'Vui lòng đăng nhập để xem thông báo.'
+            : 'Không tải được thông báo.');
+        }
+
+        return response.json();
+      }).then(function (feed) {
+        if (!feed || !Array.isArray(feed.items)) {
+          throw new Error('Dữ liệu thông báo không hợp lệ.');
+        }
+
+        clearError();
+        updateBadge(feed.unreadCount);
+
+        if (!list) return;
+
+        while (list.firstChild) {
+          list.removeChild(list.firstChild);
+        }
+
+        if (!feed.items.length) {
+          var empty = document.createElement('div');
+          empty.className = 'list-group-item text-center text-muted py-5';
+          empty.textContent = 'Bạn chưa có thông báo nào.';
+          list.appendChild(empty);
+        } else {
+          feed.items.forEach(function (item) {
+            list.appendChild(createLink(item));
+          });
+        }
+
+        if (markAllButton) {
+          markAllButton.disabled = markingAll || unreadCount === 0;
+        }
+      }).catch(function (error) {
+        if (list) {
+          list.textContent = 'Không thể tải thông báo. Vui lòng thử lại.';
+        }
+
         showError(error.message);
-      }
-    });
+      });
+    }
+
+    if (markAllButton) {
+      markAllButton.disabled = true;
+
+      markAllButton.addEventListener('click', function () {
+        if (markingAll) return;
+
+        markingAll = true;
+        markAllButton.disabled = true;
+        clearError();
+
+        post(apiUrl + '/read-all')
+          .then(function () {
+            return loadNotifications();
+          })
+          .catch(function (error) {
+            showError(error.message);
+          })
+          .then(function () {
+            markingAll = false;
+            markAllButton.disabled = unreadCount === 0;
+          });
+      });
+    }
+
+    loadNotifications();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadNotifications);
-  else loadNotifications();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

@@ -73,7 +73,7 @@
 								<dd class="col-sm-8">
 									<c:out value="${order.shippingAddress}" />
 								</dd>
-								<dt class="col-sm-4">Chi nhánh</dt>
+								<dt class="col-sm-4">Chi nhánh đặt</dt>
 								<dd class="col-sm-8">
 									<c:out value="${order.branch.name}" default="Chưa gán" />
 								</dd>
@@ -98,7 +98,22 @@
 								</dd>
 								<dt class="col-sm-5">Trạng thái thanh toán</dt>
 								<dd class="col-sm-7">
-									<c:out value="${order.payment.paymentStatus}" default="Chưa có" />
+									<span class="badge ${order.payment.paymentStatus eq 'SUCCESS' ? 'text-bg-success' : (order.payment.paymentStatus eq 'REFUNDED' ? 'text-bg-info' : 'text-bg-warning text-dark')}">
+										<c:out value="${order.payment.paymentStatus}" default="Chưa có" />
+									</span>
+								</dd>
+								<dt class="col-sm-5">Tiền thu khi nhận hàng</dt>
+								<dd class="col-sm-7">
+									<c:choose>
+										<c:when test="${order.prepaidVnPay}">
+											<strong class="text-success">0 ₫</strong>
+											<small class="text-success d-block">(Đơn trả trước qua VNPay — Shipper không thu tiền)</small>
+										</c:when>
+										<c:otherwise>
+											<strong class="text-danger"><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true" /> ₫</strong>
+											<small class="text-secondary d-block">(Thu tiền mặt COD khi giao hàng)</small>
+										</c:otherwise>
+									</c:choose>
 								</dd>
 								<dt class="col-sm-5">Thời gian thanh toán</dt>
 								<dd class="col-sm-7">
@@ -176,6 +191,66 @@
 				</div>
 			</c:if>
 
+			<!-- KHUNG XỬ LÝ HOÀN TIỀN CHO ĐƠN TRẢ TRƯỚC VNPAY BỊ HỦY -->
+			<c:if test="${order.refundRequired or order.refundCompleted}">
+				<section class="card border-0 shadow-sm mb-3 ${order.refundRequired ? 'border-start border-warning border-4' : 'border-start border-success border-4'}">
+					<div class="card-header bg-white fw-semibold">
+						<i class="bi bi-cash-stack me-2 text-primary"></i>Hoàn tiền đơn trả trước VNPay đã hủy (Hỗ trợ hoàn tại chi nhánh đặt hoặc chi nhánh gần nhất)
+					</div>
+					<div class="card-body">
+						<c:choose>
+							<c:when test="${order.refundRequired}">
+								<div class="alert alert-warning mb-3">
+									<strong><i class="bi bi-exclamation-circle me-1"></i>Đơn hàng đã thanh toán VNPay (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true" /> ₫) nhưng đã bị hủy.</strong>
+									<div class="small mt-1">
+										Khách hàng có thể nhận lại tiền mặt trực tiếp tại quầy chi nhánh gần nhất hoặc nhân viên chi nhánh chuyển khoản ngân hàng trả hộ cho khách.
+									</div>
+								</div>
+								<form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/refund-cancelled"
+									onsubmit="return confirm('Xác nhận đã chi trả đủ số tiền hoàn cho khách hàng?');" class="row g-3">
+									<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+									<div class="col-md-4">
+										<label class="form-label fw-semibold">Hình thức hoàn tiền</label>
+										<select name="refundMethod" class="form-select" required>
+											<option value="CASH_AT_BRANCH">Chi tiền mặt tại quầy chi nhánh</option>
+											<option value="BANK_TRANSFER">Nhân viên chi nhánh chuyển khoản trả hộ</option>
+										</select>
+									</div>
+									<div class="col-md-5">
+										<label class="form-label fw-semibold">Ghi chú đối soát (CCCD/SĐT người nhận hoặc Mã GD chuyển khoản)</label>
+										<input type="text" name="refundNote" class="form-control" maxlength="500"
+											placeholder="VD: Đã chi tiền mặt tại quầy cho khách Nguyễn Văn A (SĐT 0912...)" required>
+									</div>
+									<div class="col-md-3 d-flex align-items-end">
+										<button type="submit" class="btn btn-success w-100 fw-semibold">
+											<i class="bi bi-check2-circle me-1"></i>Xác nhận đã hoàn tiền
+										</button>
+									</div>
+								</form>
+							</c:when>
+							<c:otherwise>
+								<div class="alert alert-success mb-0">
+									<div class="fw-bold mb-1">
+										<i class="bi bi-check-circle-fill me-1"></i>ĐÃ HOÀN TIỀN THÀNH CÔNG:
+										<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true" /> ₫
+									</div>
+									<div class="small">
+										<strong>Hình thức hoàn:</strong>
+										${order.payment.refundMethod eq 'BANK_TRANSFER' ? 'Nhân viên chi nhánh chuyển khoản ngân hàng trả hộ' : 'Chi tiền mặt trực tiếp tại quầy chi nhánh'}
+										<br>
+										<strong>Chi nhánh chi trả:</strong> <c:out value="${order.payment.refundBranch.name}" default="—" />
+										• <strong>Nhân viên thực hiện:</strong> <c:out value="${order.payment.refundedBy.fullName}" default="—" />
+										• <strong>Thời gian:</strong> <c:out value="${order.payment.refundedAt}" default="—" />
+										<br>
+										<strong>Ghi chú đối soát:</strong> <c:out value="${order.payment.refundNote}" default="—" />
+									</div>
+								</div>
+							</c:otherwise>
+						</c:choose>
+					</div>
+				</section>
+			</c:if>
+
 			<section class="card border-0 shadow-sm mb-3">
 				<div class="card-header bg-white fw-semibold">
 					<i class="bi bi-clipboard-check me-2"></i> Xử lý đơn hàng
@@ -183,21 +258,61 @@
 
 				<div class="card-body">
 
+					<c:if test="${order.awaitingPayment}">
+						<div class="alert alert-warning mb-3">
+							Đơn hàng đang chờ khách hoàn tất thanh toán trên cổng VNPay.
+						</div>
+					</c:if>
+
 					<c:if test="${canConfirm}">
 						<p class="text-secondary">Kiểm tra thông tin khách hàng và sản
 							phẩm trước khi xác nhận.</p>
 
-						<form method="post"
-							action="${pageContext.request.contextPath}/admin/orders/${order.id}/confirm">
+						<div class="d-flex flex-wrap gap-2">
+							<form method="post"
+								action="${pageContext.request.contextPath}/admin/orders/${order.id}/confirm">
+								<input type="hidden" name="${_csrf.parameterName}"
+									value="${_csrf.token}"> <input type="hidden"
+									name="returnTo" value="detail">
+								<button type="submit" class="btn btn-success">
+									<i class="bi bi-check-circle me-1"></i> Xác nhận đơn hàng
+								</button>
+							</form>
 
-							<input type="hidden" name="${_csrf.parameterName}"
-								value="${_csrf.token}"> <input type="hidden"
-								name="returnTo" value="detail">
+							<form method="post"
+								action="${pageContext.request.contextPath}/admin/orders/${order.id}/cancel"
+								onsubmit="return confirm('Hủy đơn hàng này và hoàn lại tồn kho?');">
+								<input type="hidden" name="${_csrf.parameterName}"
+									value="${_csrf.token}"> <input type="hidden"
+									name="returnTo" value="detail">
+								<button type="submit" class="btn btn-outline-danger">
+									<i class="bi bi-x-circle me-1"></i> Hủy đơn hàng
+								</button>
+							</form>
+						</div>
+					</c:if>
 
-							<button type="submit" class="btn btn-success">
-								<i class="bi bi-check-circle me-1"></i> Xác nhận đơn hàng
-							</button>
-						</form>
+					<c:if test="${order.status eq 'CONFIRMED'}">
+						<div class="d-flex flex-wrap gap-2 mb-3">
+							<form method="post"
+								action="${pageContext.request.contextPath}/admin/orders/${order.id}/start-picking">
+								<input type="hidden" name="${_csrf.parameterName}"
+									value="${_csrf.token}">
+								<button type="submit" class="btn btn-primary">
+									<i class="bi bi-box-seam me-1"></i> Bắt đầu lấy và chuẩn bị hàng
+								</button>
+							</form>
+							<form method="post"
+								action="${pageContext.request.contextPath}/admin/orders/${order.id}/cancel"
+								onsubmit="return confirm('Hủy đơn hàng này và hoàn lại tồn kho?');">
+								<input type="hidden" name="${_csrf.parameterName}"
+									value="${_csrf.token}"> <input type="hidden"
+									name="returnTo" value="detail">
+								<button type="submit" class="btn btn-outline-danger">
+									<i class="bi bi-x-circle me-1"></i> Hủy đơn hàng
+								</button>
+							</form>
+						</div>
 					</c:if>
 
 					<c:if test="${canAssign}">
@@ -252,7 +367,7 @@
 						</c:choose>
 					</c:if>
 
-					<c:if test="${not canConfirm and not canAssign}">
+					<c:if test="${not canConfirm and not canAssign and order.status ne 'CONFIRMED'}">
 						<p class="text-secondary mb-0">Không có thao tác xác nhận hoặc
 							phân công ở trạng thái hiện tại. Bạn có thể theo dõi kết quả
 							trong phần thanh toán và giao hàng.</p>
@@ -315,10 +430,19 @@
 								</td>
 							</tr>
 							<tr>
-								<th colspan="3" class="text-end">Khách cần thanh toán</th>
+								<th colspan="3" class="text-end">Tổng giá trị đơn hàng</th>
 								<th class="text-end text-primary"><fmt:formatNumber
 										value="${order.finalAmount}" type="number" groupingUsed="true" />
 									₫</th>
+							</tr>
+							<tr>
+								<th colspan="3" class="text-end">Số tiền cần thu khi nhận hàng</th>
+								<th class="text-end ${order.prepaidVnPay ? 'text-success' : 'text-danger'}">
+									<c:choose>
+										<c:when test="${order.prepaidVnPay}">0 ₫ (Đã thanh toán trả trước qua VNPay)</c:when>
+										<c:otherwise><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true" /> ₫ (Thu hộ COD)</c:otherwise>
+									</c:choose>
+								</th>
 							</tr>
 						</tfoot>
 					</table>

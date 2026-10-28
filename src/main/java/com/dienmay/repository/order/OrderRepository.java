@@ -26,22 +26,26 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("select o from Order o where o.orderCode = :code")
     Optional<Order> findByCodeForUpdate(@Param("code") String code);
 
-	@EntityGraph(attributePaths = {"user", "branch", "orderItems", "orderItems.product", "payment"})
+	@EntityGraph(attributePaths = {"user", "branch", "orderItems", "orderItems.product", "payment", "payment.refundedBy", "payment.refundBranch"})
 	Optional<Order> findByOrderCode(String orderCode);
+
+	@EntityGraph(attributePaths = {"user", "branch", "payment", "payment.refundedBy", "payment.refundBranch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	@Query("select o from Order o where lower(o.orderCode) like lower(concat('%', :keyword, '%'))")
+	Page<Order> searchByOrderCodeKeyword(@Param("keyword") String keyword, Pageable pageable);
 
     @Query("select o from Order o where upper(replace(o.orderCode, '-', '')) = :reference")
     Optional<Order> findByPaymentReference(@Param("reference") String reference);
 
-	@EntityGraph(attributePaths = {"user", "branch", "orderItems", "orderItems.product", "payment", "deliveryAssignment", "deliveryAssignment.shipper"})
+	@EntityGraph(attributePaths = {"user", "branch", "orderItems", "orderItems.product", "payment", "payment.refundedBy", "payment.refundBranch", "deliveryAssignment", "deliveryAssignment.shipper", "deliveryAssignment.codReceivedBy"})
 	@Query("select distinct o from Order o where o.id = :id")
 	Optional<Order> findDetailedById(@Param("id") Long id);
 
 	Page<Order> findByUserId(Long userId, Pageable pageable);
 
-	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	@EntityGraph(attributePaths = {"user", "branch", "payment", "payment.refundedBy", "payment.refundBranch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByBranchId(Long branchId, Pageable pageable);
 
-	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	@EntityGraph(attributePaths = {"user", "branch", "payment", "payment.refundedBy", "payment.refundBranch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByBranchIdAndStatus(Long branchId, OrderStatus status, Pageable pageable);
 
 	@EntityGraph(attributePaths = {"user", "branch", "payment"})
@@ -62,33 +66,41 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 			@Param("status") OrderStatus status, @Param("branchId") Long branchId,
 			@Param("keyword") String keyword, @Param("customerId") Long customerId, Pageable pageable);
 
-	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	@EntityGraph(attributePaths = {"user", "branch", "payment", "payment.refundedBy", "payment.refundBranch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findByStatus(OrderStatus status, Pageable pageable);
 
 	@Override
-	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
+	@EntityGraph(attributePaths = {"user", "branch", "payment", "payment.refundedBy", "payment.refundBranch", "deliveryAssignment", "deliveryAssignment.shipper"})
 	Page<Order> findAll(Pageable pageable);
 
 	List<Order> findByStatus(OrderStatus status);
 
+	@EntityGraph(attributePaths = {"branch", "orderItems", "orderItems.product", "payment", "payment.refundedBy", "payment.refundBranch"})
 	List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
 
+	@EntityGraph(attributePaths = {"branch", "orderItems", "orderItems.product", "payment", "payment.refundedBy", "payment.refundBranch"})
 	List<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, OrderStatus status);
 
 	Optional<Order> findByOrderCodeAndRecipientPhone(String orderCode, String recipientPhone);
 
-		@Query("select count(distinct u.id) from Order o join o.user u "
+	@Query("select count(distinct o.recipientPhone) from Order o "
 			+ "join o.payment p "
 			+ "where p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
-			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
-			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
+			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
 	long countUniqueCustomersWithPurchases();
+
+	// Đếm tổng số đơn thanh toán thành công
+	@Query("select count(o) from Order o where o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
+	long countSuccessfulOrders();
 
 	@Query("select coalesce(sum(o.finalAmount), 0) from Order o where o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
 	BigDecimal sumSuccessfulRevenue();
 
 	@Query("select coalesce(sum(o.finalAmount), 0) from Order o where o.branch.id = :branchId and o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
 	BigDecimal sumSuccessfulRevenueByBranch(@Param("branchId") Long branchId);
+
+	@Query("select count(o) from Order o where o.branch.id = :branchId and o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
+	long countSuccessfulOrdersByBranch(@Param("branchId") Long branchId);
 
 	@Query("""
 			select count(o)
@@ -111,13 +123,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 		      and p.paymentExpiresAt <= :now
 		    order by o.id
 		    """)
-		List<Long> findExpiredPendingOrderIds(
-		        @Param("orderStatus") OrderStatus orderStatus,
-		        @Param("method")
-		            com.dienmay.entity.payment.PaymentMethod method,
-		        @Param("paymentStatus") PaymentStatus paymentStatus,
-		        @Param("now") java.time.Instant now,
-		        Pageable pageable);
+	List<Long> findExpiredPendingOrderIds(
+	        @Param("orderStatus") OrderStatus orderStatus,
+	        @Param("method")
+	            com.dienmay.entity.payment.PaymentMethod method,
+	        @Param("paymentStatus") PaymentStatus paymentStatus,
+	        @Param("now") java.time.Instant now,
+	        Pageable pageable);
 	
 	@EntityGraph(attributePaths = {"user", "branch", "payment"})
 	@Query("select o from Order o where o.branch.id = :branchId and o.payment.paymentStatus = :paymentStatus and o.status <> :excludedStatus")
@@ -125,12 +137,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 			@Param("paymentStatus") PaymentStatus paymentStatus,
 			@Param("excludedStatus") OrderStatus excludedStatus, Pageable pageable);
 
-	@Query("select count(distinct u.id) from Order o join o.user u "
+	@Query("select count(distinct o.recipientPhone) from Order o "
 			+ "join o.payment p "
 			+ "where o.branch.id = :branchId "
 			+ "and p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
-			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
-			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
+			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
 	long countUniqueCustomersWithPurchasesByBranch(@Param("branchId") Long branchId);
 
 	@Query("select count(o) from Order o where (:branchId is null or o.branch.id = :branchId) "

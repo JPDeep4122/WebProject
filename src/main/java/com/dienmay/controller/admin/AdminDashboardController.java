@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.branch.BranchRepository;
+import com.dienmay.repository.product.ProductRepository;
 import com.dienmay.entity.order.OrderStatus;
 import com.dienmay.entity.payment.PaymentStatus;
 import java.math.BigDecimal;
@@ -28,12 +29,14 @@ public class AdminDashboardController {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final BranchRepository branchRepository;
+    private final ProductRepository productRepository;
 
     public AdminDashboardController(UserRepository userRepository, OrderRepository orderRepository,
-                                    BranchRepository branchRepository) {
+                                    BranchRepository branchRepository, ProductRepository productRepository) {
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.branchRepository = branchRepository;
+        this.productRepository = productRepository;
     }
 
     @GetMapping("/admin")
@@ -54,8 +57,7 @@ public class AdminDashboardController {
                 currentUser != null && currentUser.getBranch() != null
                         ? currentUser.getBranch().getName() : "Toàn chuỗi chi nhánh");
 
-        // Operational indicators and charts follow the current account's scope.
-        // Admins see the chain; branch managers see only their own branch.
+        // Đếm đơn theo trạng thái theo phạm vi quyền hạn
         Map<OrderStatus, Long> statusCounts = new EnumMap<>(OrderStatus.class);
         long statusChartTotal = 0;
         for (OrderStatus status : OrderStatus.values()) {
@@ -73,8 +75,18 @@ public class AdminDashboardController {
         var top5Pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         if (admin) {
+            long successfulOrdersCount = orderRepository.countSuccessfulOrders();
+            BigDecimal totalRevenue = orderRepository.sumSuccessfulRevenue();
+            BigDecimal safeRevenue = totalRevenue == null ? BigDecimal.ZERO : totalRevenue;
+            BigDecimal aov = successfulOrdersCount > 0
+                    ? safeRevenue.divide(BigDecimal.valueOf(successfulOrdersCount), 0, java.math.RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+
             model.addAttribute("customerCount", orderRepository.countUniqueCustomersWithPurchases());
-            model.addAttribute("totalRevenue", orderRepository.sumSuccessfulRevenue());
+            model.addAttribute("totalRevenue", safeRevenue);
+            model.addAttribute("successfulOrdersCount", successfulOrdersCount);
+            model.addAttribute("aov", aov);
+
             var branchRevenues = branchRepository.findAll().stream().map(branch -> {
                 var revenue = orderRepository.sumSuccessfulRevenueByBranch(branch.getId());
                 return new BranchRevenue(branch.getName(), revenue == null ? BigDecimal.ZERO : revenue, 0);
@@ -89,20 +101,32 @@ public class AdminDashboardController {
             }).toList());
             model.addAttribute("successfulOrders", orderRepository.findSuccessfulPaidOrders(
                     PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent());
+            model.addAttribute("topSellingProducts", productRepository.findTop5ByActiveTrueOrderBySoldQuantityDesc());
         } else if (branchManager && branchId != null) {
+            long successfulOrdersCount = orderRepository.countSuccessfulOrdersByBranch(branchId);
             BigDecimal branchRev = orderRepository.sumSuccessfulRevenueByBranch(branchId);
             BigDecimal safeRev = branchRev == null ? BigDecimal.ZERO : branchRev;
+            BigDecimal aov = successfulOrdersCount > 0
+                    ? safeRev.divide(BigDecimal.valueOf(successfulOrdersCount), 0, java.math.RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+
             model.addAttribute("customerCount", orderRepository.countUniqueCustomersWithPurchasesByBranch(branchId));
             model.addAttribute("totalRevenue", safeRev);
+            model.addAttribute("successfulOrdersCount", successfulOrdersCount);
+            model.addAttribute("aov", aov);
             model.addAttribute("branches", List.of(new BranchRevenue(currentUser.getBranch().getName(), safeRev,
                     safeRev.signum() == 0 ? 0 : 100)));
             model.addAttribute("successfulOrders", orderRepository.findSuccessfulPaidOrdersByBranch(
                     branchId, PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent());
+            model.addAttribute("topSellingProducts", productRepository.findTop5ByActiveTrueOrderBySoldQuantityDesc());
         } else {
             model.addAttribute("customerCount", 0L);
             model.addAttribute("totalRevenue", BigDecimal.ZERO);
+            model.addAttribute("successfulOrdersCount", 0L);
+            model.addAttribute("aov", BigDecimal.ZERO);
             model.addAttribute("branches", List.of());
             model.addAttribute("successfulOrders", List.of());
+            model.addAttribute("topSellingProducts", List.of());
         }
 
         if (canViewRevenue) {
