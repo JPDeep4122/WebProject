@@ -51,6 +51,7 @@ public class AdminUserController {
 		if (id != null && id < 0) {
 			id = 0L;
 		}
+		final Long selectedId = id;
 		User actor = requireActor(principal);
 		boolean admin = hasRole(actor, ROLE_ADMIN);
 
@@ -77,7 +78,7 @@ public class AdminUserController {
 						.toList();
 			}
 			if (id != null) {
-				result = result.stream().filter(u -> Objects.equals(u.getId(), id)).toList();
+				result = result.stream().filter(u -> Objects.equals(u.getId(), selectedId)).toList();
 			}
 		}
 
