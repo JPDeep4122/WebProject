@@ -178,6 +178,15 @@
 					</a>
 				</div>
 
+				<c:if test="${not empty pageContext.request.userPrincipal}">
+					<a href="${pageContext.request.contextPath}/notifications" class="header-btn sf-notification-link" aria-label="Thông báo">
+						<span class="position-relative d-inline-flex"><i class="bi bi-bell" aria-hidden="true"></i>
+							<span id="notificationUnreadBadge" class="sf-notification-badge d-none">0</span>
+						</span>
+						<span class="sf-action-label">Thông báo</span>
+					</a>
+				</c:if>
+
 				<a href="${pageContext.request.contextPath}/cart"
 					class="header-btn sf-cart" aria-label="Giỏ hàng"> <i
 					class="bi bi-cart3" aria-hidden="true"></i> <span

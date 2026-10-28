@@ -5,6 +5,22 @@ hiện ánh xạ qua JPA. Tên bảng/cột dùng tiếng Anh `snake_case`, kh�
 `@Table`, `@Column`, các quan hệ JPA và truy vấn native/`@Formula`.
 `02_indexes.sql` tạo index hỗ trợ truy vấn của ứng dụng.
 
+## Tối ưu truy vấn giao diện khách hàng
+
+`11_customer_ui_query_indexes.sql` bổ sung một số index PostgreSQL cho các luồng
+đọc thường dùng: duyệt/lọc sản phẩm đang bán, sắp xếp theo giá/ưa thích, kiểm tra
+tồn kho theo chi nhánh, tra sản phẩm trong giỏ và xem lịch sử đơn theo trạng thái.
+Chạy file này thủ công sau `01_schema.sql` và `02_indexes.sql` trên đúng database.
+Các lệnh `CREATE INDEX IF NOT EXISTS` có thể chạy lại an toàn, nhưng index vẫn
+tốn dung lượng và làm tăng nhẹ chi phí ghi/cập nhật dữ liệu.
+
+Không partition `products`, `orders` hay `cart_items` chỉ để tăng tốc giao diện:
+truy vấn hiện tại không lọc theo khóa ngày phân vùng nên PostgreSQL vẫn phải quét
+các phân vùng; partition có thể làm truy vấn phức tạp hơn. Các tab bán chạy/đánh
+giá dùng giá trị tổng hợp động, nên cần đo `EXPLAIN (ANALYZE, BUFFERS)` trên dữ
+liệu thực trước khi chọn giải pháp tiếp theo. Redis hiện đã cache một số dữ liệu
+catalog; sau khi thay đổi sản phẩm, cache catalog được xóa qua luồng quản trị.
+
 ## Tạo schema mới
 
 Trên database/branch Neon mới hoặc đã được chủ dự án xóa và xác nhận rỗng:
@@ -108,3 +124,9 @@ tránh lỗi đăng nhập do thiếu cột. Khi entity thay đổi, cần cập
 tương ứng. Không xem `spring.jpa.hibernate.ddl-auto=update` là migration đã được
 quản lý cho production. Các file này không di chuyển dữ liệu từ SQL Server hay
 schema Neon cũ.
+
+## Thông báo khách hàng
+
+Với database hiện có, chạy `12_customer_notifications.sql` một lần (script có
+thể chạy lại an toàn) để tạo hộp thư thông báo và các index. Database mới có
+thể dùng `01_schema.sql` rồi `02_indexes.sql`, trong đó đã có bảng và index này.

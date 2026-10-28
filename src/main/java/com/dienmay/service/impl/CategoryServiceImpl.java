@@ -6,6 +6,7 @@ import com.dienmay.repository.product.CategoryRepository;
 import com.dienmay.service.CategoryService;
 
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @CacheEvict(cacheNames = { "customerHomeCategories", "customerHomeProducts", "customerProductDetails" }, allEntries = true)
     public CategoryResponse create(CategoryCreateRequest request) {
         if(categoryRepository.existsBySlug(request.getSlug().trim())) {
             throw new RuntimeException("Slug đã tồn tại");
@@ -79,6 +81,7 @@ public class CategoryServiceImpl implements CategoryService {
 
 
     @Override
+    @CacheEvict(cacheNames = { "customerHomeCategories", "customerHomeProducts", "customerProductDetails" }, allEntries = true)
     public CategoryResponse update(
         Long id,
         CategoryUpdateRequest request
@@ -162,6 +165,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @CacheEvict(cacheNames = { "customerHomeCategories", "customerHomeProducts", "customerProductDetails" }, allEntries = true)
     public void delete(Long id) {
 
         Category category = categoryRepository

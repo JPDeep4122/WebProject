@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -191,6 +192,7 @@ public class ProductServiceImpl implements ProductService {
 
 	@Override
 	@Transactional
+	@CacheEvict(cacheNames = { "customerHomeProducts", "customerProductDetails", "customerCatalogPages" }, allEntries = true)
 	public Product saveProduct(Long id, AdminProductRequest request) {
 		Product product = id == null ? new Product()
 				: productRepository.findById(id)
@@ -244,6 +246,7 @@ public class ProductServiceImpl implements ProductService {
 
 	@Override
 	@Transactional
+	@CacheEvict(cacheNames = { "customerHomeProducts", "customerProductDetails", "customerCatalogPages" }, allEntries = true)
 	public void deleteProduct(Long id) {
 		Product product = productRepository.findById(id)
 				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));

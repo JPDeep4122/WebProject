@@ -13,10 +13,43 @@
 	rel="stylesheet">
 <jsp:include page="/WEB-INF/views/shared/security.jsp" />
 <jsp:include page="fragments/theme.jsp" />
+<style>
+	/* Keep the dense account table readable; scroll it on narrow viewports instead of
+	   squeezing buttons and breaking every word onto a separate line. */
+	.admin-users-main { min-width: 0; }
+	.admin-users-table { width: 100%; min-width: 1450px; table-layout: fixed; }
+	.admin-sidebar + main .admin-users-table th,
+	.admin-sidebar + main .admin-users-table td {
+		vertical-align: middle;
+		word-break: normal;
+		overflow-wrap: normal;
+	}
+	.admin-users-table .user-email-cell { overflow-wrap: anywhere; }
+	.admin-users-table .user-role-cell .badge { white-space: nowrap; }
+	.admin-users-table .user-permission-form { min-width: 175px; }
+	.admin-users-table .user-update-form { min-width: 285px; flex-wrap: nowrap; }
+	.admin-users-table .user-update-form input[name="fullName"] { flex: 1 1 150px; min-width: 100px; }
+	.admin-users-table .user-password-details { margin-top: .4rem; }
+	.admin-users-table .user-password-details summary { cursor: pointer; list-style: none; width: fit-content; }
+	.admin-users-table .user-password-details summary::-webkit-details-marker { display: none; }
+	.admin-users-table .user-password-form { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .45rem; }
+	.admin-users-table .user-password-form input[type="password"] { flex: 1 1 160px; min-width: 150px; }
+	.admin-users-table .user-action-form { min-width: 88px; }
+	.admin-sidebar + main .admin-users-table .btn {
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+	.admin-user-create-form select[name="role"] { min-width: 125px; }
+	.admin-user-create-form select[name="branchId"] { min-width: 235px; }
+	@media (max-width: 767.98px) {
+		.admin-users-main { padding: 1rem !important; }
+		.admin-user-create-form > div { flex: 0 0 100%; max-width: 100%; }
+	}
+</style>
 </head>
 <body>
 	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
-			class="flex-grow-1 bg-light p-4">
+			class="admin-users-main flex-grow-1 bg-light p-4">
 			<h3>Quản lý tài khoản</h3>
 			<c:if test="${not empty success}">
 				<div class="alert alert-success">${success}</div>
@@ -87,7 +120,7 @@
 			<div class="card mb-3">
 				<div class="card-header">Mở tài khoản và phân quyền</div>
 				<div class="card-body">
-					<form method="post" action="/admin/users" class="row g-2">
+					<form method="post" action="/admin/users" class="row g-2 admin-user-create-form">
 						<input type="hidden" name="${_csrf.parameterName}"
 							value="${_csrf.token}">
 						<div class="col-md-3">
@@ -120,52 +153,19 @@
 							</select>
 						</div>
 						<div class="col-md-2">
-							<td><c:choose>
-									<c:when test="${isAdminActor}">
-										<form method="post" action="/admin/users/${u.id}/permission"
-											class="d-flex flex-column gap-1 user-permission-form">
-											<input type="hidden" name="${_csrf.parameterName}"
-												value="${_csrf.token}"> <select
-												class="form-select form-select-sm user-role-select"
-												name="role" aria-label="Vai trò mới cho ${u.email}">
-												<option value="ROLE_CUSTOMER"
-													${u.roles.iterator().next().name eq 'ROLE_CUSTOMER' ? 'selected' : ''}>Khách
-													hàng</option>
-												<option value="ROLE_STAFF"
-													${u.roles.iterator().next().name eq 'ROLE_STAFF' ? 'selected' : ''}>Nhân
-													viên</option>
-												<option value="ROLE_SHIPPER"
-													${u.roles.iterator().next().name eq 'ROLE_SHIPPER' ? 'selected' : ''}>Shipper</option>
-												<option value="ROLE_BRANCH_MANAGER"
-													${u.roles.iterator().next().name eq 'ROLE_BRANCH_MANAGER' ? 'selected' : ''}>Quản
-													lý chi nhánh</option>
-												<option value="ROLE_ADMIN"
-													${u.roles.iterator().next().name eq 'ROLE_ADMIN' ? 'selected' : ''}>Admin</option>
-											</select> <select
-												class="form-select form-select-sm user-branch-select"
-												name="branchId" aria-label="Chi nhánh của ${u.email}">
-												<option value="">Chọn chi nhánh</option>
-												<c:forEach items="${branches}" var="b">
-													<option value="${b.id}"
-														${u.branch.id eq b.id ? 'selected' : ''}>${b.name}</option>
-												</c:forEach>
-											</select>
-											<button type="submit" class="btn btn-sm btn-outline-primary">Lưu
-												quyền</button>
-										</form>
-									</c:when>
-									<c:otherwise>
-										<small class="text-muted">Chỉ Admin tổng được đổi vai
-											trò/chi nhánh</small>
-									</c:otherwise>
-								</c:choose></td>
-						</div>
-						<div class="col-md-2">
-							<select class="form-select" name="branchId"><option
-									value="">Chi nhánh (nhân viên/shipper)</option>
-								<c:forEach items="${branches}" var="b">
-									<option value="${b.id}">${b.name}</option>
-								</c:forEach></select>
+							<c:choose>
+								<c:when test="${isAdminActor}">
+									<select class="form-select" name="branchId"><option
+											value="">Chi nhánh (quản lý/nhân viên/shipper)</option>
+										<c:forEach items="${branches}" var="b">
+											<option value="${b.id}">${b.name}</option>
+										</c:forEach></select>
+								</c:when>
+								<c:otherwise>
+									<input type="hidden" name="branchId" value="${actorBranchId}">
+									<input class="form-control bg-light" value="Chi nhánh hiện tại của bạn" disabled>
+								</c:otherwise>
+							</c:choose>
 						</div>
 						<div class="col-12">
 							<button class="btn btn-success">Mở tài khoản</button>
@@ -175,7 +175,12 @@
 			</div>
 			<div class="card">
 				<div class="table-responsive">
-					<table class="table table-striped align-middle mb-0">
+					<table class="table table-striped align-middle mb-0 admin-users-table">
+						<colgroup>
+							<col style="width: 55px"><col style="width: 205px"><col style="width: 150px">
+							<col style="width: 135px"><col style="width: 190px"><col style="width: 175px">
+							<col style="width: 145px"><col style="width: 310px"><col style="width: 90px">
+						</colgroup>
 						<thead>
 							<tr>
 								<th>ID</th>
@@ -185,7 +190,7 @@
 								<th>Phân quyền</th>
 								<th>Chi nhánh</th>
 								<th>Trạng thái</th>
-								<th>Đổi thông tin</th>
+								<th>Cập nhật thông tin</th>
 								<th></th>
 							</tr>
 						</thead>
@@ -193,40 +198,50 @@
 							<c:forEach items="${users}" var="u">
 								<tr>
 									<td>${u.id}</td>
-									<td>${u.email}<br> <small>${u.phoneNumber}</small></td>
+									<td class="user-email-cell">${u.email}<br> <small>${u.phoneNumber}</small></td>
 									<td>${u.fullName}</td>
-									<td><c:forEach items="${u.roles}" var="r">
+									<td class="user-role-cell"><c:forEach items="${u.roles}" var="r">
 											<span class="badge bg-secondary">${r.name}</span>
 										</c:forEach></td>
 									<td>
-										<form method="post" action="/admin/users/${u.id}/permission"
-											class="d-flex flex-column gap-1 user-permission-form">
-											<input type="hidden" name="${_csrf.parameterName}"
-												value="${_csrf.token}"> <select
-												class="form-select form-select-sm user-role-select"
-												name="role" aria-label="Vai trò mới cho ${u.email}">
-												<option value="ROLE_CUSTOMER"
-													${u.roles.iterator().next().name eq 'ROLE_CUSTOMER' ? 'selected' : ''}>Khách
-													hàng</option>
-												<option value="ROLE_STAFF"
-													${u.roles.iterator().next().name eq 'ROLE_STAFF' ? 'selected' : ''}>Nhân
-													viên</option>
-												<option value="ROLE_SHIPPER"
-													${u.roles.iterator().next().name eq 'ROLE_SHIPPER' ? 'selected' : ''}>Shipper</option>
-												<option value="ROLE_ADMIN"
-													${u.roles.iterator().next().name eq 'ROLE_ADMIN' ? 'selected' : ''}>Admin</option>
-											</select> <select
-												class="form-select form-select-sm user-branch-select"
-												name="branchId" aria-label="Chi nhánh của ${u.email}">
-												<option value="">Chọn chi nhánh</option>
-												<c:forEach items="${branches}" var="b">
-													<option value="${b.id}"
-														${u.branch.id eq b.id ? 'selected' : ''}>${b.name}</option>
-												</c:forEach>
-											</select>
-											<button type="submit" class="btn btn-sm btn-outline-primary">Lưu
-												quyền</button>
-										</form>
+										<c:choose>
+											<c:when test="${isAdminActor}">
+												<form method="post" action="/admin/users/${u.id}/permission"
+													class="d-flex flex-column gap-1 user-permission-form">
+													<input type="hidden" name="${_csrf.parameterName}"
+														value="${_csrf.token}"> <select
+														class="form-select form-select-sm user-role-select"
+														name="role" aria-label="Vai trò mới cho ${u.email}">
+														<option value="ROLE_CUSTOMER"
+															${u.roles.iterator().next().name eq 'ROLE_CUSTOMER' ? 'selected' : ''}>Khách
+															hàng</option>
+														<option value="ROLE_STAFF"
+															${u.roles.iterator().next().name eq 'ROLE_STAFF' ? 'selected' : ''}>Nhân
+															viên</option>
+														<option value="ROLE_SHIPPER"
+															${u.roles.iterator().next().name eq 'ROLE_SHIPPER' ? 'selected' : ''}>Shipper</option>
+														<option value="ROLE_BRANCH_MANAGER"
+															${u.roles.iterator().next().name eq 'ROLE_BRANCH_MANAGER' ? 'selected' : ''}>Quản
+															lý chi nhánh</option>
+														<option value="ROLE_ADMIN"
+															${u.roles.iterator().next().name eq 'ROLE_ADMIN' ? 'selected' : ''}>Admin</option>
+													</select> <select
+														class="form-select form-select-sm user-branch-select"
+														name="branchId" aria-label="Chi nhánh của ${u.email}">
+														<option value="">Chọn chi nhánh</option>
+														<c:forEach items="${branches}" var="b">
+															<option value="${b.id}"
+																${u.branch.id eq b.id ? 'selected' : ''}>${b.name}</option>
+														</c:forEach>
+													</select>
+													<button type="submit" class="btn btn-sm btn-outline-primary">Lưu
+														quyền</button>
+												</form>
+											</c:when>
+											<c:otherwise>
+												<small class="text-muted">Chỉ Admin tổng được đổi vai trò/chi nhánh</small>
+											</c:otherwise>
+										</c:choose>
 									</td>
 									<td>${u.branch.name}</td>
 									<td><span
@@ -235,24 +250,33 @@
 											${u.blocked ? 'Đã khóa'
             : (u.active ? 'Đang hoạt động' : 'Chờ xác thực')}
 									</span></td>
-									<td><form method="post"
-											action="/admin/users/${u.id}/update" class="d-flex gap-1">
-											<input type="hidden" name="${_csrf.parameterName}"
-												value="${_csrf.token}"> <input type="hidden"
-												name="email" value="${fn:escapeXml(u.email)}"> <input
-												class="form-control form-control-sm" name="fullName"
-												value="${fn:escapeXml(u.fullName)}" required
-												style="width: 130px"> <input type="hidden"
-												name="role" value="${u.roles.iterator().next().name}">
+									<td>
+										<form method="post" action="/admin/users/${u.id}/update"
+											class="d-flex gap-1 user-update-form">
+											<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+											<input type="hidden" name="email" value="${fn:escapeXml(u.email)}">
+											<input class="form-control form-control-sm" name="fullName"
+												value="${fn:escapeXml(u.fullName)}" required aria-label="Họ tên ${u.email}">
+											<input type="hidden" name="role" value="${u.roles.iterator().next().name}">
 											<input type="hidden" name="active" value="${u.active}">
-											<input type="password" class="form-control form-control-sm"
-												placeholder="Mật khẩu mới" autocomplete="new-password"
-												minlength="6" maxlength="100"
-												oninput="this.name = this.value ? 'password' : ''">
-											<button class="btn btn-sm btn-outline-primary">Lưu
-												tên</button>
-										</form></td>
-									<td><form method="post"
+											<button class="btn btn-sm btn-outline-primary" type="submit">Lưu tên</button>
+										</form>
+										<details class="user-password-details">
+											<summary class="btn btn-sm btn-outline-secondary">Đổi mật khẩu</summary>
+											<form method="post" action="/admin/users/${u.id}/update" class="user-password-form">
+												<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+												<input type="hidden" name="email" value="${fn:escapeXml(u.email)}">
+												<input type="hidden" name="fullName" value="${fn:escapeXml(u.fullName)}">
+												<input type="hidden" name="role" value="${u.roles.iterator().next().name}">
+												<input type="hidden" name="active" value="${u.active}">
+												<input type="password" class="form-control form-control-sm" name="password"
+													placeholder="Mật khẩu mới (ít nhất 6 ký tự)" autocomplete="new-password"
+													minlength="6" maxlength="100" required aria-label="Mật khẩu mới cho ${u.email}">
+												<button class="btn btn-sm btn-primary" type="submit">Lưu mật khẩu</button>
+											</form>
+										</details>
+									</td>
+									<td><form method="post" class="user-action-form"
 											action="/admin/users/${u.id}/toggle">
 											<input type="hidden" name="${_csrf.parameterName}"
 												value="${_csrf.token}">
