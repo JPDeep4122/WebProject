@@ -28,9 +28,12 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 	
 	List<Product> findByCategory_SlugAndActiveTrue(String slug);
 	
-	// 1. Tìm sản phẩm theo đường dẫn thân thiện (slug)
+	
     Optional<Product> findBySlugAndActiveTrue(String slug);
     
-    // 2. Tìm top 4 sản phẩm liên quan cùng danh mục (trừ sản phẩm đang xem)
+   
     List<Product> findTop4ByCategory_IdAndIdNotAndActiveTrue(Long categoryId, Long currentProductId);
+    
+	
+	List<Product> findTop5ByActiveTrueOrderBySoldQuantityDesc();
 }
