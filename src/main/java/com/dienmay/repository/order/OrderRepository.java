@@ -134,4 +134,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
 			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
 	long countUniqueCustomersWithPurchasesByBranch(@Param("branchId") Long branchId);
+
+	@Query("select count(o) from Order o where (:branchId is null or o.branch.id = :branchId) "
+			+ "and o.status = :status")
+	long countDashboardOrdersByStatus(@Param("branchId") Long branchId,
+			@Param("status") OrderStatus status);
 }
