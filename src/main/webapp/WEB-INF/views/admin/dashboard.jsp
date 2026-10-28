@@ -47,7 +47,7 @@
 						class="card border-0 shadow-sm border-start border-primary border-4 p-3 h-100">
 						<div class="d-flex justify-content-between align-items-center">
 							<div>
-								<small class="text-muted fw-bold">TỔNG SỐ KHÁCH HÀNG</small>
+								<small class="text-muted fw-bold">KHÁCH HÀNG ĐÃ MUA</small>
 								<h4 class="fw-bold text-primary mt-1 mb-0">
 									<fmt:formatNumber value="${customerCount}" type="number"
 										maxFractionDigits="0" />

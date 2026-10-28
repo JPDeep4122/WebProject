@@ -67,6 +67,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	Optional<Order> findByOrderCodeAndRecipientPhone(String orderCode, String recipientPhone);
 
+	@Query("select count(distinct u.id) from Order o join o.user u join u.roles r "
+			+ "where upper(r.name) = 'ROLE_CUSTOMER' "
+			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
+			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
+	long countUniqueCustomersWithPurchases();
+
 	@Query("select coalesce(sum(o.finalAmount), 0) from Order o where o.payment.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED")
 	BigDecimal sumSuccessfulRevenue();
 
