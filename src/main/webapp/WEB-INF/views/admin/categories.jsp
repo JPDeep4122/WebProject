@@ -43,11 +43,15 @@
 							<input class="form-control" name="icon" placeholder="Icon">
 						</div>
 						<div class="col-md-2">
-							<select class="form-select" name="parentId"><option
+							<select class="form-select" name="parentId" id="newCategoryParent"><option
 									value="">Danh mục gốc</option>
 								<c:forEach items="${categories}" var="c">
 									<option value="${c.id}">${c.name}</option>
-								</c:forEach></select>
+								</c:forEach>
+								<option value="OTHER">Khác</option>
+							</select>
+							<input class="form-control mt-2 d-none" name="newParentName"
+								id="newParentName" placeholder="Tên danh mục khác" maxlength="100">
 						</div>
 						<div class="col-md-1">
 							<button class="btn btn-primary w-100">Thêm</button>
@@ -115,5 +119,19 @@
 			</div>
 		</main>
 	</div>
+	<script>
+		(() => {
+			const parentSelect = document.getElementById('newCategoryParent');
+			const customParent = document.getElementById('newParentName');
+			const syncCustomParent = () => {
+				const isCustom = parentSelect.value === 'OTHER';
+				customParent.classList.toggle('d-none', !isCustom);
+				customParent.required = isCustom;
+				if (!isCustom) customParent.value = '';
+			};
+			parentSelect.addEventListener('change', syncCustomParent);
+			syncCustomParent();
+		})();
+	</script>
 </body>
 </html>

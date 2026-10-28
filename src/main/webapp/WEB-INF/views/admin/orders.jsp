@@ -143,21 +143,15 @@
                                     </form>
                                 </c:if>
                                 <c:if test="${order.status eq 'PROCESSING' and not empty order.deliveryAssignment}">
-                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/start-shipping" class="mt-2">
-                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-                                        <button class="btn btn-sm btn-primary">Bắt đầu giao</button>
-                                    </form>
+                                    <div class="small text-primary mt-2">Đã phân công. Shipper bắt đầu giao trên tài khoản của mình.</div>
                                 </c:if>
                                 <c:if test="${order.status eq 'PROCESSING' and empty order.deliveryAssignment}">
                                     <div class="small text-warning mt-2">Phân công shipper trước khi giao</div>
                                 </c:if>
                                 <c:if test="${order.status eq 'SHIPPING'}">
-                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/deliver" class="mt-2">
-                                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-                                        <button class="btn btn-sm btn-success">Đã giao</button>
-                                    </form>
+                                    <div class="small text-primary mt-2">Shipper đang giao; chờ shipper cập nhật kết quả.</div>
                                 </c:if>
-                                <c:if test="${order.status eq 'CONFIRMED' or order.status eq 'PROCESSING' or order.status eq 'SHIPPING'}">
+                                <c:if test="${order.status eq 'CONFIRMED' or order.status eq 'PROCESSING'}">
                                     <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/cancel" class="mt-2"
                                           onsubmit="return confirm('Hủy đơn và hoàn lại toàn bộ tồn kho?');">
                                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">

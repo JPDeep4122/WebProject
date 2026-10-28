@@ -31,7 +31,7 @@ class OrderStateMachineTests {
         assertTrue(stateMachine.canTransition(OrderStatus.PROCESSING, OrderStatus.SHIPPING));
         assertTrue(stateMachine.canTransition(OrderStatus.PROCESSING, OrderStatus.CANCELLED));
         assertTrue(stateMachine.canTransition(OrderStatus.SHIPPING, OrderStatus.DELIVERED));
-        assertTrue(stateMachine.canTransition(OrderStatus.SHIPPING, OrderStatus.CANCELLED));
+        assertFalse(stateMachine.canTransition(OrderStatus.SHIPPING, OrderStatus.CANCELLED));
         assertTrue(stateMachine.canTransition(OrderStatus.DELIVERED, OrderStatus.RETURN_REQUESTED));
         assertTrue(stateMachine.canTransition(OrderStatus.RETURN_REQUESTED, OrderStatus.RETURNED));
 
