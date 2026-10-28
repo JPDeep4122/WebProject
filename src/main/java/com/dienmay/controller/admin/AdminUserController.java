@@ -48,6 +48,9 @@ public class AdminUserController {
 	public String list(@RequestParam(required = false) Long id, @RequestParam(required = false) String type,
 			@RequestParam(defaultValue = "id") String sort, @RequestParam(defaultValue = "asc") String direction,
 			Principal principal, Model model) {
+		if (id != null && id < 0) {
+			id = 0L;
+		}
 		User actor = requireActor(principal);
 		boolean admin = hasRole(actor, ROLE_ADMIN);
 
