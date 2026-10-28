@@ -58,8 +58,15 @@
             <c:choose>
                 <c:when test="${canViewRevenue}">
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
+                    <section class="mb-4" aria-labelledby="dashboard-summary-title">
+                        <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+                            <div>
+                                <h5 id="dashboard-summary-title" class="fw-bold mb-1">Tổng quan hoạt động</h5>
+                                <div class="small text-muted">Số đơn được giới hạn theo phạm vi chi nhánh ở trên.</div>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                        <div class="col-12 col-sm-6 col-xl-4">
                             <div class="card border-0 shadow-sm border-start border-primary border-4 p-3 h-100">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
@@ -83,7 +90,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6 col-xl-4">
                             <div class="card border-0 shadow-sm border-start border-success border-4 p-3 h-100">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
@@ -107,12 +114,60 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                        <div class="col-12 col-sm-6 col-xl-4">
+                            <a class="text-decoration-none" href="${pageContext.request.contextPath}/admin/orders?status=PENDING">
+                            <div class="card border-0 shadow-sm border-start border-warning border-4 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><small class="text-muted fw-bold">CHỜ XÁC NHẬN</small>
+                                        <h4 class="fw-bold text-warning mt-1 mb-0"><fmt:formatNumber value="${pendingOrderCount}" maxFractionDigits="0" /> đơn</h4></div>
+                                    <i class="bi bi-hourglass-split fs-2 text-warning"></i>
+                                </div>
+                            </div>
+                            </a>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-4">
+                            <a class="text-decoration-none" href="${pageContext.request.contextPath}/admin/orders?status=PROCESSING">
+                            <div class="card border-0 shadow-sm border-start border-info border-4 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><small class="text-muted fw-bold">ĐANG CHUẨN BỊ</small>
+                                        <h4 class="fw-bold text-info mt-1 mb-0"><fmt:formatNumber value="${processingOrderCount}" maxFractionDigits="0" /> đơn</h4></div>
+                                    <i class="bi bi-box-seam fs-2 text-info"></i>
+                                </div>
+                            </div>
+                            </a>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-4">
+                            <a class="text-decoration-none" href="${pageContext.request.contextPath}/admin/orders?status=SHIPPING">
+                            <div class="card border-0 shadow-sm border-start border-secondary border-4 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><small class="text-muted fw-bold">ĐANG GIAO</small>
+                                        <h4 class="fw-bold text-secondary mt-1 mb-0"><fmt:formatNumber value="${shippingOrderCount}" maxFractionDigits="0" /> đơn</h4></div>
+                                    <i class="bi bi-truck fs-2 text-secondary"></i>
+                                </div>
+                            </div>
+                            </a>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-4">
+                            <a class="text-decoration-none" href="${pageContext.request.contextPath}/admin/orders?status=DELIVERED">
+                            <div class="card border-0 shadow-sm border-start border-success border-4 p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div><small class="text-muted fw-bold">ĐÃ GIAO</small>
+                                        <h4 class="fw-bold text-success mt-1 mb-0"><fmt:formatNumber value="${deliveredOrderCount}" maxFractionDigits="0" /> đơn</h4></div>
+                                    <i class="bi bi-check-circle fs-2 text-success"></i>
+                                </div>
+                            </div>
+                            </a>
+                        </div>
+                        </div>
+                    </section>
 
                     <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-white fw-bold py-3">
+                        <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <span>
                             <i class="bi bi-shop me-1"></i>
                             Doanh thu theo chi nhánh
+                            </span>
+                            <small class="text-muted fw-normal">Tỷ trọng trên doanh thu của phạm vi đang xem</small>
                         </div>
 
                         <div class="card-body">
@@ -128,18 +183,20 @@
                                         <c:forEach var="branch" items="${branches}">
                                             <div class="col-md-6 col-xl-4">
                                                 <div class="border rounded p-3 h-100">
-                                                    <div class="text-muted small">
-                                                        <c:out value="${branch.name}" />
-                                                    </div>
-
-                                                    <div class="fs-5 fw-bold text-primary mt-1">
+                                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                                        <div class="text-muted small text-break"><c:out value="${branch.name}" /></div>
+                                                        <strong class="text-primary text-nowrap">
                                                         <fmt:formatNumber
                                                             value="${branch.revenue}"
                                                             type="number"
                                                             maxFractionDigits="0"
                                                             groupingUsed="true" />
-                                                        đ
+                                                        đ</strong>
                                                     </div>
+                                                    <div class="progress mt-3" role="progressbar" aria-label="Tỷ trọng doanh thu chi nhánh" aria-valuenow="${branch.sharePercent}" aria-valuemin="0" aria-valuemax="100" style="height: .5rem">
+                                                        <div class="progress-bar" style="width: ${branch.sharePercent}%"></div>
+                                                    </div>
+                                                    <div class="small text-muted mt-2"><fmt:formatNumber value="${branch.sharePercent}" maxFractionDigits="0" />% doanh thu</div>
                                                 </div>
                                             </div>
                                         </c:forEach>

@@ -48,14 +48,29 @@ public class AdminDashboardController {
                 currentUser != null && currentUser.getBranch() != null
                         ? currentUser.getBranch().getName() : "Toàn chuỗi chi nhánh");
 
+        // Operational indicators follow the same scope as the current account:
+        // admins see the whole chain, branch managers see only their branch.
+        model.addAttribute("pendingOrderCount", orderRepository.countDashboardOrdersByStatus(branchId, OrderStatus.PENDING));
+        model.addAttribute("processingOrderCount", orderRepository.countDashboardOrdersByStatus(branchId, OrderStatus.PROCESSING));
+        model.addAttribute("shippingOrderCount", orderRepository.countDashboardOrdersByStatus(branchId, OrderStatus.SHIPPING));
+        model.addAttribute("deliveredOrderCount", orderRepository.countDashboardOrdersByStatus(branchId, OrderStatus.DELIVERED));
+
         var top5Pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         if (admin) {
             model.addAttribute("customerCount", orderRepository.countUniqueCustomersWithPurchases());
             model.addAttribute("totalRevenue", orderRepository.sumSuccessfulRevenue());
-            model.addAttribute("branches", branchRepository.findAll().stream().map(branch -> {
+            var branchRevenues = branchRepository.findAll().stream().map(branch -> {
                 var revenue = orderRepository.sumSuccessfulRevenueByBranch(branch.getId());
-                return new BranchRevenue(branch.getName(), revenue == null ? BigDecimal.ZERO : revenue);
+                return new BranchRevenue(branch.getName(), revenue == null ? BigDecimal.ZERO : revenue, 0);
+            }).toList();
+            BigDecimal revenueTotal = branchRevenues.stream().map(BranchRevenue::revenue)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            model.addAttribute("branches", branchRevenues.stream().map(branch -> {
+                int share = revenueTotal.signum() == 0 ? 0 : branch.revenue()
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(revenueTotal, 0, java.math.RoundingMode.HALF_UP).intValue();
+                return new BranchRevenue(branch.name(), branch.revenue(), Math.min(share, 100));
             }).toList());
             model.addAttribute("successfulOrders", orderRepository.findSuccessfulPaidOrders(
                     PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent());
@@ -64,7 +79,8 @@ public class AdminDashboardController {
             BigDecimal safeRev = branchRev == null ? BigDecimal.ZERO : branchRev;
             model.addAttribute("customerCount", orderRepository.countUniqueCustomersWithPurchasesByBranch(branchId));
             model.addAttribute("totalRevenue", safeRev);
-            model.addAttribute("branches", List.of(new BranchRevenue(currentUser.getBranch().getName(), safeRev)));
+            model.addAttribute("branches", List.of(new BranchRevenue(currentUser.getBranch().getName(), safeRev,
+                    safeRev.signum() == 0 ? 0 : 100)));
             model.addAttribute("successfulOrders", orderRepository.findSuccessfulPaidOrdersByBranch(
                     branchId, PaymentStatus.SUCCESS, OrderStatus.CANCELLED, top5Pageable).getContent());
         } else {
@@ -82,7 +98,7 @@ public class AdminDashboardController {
         return "admin/dashboard";
     }
 
-    public record BranchRevenue(String name, BigDecimal revenue) {
+    public record BranchRevenue(String name, BigDecimal revenue, int sharePercent) {
         public String formattedRevenue() {
             return String.format(Locale.forLanguageTag("vi-VN"), "%,.0f đ", revenue);
         }
