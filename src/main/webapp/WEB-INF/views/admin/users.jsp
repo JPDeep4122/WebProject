@@ -13,10 +13,39 @@
 	rel="stylesheet">
 <jsp:include page="/WEB-INF/views/shared/security.jsp" />
 <jsp:include page="fragments/theme.jsp" />
+<style>
+	/* Keep the dense account table readable; scroll it on narrow viewports instead of
+	   squeezing buttons and breaking every word onto a separate line. */
+	.admin-users-main { min-width: 0; }
+	.admin-users-table { width: 100%; min-width: 1450px; table-layout: fixed; }
+	.admin-sidebar + main .admin-users-table th,
+	.admin-sidebar + main .admin-users-table td {
+		vertical-align: middle;
+		word-break: normal;
+		overflow-wrap: normal;
+	}
+	.admin-users-table .user-email-cell { overflow-wrap: anywhere; }
+	.admin-users-table .user-role-cell .badge { white-space: nowrap; }
+	.admin-users-table .user-permission-form { min-width: 175px; }
+	.admin-users-table .user-update-form { min-width: 305px; flex-wrap: nowrap; }
+	.admin-users-table .user-update-form input[name="fullName"] { flex: 0 0 125px; width: 125px !important; }
+	.admin-users-table .user-update-form input[type="password"] { flex: 1 0 150px; min-width: 150px; }
+	.admin-users-table .user-action-form { min-width: 88px; }
+	.admin-sidebar + main .admin-users-table .btn {
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+	.admin-user-create-form select[name="role"] { min-width: 125px; }
+	.admin-user-create-form select[name="branchId"] { min-width: 235px; }
+	@media (max-width: 767.98px) {
+		.admin-users-main { padding: 1rem !important; }
+		.admin-user-create-form > div { flex: 0 0 100%; max-width: 100%; }
+	}
+</style>
 </head>
 <body>
 	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
-			class="flex-grow-1 bg-light p-4">
+			class="admin-users-main flex-grow-1 bg-light p-4">
 			<h3>Quản lý tài khoản</h3>
 			<c:if test="${not empty success}">
 				<div class="alert alert-success">${success}</div>
@@ -82,7 +111,7 @@
 			<div class="card mb-3">
 				<div class="card-header">Mở tài khoản và phân quyền</div>
 				<div class="card-body">
-					<form method="post" action="/admin/users" class="row g-2">
+					<form method="post" action="/admin/users" class="row g-2 admin-user-create-form">
 						<input type="hidden" name="${_csrf.parameterName}"
 							value="${_csrf.token}">
 						<div class="col-md-3">
@@ -123,7 +152,12 @@
 			</div>
 			<div class="card">
 				<div class="table-responsive">
-					<table class="table table-striped align-middle mb-0">
+					<table class="table table-striped align-middle mb-0 admin-users-table">
+						<colgroup>
+							<col style="width: 55px"><col style="width: 205px"><col style="width: 150px">
+							<col style="width: 135px"><col style="width: 190px"><col style="width: 175px">
+							<col style="width: 145px"><col style="width: 310px"><col style="width: 90px">
+						</colgroup>
 						<thead>
 							<tr>
 								<th>ID</th>
@@ -141,9 +175,9 @@
 							<c:forEach items="${users}" var="u">
 								<tr>
 									<td>${u.id}</td>
-									<td>${u.email}<br> <small>${u.phoneNumber}</small></td>
+									<td class="user-email-cell">${u.email}<br> <small>${u.phoneNumber}</small></td>
 									<td>${u.fullName}</td>
-									<td><c:forEach items="${u.roles}" var="r">
+									<td class="user-role-cell"><c:forEach items="${u.roles}" var="r">
 											<span class="badge bg-secondary">${r.name}</span>
 										</c:forEach></td>
 									<td>
@@ -176,7 +210,7 @@
             : (u.active ? 'Đang hoạt động' : 'Chờ xác thực')}
 									</span></td>
 									<td><form method="post"
-											action="/admin/users/${u.id}/update" class="d-flex gap-1">
+											action="/admin/users/${u.id}/update" class="d-flex gap-1 user-update-form">
 											<input type="hidden" name="${_csrf.parameterName}"
 												value="${_csrf.token}"> <input type="hidden"
 												name="email" value="${fn:escapeXml(u.email)}"> <input
@@ -192,7 +226,7 @@
 											<button class="btn btn-sm btn-outline-primary">Lưu
 												tên</button>
 										</form></td>
-									<td><form method="post"
+									<td><form method="post" class="user-action-form"
 											action="/admin/users/${u.id}/toggle">
 											<input type="hidden" name="${_csrf.parameterName}"
 												value="${_csrf.token}">
