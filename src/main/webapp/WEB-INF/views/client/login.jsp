@@ -331,7 +331,7 @@
         if (viewName === 'reset') document.getElementById('viewReset').classList.remove('d-none');
     }
 
-    // 1. XỬ LÝ ĐĂNG NHẬP
+    // 1. XỬ LÝ ĐĂNG NHẬP (TỰ ĐỘNG ĐIỀU HƯỚNG THEO ROLE)
     document.getElementById('formLogin').addEventListener('submit', async function(e) {
         e.preventDefault();
         hidePageAuthAlert();
@@ -354,12 +354,22 @@
                 localStorage.setItem('jwtToken', data.data.token);
                 localStorage.setItem('accessToken', data.data.token);
                 localStorage.setItem('currentUser', JSON.stringify(data.data));
-                document.cookie = "accessToken=" + data.data.token + "; path=/; max-age=86400";
+                document.cookie = "accessToken=" + encodeURIComponent(data.data.token) + "; path=/; max-age=86400; SameSite=Lax";
 
-                showPageAuthAlert('success', 'Đăng nhập thành công! Đang chuyển hướng...');
+                const roles = Array.isArray(data.data.roles) ? data.data.roles : [];
+                let destMsg = 'Đăng nhập thành công! Đang chuyển hướng...';
+                if (roles.includes('ROLE_ADMIN')) {
+                    destMsg = 'Xin chào Quản trị viên! Đang chuyển tới Hệ thống Quản trị...';
+                } else if (roles.includes('ROLE_STAFF')) {
+                    destMsg = 'Xin chào Nhân viên! Đang chuyển tới Khu vực xử lý đơn hàng...';
+                } else if (roles.includes('ROLE_SHIPPER')) {
+                    destMsg = 'Xin chào Shipper! Đang chuyển tới Khu vực giao nhận...';
+                }
+
+                showPageAuthAlert('success', destMsg);
                 setTimeout(() => {
                     window.location.assign(window.loginDestination(data.data, LOGIN_CONTEXT_PATH));
-                }, 700);
+                }, 600);
             } else {
                 showPageAuthAlert('danger', data.message || 'Email hoặc mật khẩu không chính xác!');
                 btn.disabled = false;
@@ -527,8 +537,15 @@
     });
     
     document.addEventListener('DOMContentLoaded', function () {
-        if (new URLSearchParams(location.search).get('view') === 'register') {
+        const params = new URLSearchParams(location.search);
+        if (params.get('view') === 'register') {
             switchView('register');
+        }
+        if (params.get('logout') === 'true') {
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('currentUser');
+            showPageAuthAlert('success', 'Đã đăng xuất khỏi phiên làm việc thành công!');
         }
     });
     
