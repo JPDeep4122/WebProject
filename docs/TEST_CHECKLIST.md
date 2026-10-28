@@ -354,7 +354,7 @@ Nguồn: [order-realtime.js](D:/Semester_5/Project/WebProject/src/main/resources
 | DEP-05 | P1 | Theo dõi startup/warmup, pool DB, bộ nhớ và tải đồng thời phù hợp demo. | Không OOM, treo pool, request timeout hàng loạt hoặc restart lặp. |
 | DEP-06 | P1 | Mở trang trên desktop/mobile, Chrome/Edge và thêm một browser khác nếu có. | Menu/modal/form/login/cart/checkout hoạt động, không có lỗi JS chặn chức năng; kiểm CDN khi mạng chậm. |
 | DEP-07 | P1 | Build `mvn verify`, build container và chạy image với env test; kiểm route/JSP từ artifact thật. | Java/JSP/test/package qua; runtime image khởi động được; test bị skip trong Docker build không được coi là bằng chứng test đã chạy. |
-| DEP-08 | P1 | Push/PR vào nhánh workflow theo dõi, theo dõi CI; sau deploy so revision và chức năng chính. | CI thật sự chạy và qua; hosting nhận đúng commit. Repo hiện có Java CI, không tự chứng minh đã cấu hình auto-deploy Vercel. |
+| DEP-08 | P1 | Push/PR vào nhánh workflow theo dõi, theo dõi CI; sau deploy so revision và chức năng chính. | CI thật sự chạy và qua; hosting nhận đúng commit. Repo có Java CI; việc tự động deploy do nền tảng hosting cấu hình riêng. |
 
 ## 20. Các ca chạy đồng thời và rollback cần tự động hóa
 

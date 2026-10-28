@@ -32,7 +32,7 @@ Trên database/branch Neon mới hoặc đã được chủ dự án xóa và x�
    Mật khẩu admin/staff/shipper được tạo ngẫu nhiên; xem
    `private/04_seed_demo_accounts.txt` tính từ thư mục gốc project.
    Các file demo này được `.gitignore` bỏ qua; file tài khoản trong `private/`
-   cũng được loại khỏi Docker/Vercel upload.
+   cũng được loại khỏi Docker build context.
 
 ## Thêm dữ liệu demo vào database đang dùng
 
@@ -102,7 +102,7 @@ Các file SQL là thao tác thủ công, không tự chạy khi Spring Boot kh�
 không tự xóa database Neon. Trước khi chạy SQL, bảo đảm đang chọn đúng project,
 branch và database cho ứng dụng. Riêng `01_schema.sql` yêu cầu database rỗng.
 Cấu hình các biến
-`DB_URL`, `DB_USERNAME` và `DB_PASSWORD` trỏ tới đúng database đó trong Vercel.
+`DB_URL`, `DB_USERNAME` và `DB_PASSWORD` trỏ tới đúng database đó trong môi trường hosting.
 
 VNPay cần `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` và `VNPAY_RETURN_URL`. URL trả về
 phải khớp môi trường, ví dụ local là
