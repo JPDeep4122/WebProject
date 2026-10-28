@@ -17,11 +17,71 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 
 import com.dienmay.security.jwt.AuthTokenFilter;
+import com.dienmay.service.impl.UserDetailsImpl;
+
+import jakarta.persistence.EntityManagerFactory;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.stream.Collectors;
+import javax.sql.DataSource;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Configuration
 public class SecurityConfig {
+
+	/**
+	 * Install identity-scoped PostgreSQL settings inside every JPA transaction.
+	 * RLS policies read these transaction-local settings; LOCAL ensures pooled
+	 * connections cannot carry a user's identity into the next request.
+	 */
+	@Bean
+	public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory, DataSource dataSource) {
+		JpaTransactionManager manager = new JpaTransactionManager(entityManagerFactory) {
+			@Override
+			protected void doBegin(Object transaction, TransactionDefinition definition) {
+				super.doBegin(transaction, definition);
+				applyRlsIdentity(dataSource);
+			}
+		};
+		manager.setDataSource(dataSource);
+		return manager;
+	}
+
+	private static void applyRlsIdentity(DataSource dataSource) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		String userId = "";
+		String branchId = "";
+		String roles = "";
+		if (authentication != null && authentication.isAuthenticated()
+				&& authentication.getPrincipal() instanceof UserDetailsImpl principal) {
+			userId = principal.getId() == null ? "" : principal.getId().toString();
+			branchId = principal.getBranchId() == null ? "" : principal.getBranchId().toString();
+			roles = authentication.getAuthorities().stream()
+					.map(authority -> authority.getAuthority())
+					.filter(role -> role.matches("ROLE_[A-Z_]+"))
+					.collect(Collectors.joining(","));
+		}
+		Connection connection = DataSourceUtils.getConnection(dataSource);
+		try (PreparedStatement statement = connection.prepareStatement(
+				"SELECT set_config('app.user_id', ?, true), set_config('app.branch_id', ?, true), set_config('app.roles', ?, true)")) {
+			statement.setString(1, userId);
+			statement.setString(2, branchId);
+			statement.setString(3, roles);
+			statement.execute();
+		} catch (SQLException exception) {
+			throw new IllegalStateException("Could not install PostgreSQL RLS identity for the transaction", exception);
+		} finally {
+			DataSourceUtils.releaseConnection(connection, dataSource);
+		}
+	}
 
 	@Autowired
 	private UserDetailsService userDetailsService; // Dùng Interface chuẩn của Spring Security
