@@ -147,8 +147,7 @@ public class VoucherService {
         LocalDateTime now = LocalDateTime.now(VN);
 
         if (!p.isActive()) {
-            throw new IllegalArgumentException(
-                    "Mã khuyến mãi này hiện đã được tắt.");
+            throw new IllegalArgumentException("Voucher hiện không khả dụng. Vui lòng chọn mã khác.");
         }
         if (p.getStartsAt() != null && now.isBefore(p.getStartsAt())) {
             throw new IllegalArgumentException(

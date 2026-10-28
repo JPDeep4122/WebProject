@@ -25,7 +25,7 @@ public class PromotionRequest {
             message = "Mã voucher gồm 2–50 ký tự: chữ, số, dấu gạch ngang hoặc gạch dưới.")
     private String code;
 
-    @NotNull
+    @NotNull(message = "Vui lòng chọn loại ưu đãi.")
     private VoucherType discountType = VoucherType.FIXED;
 
     @DecimalMin(value = "0.01", message = "Phần trăm giảm phải lớn hơn 0.")

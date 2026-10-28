@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <div class="voucher-form-fields" data-voucher-form>
 
@@ -34,9 +35,7 @@
             <div class="col-md-3">
                 <label class="form-label fw-semibold small">Loại ưu đãi <span class="text-danger">*</span></label>
                 <select class="form-select fw-semibold" name="discountType" onchange="syncVoucherTypeFields(this)">
-                    <c:if test="${param.editMode == 'true' and formPromotion.discountType == 'PERCENT'}">
-                        <option value="PERCENT" selected>% Giảm theo phần trăm (voucher cũ)</option>
-                    </c:if>
+                    <option value="PERCENT" ${formPromotion.discountType == 'PERCENT' ? 'selected' : ''}>% Giảm theo phần trăm</option>
                     <option value="FIXED" ${formPromotion.discountType == 'FIXED' or empty formPromotion.discountType ? 'selected' : ''}>
                         ₫ Giảm số tiền cố định
                     </option>
@@ -46,10 +45,9 @@
                 </select>
             </div>
 
-            <!-- Chỉ giữ trường phần trăm khi chỉnh sửa voucher cũ đã phát hành. -->
-            <c:if test="${param.editMode == 'true' and formPromotion.discountType == 'PERCENT'}">
+            <!-- Trường nhập thay đổi theo loại voucher. -->
                 <div class="col-md-4" data-field-role="percent">
-                    <label class="form-label fw-semibold small">Phần trăm giảm (voucher cũ) <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold small">Phần trăm giảm <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input class="form-control" name="discountPercent"
                                type="number" min="0.01" max="100" step="0.01"
@@ -58,8 +56,6 @@
                         <span class="input-group-text fw-bold">%</span>
                     </div>
                 </div>
-            </c:if>
-
             <!-- Ô Số tiền giảm cố định (Chỉ hiện khi chọn FIXED) -->
             <div class="col-md-4" data-field-role="fixed">
                 <label class="form-label fw-semibold small">Số tiền giảm cố định <span class="text-danger">*</span></label>
@@ -148,13 +144,13 @@
                         <label class="form-label fw-semibold small">Bắt đầu (Giờ VN)</label>
                         <input class="form-control" name="startsAt"
                                type="datetime-local" step="1"
-                               value="${formPromotion.startsAt}">
+                               value="${fn:substring(formPromotion.startsAt, 0, 19)}">
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label fw-semibold small">Kết thúc (Giờ VN)</label>
                         <input class="form-control" name="endsAt"
                                type="datetime-local" step="1"
-                               value="${formPromotion.endsAt}">
+                               value="${fn:substring(formPromotion.endsAt, 0, 19)}">
                     </div>
                 </div>
             </div>

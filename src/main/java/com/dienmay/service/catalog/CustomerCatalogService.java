@@ -49,6 +49,12 @@ public class CustomerCatalogService {
 		return productService.getAllBrands().stream().map(CustomerReferenceView::from).toList();
 	}
 
+	@Cacheable(cacheNames = "customerFilteredBrands",
+			key = "T(com.dienmay.service.catalog.CustomerCatalogCacheKey).productPage(#request)")
+	public List<CustomerReferenceView> brandsForFilter(ProductFilterRequest request) {
+		return productService.getBrandsForFilter(request).stream().map(CustomerReferenceView::from).toList();
+	}
+
 	@Cacheable(cacheNames = "customerBranches", key = "'active'")
 	public List<CustomerReferenceView> activeBranches() {
 		return productService.getActiveBranches().stream().map(CustomerReferenceView::from).toList();

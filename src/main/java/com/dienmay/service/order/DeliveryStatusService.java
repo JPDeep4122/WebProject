@@ -84,7 +84,15 @@ public class DeliveryStatusService {
 		if (assignment.getStatus() != DeliveryStatus.ASSIGNED) {
 			throw new IllegalArgumentException("Đơn giao không ở trạng thái chờ nhận hàng.");
 		}
+		
+		if (order.getStatus() == OrderStatus.CONFIRMED) {
+		    orderStateMachine.transition(order, OrderStatus.PROCESSING);
 
+		} else if (order.getStatus() != OrderStatus.PROCESSING) {
+		    throw new IllegalArgumentException(
+		            "Chỉ được lấy hàng khi đơn đã xác nhận và chưa giao.");
+		}
+		
 		assignment.setStatus(DeliveryStatus.PICKED_UP);
 		assignment.setPickedUpAt(LocalDateTime.now(VN_ZONE));
 	}
@@ -107,16 +115,35 @@ public class DeliveryStatusService {
 					+ "' cần nhân viên chi nhánh kiểm tra trước khi giao lại.");
 		}
 
-		if (assignment.getStatus() != DeliveryStatus.ASSIGNED && assignment.getStatus() != DeliveryStatus.PICKED_UP
-				&& assignment.getStatus() != DeliveryStatus.DELIVERED_FAILED) {
-			throw new IllegalArgumentException("Không thể bắt đầu giao từ trạng thái " + assignment.getStatus() + ".");
+		if (assignment.getStatus() != DeliveryStatus.PICKED_UP
+		        && assignment.getStatus() != DeliveryStatus.DELIVERED_FAILED) {
+		    throw new IllegalArgumentException(
+		            "Bạn phải xác nhận lấy hàng trước khi bắt đầu giao.");
 		}
 
-		orderStateMachine.requirePaymentBeforeDelivery(order, OrderStatus.SHIPPING);
-		if (order.getStatus() == OrderStatus.PROCESSING || order.getStatus() == OrderStatus.CONFIRMED) {
-			orderStateMachine.transition(order, OrderStatus.SHIPPING);
+		if (assignment.getPickedUpAt() == null) {
+		    throw new IllegalArgumentException(
+		            "Đơn giao chưa có thông tin xác nhận lấy hàng.");
+		}
+
+		orderStateMachine.requirePaymentBeforeDelivery(
+		        order, OrderStatus.SHIPPING);
+
+		if (order.getStatus() == OrderStatus.CONFIRMED
+		        && assignment.getStatus() == DeliveryStatus.PICKED_UP
+		        && assignment.getPickedUpAt() != null) {
+
+		    orderStateMachine.transition(
+		            order, OrderStatus.PROCESSING);
+		}
+
+		if (order.getStatus() == OrderStatus.PROCESSING) {
+		    orderStateMachine.transition(
+		            order, OrderStatus.SHIPPING);
+
 		} else if (order.getStatus() != OrderStatus.SHIPPING) {
-			throw new IllegalArgumentException("Đơn hàng chưa sẵn sàng để bắt đầu giao.");
+		    throw new IllegalArgumentException(
+		            "Đơn hàng chưa sẵn sàng để bắt đầu giao.");
 		}
 
 		Instant nowInstant = Instant.now();

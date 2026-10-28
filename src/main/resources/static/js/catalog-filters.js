@@ -8,6 +8,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const maxPrice = document.getElementById('filterMaxPrice');
     const presets = form.querySelectorAll('[name="pricePreset"]');
 
+    form.querySelectorAll('[name="categorySlug"]').forEach(function (category) {
+        category.addEventListener('change', function () {
+            // Thương hiệu của danh mục trước không được giữ lại để làm rỗng danh mục mới.
+            form.querySelectorAll('[name="brandIds"]').forEach(function (brand) { brand.checked = false; });
+            form.requestSubmit();
+        });
+    });
+
     if (toggle && sidebar) {
         toggle.addEventListener('click', function () {
             const open = sidebar.classList.toggle('is-open');

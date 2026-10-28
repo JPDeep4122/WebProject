@@ -51,7 +51,7 @@ public class ProductController {
         model.addAttribute("products", page.getContent());
         model.addAttribute("productPage", page);
         model.addAttribute("categories", catalogService.homeCategories());
-        model.addAttribute("brands", catalogService.brands());
+        model.addAttribute("brands", catalogService.brandsForFilter(filter));
         model.addAttribute("branches", catalogService.activeBranches());
         model.addAttribute("filter", filter);
         model.addAttribute("catalogPage", true);

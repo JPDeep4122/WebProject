@@ -619,6 +619,10 @@
 									value="${rel.sellingPrice}" type="number" groupingUsed="true" />
 								₫
 							</span>
+							<button type="button" class="btn btn-primary mt-auto w-100 rounded-3 fw-bold"
+							        onclick="buyProductNow(${rel.id}, 1, this)">
+							    <i class="bi bi-lightning-charge-fill me-1"></i> Mua ngay
+							</button>
 						</div>
 					</div>
 				</c:forEach>
@@ -690,85 +694,9 @@ function addSelectedProductToCart(productId, button) {
   validateQuantity();
 
   async function buyNow(productId, button) {
-	    if (button.disabled) return;
-
-	    const input = document.getElementById('buyQty');
-	    const errorBox = document.getElementById('buyNowError');
-
-	    errorBox.classList.add('d-none');
-	    errorBox.textContent = '';
-
-	    validateQuantity();
-
-	    if (!quantityInput.reportValidity()) {
-	        return;
-	    }
-
-	    const quantity = Number(input.value);
-
-	    if (!Number.isSafeInteger(quantity) || quantity < 1) {
-	        errorBox.textContent = 'Vui lòng nhập số lượng nguyên lớn hơn 0.';
-	        errorBox.classList.remove('d-none');
-	        return;
-	    }
-
-	    const originalText = button.textContent;
-	    let redirecting = false;
-
-	    button.disabled = true;
-	    button.textContent = 'Đang chuyển đến thanh toán...';
-
-	    try {
-	        const token = localStorage.getItem('accessToken')
-	                || localStorage.getItem('jwtToken');
-
-	        const headers = {
-	            'Content-Type': 'application/json'
-	        };
-
-	        if (token) {
-	            headers.Authorization = 'Bearer ' + token;
-	        }
-
-	        const response = await csrfFetch(
-	            '${pageContext.request.contextPath}/api/cart/buy-now',
-	            {
-	                method: 'POST',
-	                headers: headers,
-	                body: JSON.stringify({
-	                    productId: productId,
-	                    quantity: quantity
-	                })
-	            }
-	        );
-
-	        const result = await response.json().catch(() => null);
-
-	        if (!response.ok || !result?.success) {
-	            throw new Error(
-	                result?.message
-	                || 'Không thể mua ngay. Vui lòng tải lại trang và thử lại.'
-	            );
-	        }
-
-	        window.location.assign(
-	            '${pageContext.request.contextPath}/checkout'
-	        );
-
-	        redirecting = true;
-
-	    } catch (error) {
-	        errorBox.textContent =
-	                error.message || 'Không thể kết nối đến máy chủ.';
-
-	        errorBox.classList.remove('d-none');
-
-	    } finally {
-	        if (!redirecting) {
-	            button.disabled = false;
-	            button.textContent = originalText;
-	        }
-	    }
-	}  
+      validateQuantity();
+      if (!quantityInput.reportValidity()) return;
+      await buyProductNow(productId, Number(quantityInput.value), button);
+  }
 
 </script>

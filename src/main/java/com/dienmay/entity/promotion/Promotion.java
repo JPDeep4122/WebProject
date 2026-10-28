@@ -81,4 +81,46 @@ public class Promotion {
 	public Set<Long> getCategoryIds() {
 		return categories.stream().map(Category::getId).collect(Collectors.toSet());
 	}
+
+	@Transient
+	public String getBenefitLabel() {
+		var number = java.text.NumberFormat.getNumberInstance(java.util.Locale.forLanguageTag("vi-VN"));
+		number.setMaximumFractionDigits(2);
+		if (discountType == VoucherType.SHIPPING) return "GIẢM PHÍ SHIP";
+		if (discountType == VoucherType.PERCENT) {
+			return "GIẢM " + number.format(discountPercent == null ? BigDecimal.ZERO : discountPercent) + "%";
+		}
+		BigDecimal amount = discountAmount == null ? BigDecimal.ZERO : discountAmount;
+		BigDecimal thousand = BigDecimal.valueOf(1000);
+		BigDecimal million = BigDecimal.valueOf(1000000);
+		if (amount.compareTo(million) >= 0 && amount.remainder(million).signum() == 0) {
+			return "GIẢM " + number.format(amount.divide(million)) + " TRIỆU";
+		}
+		if (amount.compareTo(thousand) >= 0 && amount.remainder(thousand).signum() == 0) {
+			return "GIẢM " + number.format(amount.divide(thousand)) + "K";
+		}
+		return "GIẢM " + number.format(amount) + "đ";
+	}
+
+	@Transient
+	public String getEndsAtDisplay() {
+		return endsAt == null ? "Không giới hạn thời gian"
+				: endsAt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+	}
+
+	@Transient
+	public String getMinOrderAmountDisplay() {
+		return formatVnd(minOrderAmount);
+	}
+
+	@Transient
+	public String getMaxDiscountAmountDisplay() {
+		return maxDiscountAmount == null ? "" : formatVnd(maxDiscountAmount);
+	}
+
+	private String formatVnd(BigDecimal amount) {
+		var number = java.text.NumberFormat.getNumberInstance(java.util.Locale.forLanguageTag("vi-VN"));
+		number.setMaximumFractionDigits(2);
+		return number.format(amount == null ? BigDecimal.ZERO : amount) + " ₫";
+	}
 }

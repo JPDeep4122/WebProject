@@ -42,6 +42,7 @@ public class RedisCacheConfig implements CachingConfigurer {
 				"customerProductDetails", defaults.entryTtl(Duration.ofMinutes(2)),
 				"customerCatalogPages", defaults.entryTtl(Duration.ofSeconds(30)),
 				"customerBrands", defaults.entryTtl(Duration.ofMinutes(10)),
+				"customerFilteredBrands", defaults.entryTtl(Duration.ofSeconds(30)),
 				"customerBranches", defaults.entryTtl(Duration.ofMinutes(2)));
 
 		return RedisCacheManager.builder(connectionFactory)
