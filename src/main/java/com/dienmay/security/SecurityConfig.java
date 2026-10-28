@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.Http403ForbiddenEntryPoin
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 import com.dienmay.security.jwt.AuthTokenFilter;
 
@@ -31,6 +32,18 @@ public class SecurityConfig {
 	}
 
 	@Bean
+	public ApiRateLimitFilter apiRateLimitFilter(com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+		return new ApiRateLimitFilter(objectMapper);
+	}
+
+	@Bean
+	public FilterRegistrationBean<ApiRateLimitFilter> disableContainerRegistration(ApiRateLimitFilter filter) {
+		FilterRegistrationBean<ApiRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
@@ -41,7 +54,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain filterChain(HttpSecurity http, ApiRateLimitFilter apiRateLimitFilter) throws Exception {
 
 		CsrfTokenRequestAttributeHandler csrfHandler = new CsrfTokenRequestAttributeHandler();
 
@@ -89,6 +102,7 @@ public class SecurityConfig {
 							|| path.equals("/payment/vnpay-return");
 				}).defaultAuthenticationEntryPointFor(new Http403ForbiddenEntryPoint(), request -> true));
 		http.userDetailsService(userDetailsService);
+		http.addFilterBefore(apiRateLimitFilter, AuthTokenFilter.class);
 		http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
