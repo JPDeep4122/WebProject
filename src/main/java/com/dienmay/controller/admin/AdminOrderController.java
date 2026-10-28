@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -39,6 +40,7 @@ import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.service.order.OrderService;
 import com.dienmay.service.order.OrderStatusWebSocketNotifier;
 import com.dienmay.service.order.DeliveryProofStorageService;
+import com.dienmay.service.order.OrderRefundConfirmedEvent;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -58,6 +60,7 @@ public class AdminOrderController {
     private final com.dienmay.service.order.OrderFulfillmentService fulfillmentService;
     private final com.dienmay.service.order.DeliveryAssignmentService deliveryAssignmentService;
     private final DeliveryProofStorageService deliveryProofStorageService;
+    private final ApplicationEventPublisher events;
 
     @PostMapping("/{id}/confirm")
     public String confirm(
@@ -177,7 +180,18 @@ public class AdminOrderController {
             payment.setRefundNote(cleanNote);
             order.setUpdatedAt(LocalDateTime.now());
 
-            String branchName = payment.getRefundBranch() != null ? payment.getRefundBranch().getName() : "Hệ thống";
+            var refundBranch = payment.getRefundBranch();
+            String branchName = refundBranch != null ? refundBranch.getName() : "Chi nhánh TECHSEVEN";
+            String recipientEmail = order.getUser() != null && order.getUser().getEmail() != null
+                    ? order.getUser().getEmail()
+                    : order.getRecipientEmail();
+            events.publishEvent(new OrderRefundConfirmedEvent(
+                    recipientEmail,
+                    order.getOrderCode(),
+                    order.getFinalAmount(),
+                    branchName,
+                    refundBranch != null ? refundBranch.getAddress() : null,
+                    cleanMethod));
             flash.addFlashAttribute("success",
                     "Đã xác nhận hoàn tiền " + order.getFinalAmount() + " ₫ cho khách hàng tại " + branchName + ".");
         } catch (RuntimeException ex) {

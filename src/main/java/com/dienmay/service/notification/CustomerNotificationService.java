@@ -68,6 +68,35 @@ public class CustomerNotificationService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordRefundConfirmed(String email, String orderCode, java.math.BigDecimal amount,
+            String branchName, String branchAddress, String refundMethod) {
+        if (email == null || email.isBlank() || orderCode == null || orderCode.isBlank()) return;
+        users.findByEmailIgnoreCase(email).ifPresent(user -> {
+            boolean cashAtBranch = "CASH_AT_BRANCH".equalsIgnoreCase(refundMethod);
+            String cleanBranch = branchName == null || branchName.isBlank()
+                    ? "chi nhánh TECHSEVEN" : branchName;
+            String amountText = amount == null ? "" : java.text.NumberFormat
+                    .getIntegerInstance(java.util.Locale.forLanguageTag("vi-VN")).format(amount) + " ₫";
+            String message = cashAtBranch
+                    ? "Yêu cầu hoàn tiền cho đơn " + orderCode + " đã được xác nhận. Quý khách vui lòng nhận "
+                            + amountText + " tại " + cleanBranch
+                            + (branchAddress == null || branchAddress.isBlank() ? "" : ", " + branchAddress)
+                            + ". Khi đến quầy, vui lòng cung cấp mã đơn và số điện thoại đặt hàng."
+                    : "Chi nhánh " + cleanBranch + " đã xác nhận hoàn " + amountText
+                            + " cho đơn " + orderCode + " theo hình thức chuyển khoản. Vui lòng xem chi tiết đơn hàng.";
+
+            UserNotification notification = new UserNotification();
+            notification.setUser(user);
+            notification.setType("REFUND_CONFIRMED");
+            notification.setTitle("Thông tin hoàn tiền đơn " + orderCode);
+            notification.setMessage(message);
+            notification.setReferenceType("ORDER");
+            notification.setReferenceKey(orderCode);
+            notifications.save(notification);
+        });
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void announcePromotion(Long promotionId) {
         Promotion promotion = promotions.findById(promotionId).orElse(null);
         if (promotion == null) return;
