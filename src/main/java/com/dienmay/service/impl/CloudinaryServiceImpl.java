@@ -44,4 +44,39 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         ));
         return uploadResult.get("secure_url").toString();
     }
+
+    @Override
+    public String uploadPrivateProof(MultipartFile file, String folder) throws IOException {
+        if (!configured) {
+            throw new IllegalStateException("Cloudinary chưa được cấu hình.");
+        }
+        Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "folder", folder,
+                "type", "authenticated",
+                "resource_type", "image"
+        ));
+        return uploadResult.get("public_id").toString();
+    }
+
+    @Override
+    public void deleteFile(String publicId) {
+        if (!configured || publicId == null || publicId.isBlank()) {
+            return;
+        }
+        try {
+            cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("type", "authenticated"));
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    public String generateSignedUrl(String publicId, int expirationSeconds) {
+        if (!configured || publicId == null || publicId.isBlank()) {
+            return null;
+        }
+        return cloudinary.url()
+                .type("authenticated")
+                .signed(true)
+                .generate(publicId);
+    }
 }

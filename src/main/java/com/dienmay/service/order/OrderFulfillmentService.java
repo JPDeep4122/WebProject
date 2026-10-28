@@ -8,9 +8,12 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dienmay.entity.order.DeliveryAssignment;
+import com.dienmay.entity.order.DeliveryCollectionMethod;
+import com.dienmay.entity.order.DeliveryStatus;
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
-import com.dienmay.entity.order.DeliveryStatus;
+import com.dienmay.entity.payment.PaymentMethod;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.branch.BranchInventoryRepository;
 import com.dienmay.repository.order.OrderRepository;
@@ -32,7 +35,10 @@ public class OrderFulfillmentService {
 
     @Transactional
     public void markDelivered(Long orderId, String email) {
-        transition(orderId, email, OrderStatus.DELIVERED, false, false);
+        var order = orders.findForUpdate(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
+        requireVerifiedDeliveryCompletion(order);
+        transition(orderId, email, OrderStatus.DELIVERED, false, true);
     }
 
     @Transactional
@@ -48,6 +54,31 @@ public class OrderFulfillmentService {
     @Transactional
     public void completeReturn(Long orderId, String email) {
         transition(orderId, email, OrderStatus.RETURNED, true, false);
+    }
+
+    private void requireVerifiedDeliveryCompletion(Order order) {
+        DeliveryAssignment assignment = order.getDeliveryAssignment();
+        if (assignment == null || assignment.getShipper() == null) {
+            throw new IllegalArgumentException("Đơn hàng chưa có phân công shipper hợp lệ.");
+        }
+        if (assignment.getStatus() != DeliveryStatus.DELIVERED_SUCCESS) {
+            throw new IllegalArgumentException(
+                    "Chỉ được hoàn tất đơn sau khi shipper xác nhận giao thành công kèm minh chứng.");
+        }
+        if (assignment.getReceivedBy() == null || assignment.getReceivedBy().isBlank()) {
+            throw new IllegalArgumentException("Thiếu thông tin người thực tế nhận hàng.");
+        }
+        if (assignment.getProofPublicId() == null || assignment.getProofPublicId().isBlank()) {
+            throw new IllegalArgumentException("Thiếu ảnh minh chứng bàn giao hợp lệ.");
+        }
+        if (order.getPayment() != null && order.getPayment().getPaymentMethod() == PaymentMethod.COD) {
+            if (assignment.getCollectionMethod() != DeliveryCollectionMethod.CASH
+                    || assignment.getCollectedAmount() == null
+                    || (order.getFinalAmount() != null
+                            && assignment.getCollectedAmount().compareTo(order.getFinalAmount()) != 0)) {
+                throw new IllegalArgumentException("Đơn COD chưa xác nhận thu đủ tiền mặt.");
+            }
+        }
     }
 
     private void transition(Long orderId, String email, OrderStatus target,
@@ -78,8 +109,6 @@ public class OrderFulfillmentService {
             throw new IllegalArgumentException("Cần phân công shipper trước khi bắt đầu giao hàng.");
         }
 
-        // Confirmation deducts stock; cancelling a still-pending order must not add it back.
-        // Evaluate under the order lock so confirmation and cancellation cannot race this decision.
         if (restoreStock && order.getStatus() != OrderStatus.PENDING) {
             restoreInventory(order, branchId);
         }
@@ -102,10 +131,6 @@ public class OrderFulfillmentService {
                 assignment.setPickedUpAt(now);
             }
             assignment.setCompletedAt(null);
-            assignment.setFailureReason(null);
-        } else if (target == OrderStatus.DELIVERED) {
-            assignment.setStatus(DeliveryStatus.DELIVERED_SUCCESS);
-            assignment.setCompletedAt(now);
             assignment.setFailureReason(null);
         }
     }

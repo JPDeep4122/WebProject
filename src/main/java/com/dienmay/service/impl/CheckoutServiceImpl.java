@@ -1,10 +1,10 @@
 package com.dienmay.service.impl;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
@@ -45,10 +45,11 @@ import com.dienmay.repository.order.OrderItemRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.repository.payment.PaymentRepository;
 import com.dienmay.repository.promotion.PromotionRepository;
-import com.dienmay.service.checkout.CheckoutService;
 import com.dienmay.service.cart.CartService;
+import com.dienmay.service.checkout.CheckoutService;
 import com.dienmay.service.checkout.PurchaseValidator;
 import com.dienmay.service.checkout.ShippingService;
+import com.dienmay.service.order.OrderCodeGenerator;
 import com.dienmay.service.payment.VnPayService;
 
 import jakarta.persistence.EntityManager;
@@ -77,7 +78,8 @@ public class CheckoutServiceImpl implements CheckoutService {
 	private final PurchaseValidator purchaseValidator;
 	private final VnPayService vnPayService;
 	private final CartService cartService;
-
+	private final OrderCodeGenerator orderCodeGenerator;
+	
 	@PersistenceContext
 	private EntityManager entityManager;
 
@@ -280,8 +282,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 			finalAmount = BigDecimal.ZERO;
 
 		// 3. Tạo mã đơn hàng duy nhất
-		String orderCode = "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-"
-				+ UUID.randomUUID().toString().replace("-", "");
+		String orderCode = orderCodeGenerator.nextCandidate();
 
 		// 4. Lưu Entity Order
 		Order order = Order.builder().orderCode(orderCode).user(user)
