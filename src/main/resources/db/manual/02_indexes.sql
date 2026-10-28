@@ -3,6 +3,8 @@
 
 CREATE INDEX IF NOT EXISTS ix_users_branch ON users(branch_id);
 CREATE INDEX IF NOT EXISTS ix_users_active_blocked ON users(is_active, is_blocked);
+CREATE INDEX IF NOT EXISTS ix_user_notifications_user_created ON user_notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_user_notifications_user_unread ON user_notifications(user_id, created_at DESC) WHERE read_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_otp_codes_email_type_created ON otp_codes(email, type, created_at DESC);
 CREATE INDEX IF NOT EXISTS ix_addresses_user ON addresses(user_id);
 CREATE INDEX IF NOT EXISTS ix_categories_parent ON categories(parent_id);
