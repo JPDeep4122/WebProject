@@ -28,12 +28,12 @@ public interface DeliveryAssignmentRepository extends JpaRepository<DeliveryAssi
 
     List<DeliveryAssignment> findByShipperIdAndStatus(Long shipperId, DeliveryStatus status);
 
-    @EntityGraph(attributePaths = {"order", "order.user", "order.branch", "order.payment", "attempts"})
+    @EntityGraph(attributePaths = {"order", "order.user", "order.branch", "order.payment"})
     @Query("select assignment from DeliveryAssignment assignment "
             + "where lower(assignment.shipper.email) = lower(:email)")
     Page<DeliveryAssignment> findAssignedTo(@Param("email") String email, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"order", "order.user", "order.branch", "order.payment", "attempts"})
+    @EntityGraph(attributePaths = {"order", "order.user", "order.branch", "order.payment"})
     @Query("select assignment from DeliveryAssignment assignment "
             + "where lower(assignment.shipper.email) = lower(:email) "
             + "and assignment.status = :status")
@@ -53,9 +53,14 @@ public interface DeliveryAssignmentRepository extends JpaRepository<DeliveryAssi
             @Param("to") LocalDateTime to);
     
     @EntityGraph(attributePaths = {
-            "order", "order.user", "order.branch", "order.payment",
-            "order.orderItems", "order.orderItems.product", "attempts"
+            "shipper",
+            "order",
+            "order.user",
+            "order.branch",
+            "order.payment",
+            "order.orderItems",
+            "order.orderItems.product"
     })
-    @Query("select a from DeliveryAssignment a where a.id = :id")
+    @Query("select distinct a from DeliveryAssignment a where a.id = :id")
     Optional<DeliveryAssignment> findDetailedById(@Param("id") Long id);
 }

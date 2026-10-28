@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -49,15 +50,24 @@ public class DeliveryStatusService {
 
 	@Transactional(readOnly = true)
 	public DeliveryAssignment getAssignmentForShipper(Long assignmentId, String shipperEmail) {
+
 		var actor = getVerifiedShipper(shipperEmail);
+
 		var assignment = assignments.findDetailedById(assignmentId)
 				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn phân công."));
+
 		boolean adminOrStaff = actor.getRoles().stream()
 				.anyMatch(r -> "ROLE_ADMIN".equals(r.getName()) || "ROLE_STAFF".equals(r.getName()));
+
 		if (!adminOrStaff && (assignment.getShipper() == null
 				|| !assignment.getShipper().getEmail().equalsIgnoreCase(actor.getEmail()))) {
+
 			throw new AccessDeniedException("Bạn không có quyền truy cập bản phân công này.");
 		}
+
+		// Truy vấn riêng để tải lịch sử giao trong transaction.
+		Hibernate.initialize(assignment.getAttempts());
+
 		return assignment;
 	}
 
