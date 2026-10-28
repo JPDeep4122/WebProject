@@ -240,7 +240,7 @@ public class CartServiceImpl implements CartService {
 		for (CartItem item : cart.getItems()) {
 			item.setSelected(selected);
 		}
-		cartRepository.save(cart);
+		cartItemRepository.saveAll(cart.getItems());
 		return toCartResponse(cart);
 	}
 

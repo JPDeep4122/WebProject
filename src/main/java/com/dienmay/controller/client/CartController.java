@@ -24,6 +24,13 @@ public class CartController {
         String email = (principal != null) ? principal.getName() : null;
         CartResponse cart = cartService.getCart(email, session);
         model.addAttribute("cart", cart);
+        long selectedItemCount = cart.getItems().stream()
+                .filter(item -> Boolean.TRUE.equals(item.getSelected()))
+                .count();
+        model.addAttribute("allItemsSelected", !cart.getItems().isEmpty()
+                && selectedItemCount == cart.getItems().size());
+        model.addAttribute("someItemsSelected", selectedItemCount > 0
+                && selectedItemCount < cart.getItems().size());
         return "client/cart";
     }
 }
