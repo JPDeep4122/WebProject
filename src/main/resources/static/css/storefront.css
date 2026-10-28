@@ -2572,3 +2572,27 @@ body {
     border-color: #0b66c3;
     box-shadow: 0 0 0 2px rgba(11, 102, 195, .1);
 }
+/* Customer notification entry and unread indicator. */
+.sf-notification-link .bi-bell {
+	font-size: 1.15rem;
+}
+
+.sf-notification-badge {
+	position: absolute;
+	top: -0.55rem;
+	right: -0.65rem;
+	min-width: 1.1rem;
+	padding: 0.05rem 0.25rem;
+	border-radius: 999px;
+	background: #ffd400;
+	color: #17324d;
+	font-size: 0.68rem;
+	font-weight: 700;
+	line-height: 1.1rem;
+	text-align: center;
+}
+
+.notification-unread {
+	border-left: 3px solid #0b66c3 !important;
+	background-color: #f1f7ff;
+}

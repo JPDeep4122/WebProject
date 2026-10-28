@@ -78,7 +78,8 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
 
 <script>
-      const CONTEXT_PATH = "${pageContext.request.contextPath}";
+      window.CONTEXT_PATH = "${pageContext.request.contextPath}";
+      const CONTEXT_PATH = window.CONTEXT_PATH;
       let currentPendingEmail = "";
 
       function showModalAuthAlert(type, message) {
@@ -355,5 +356,6 @@
 
       document.addEventListener('DOMContentLoaded', checkLoginStatus);
     </script>
+    <script src="${pageContext.request.contextPath}/js/customer-notifications.js" defer></script>
 </body>
 </html>

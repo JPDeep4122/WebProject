@@ -70,7 +70,7 @@ public class SecurityConfig {
 						.requestMatchers("/account", "/account/**").authenticated().requestMatchers("/api/account/**")
 						.authenticated()
 						.requestMatchers("/checkout", "/checkout/**", "/api/checkout/**", "/orders", "/orders/**",
-								"/order-success/**", "/payment/vnpay-return").authenticated()
+								"/order-success/**", "/payment/vnpay-return", "/notifications", "/api/notifications/**").authenticated()
 						.requestMatchers("/api/auth/**", "/api/test/**", "/", "/products/**", "/cart/**",
 								"/login", "/register", "/css/**", "/js/**", "/images/**", "/static/**",
 								"/favicon.ico")
@@ -82,6 +82,7 @@ public class SecurityConfig {
 					return path.equals("/account") || path.startsWith("/account/") || path.startsWith("/api/account/")
 							|| path.equals("/checkout") || path.startsWith("/checkout/") || path.startsWith("/api/checkout/")
 							|| path.equals("/orders") || path.startsWith("/orders/") || path.startsWith("/order-success/")
+									|| path.equals("/notifications") || path.startsWith("/api/notifications/")
 							|| path.equals("/payment/vnpay-return");
 				}).defaultAuthenticationEntryPointFor(new Http403ForbiddenEntryPoint(), request -> true));
 		http.userDetailsService(userDetailsService);

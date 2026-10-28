@@ -124,3 +124,9 @@ tránh lỗi đăng nhập do thiếu cột. Khi entity thay đổi, cần cập
 tương ứng. Không xem `spring.jpa.hibernate.ddl-auto=update` là migration đã được
 quản lý cho production. Các file này không di chuyển dữ liệu từ SQL Server hay
 schema Neon cũ.
+
+## Thông báo khách hàng
+
+Với database hiện có, chạy `12_customer_notifications.sql` một lần (script có
+thể chạy lại an toàn) để tạo hộp thư thông báo và các index. Database mới có
+thể dùng `01_schema.sql` rồi `02_indexes.sql`, trong đó đã có bảng và index này.
