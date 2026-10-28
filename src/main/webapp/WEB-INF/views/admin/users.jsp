@@ -130,6 +130,7 @@
 								<th>Tài khoản</th>
 								<th>Họ tên</th>
 								<th>Vai trò</th>
+								<th>Phân quyền</th>
 								<th>Chi nhánh</th>
 								<th>Trạng thái</th>
 								<th>Đổi thông tin</th>
@@ -145,6 +146,28 @@
 									<td><c:forEach items="${u.roles}" var="r">
 											<span class="badge bg-secondary">${r.name}</span>
 										</c:forEach></td>
+									<td>
+										<form method="post" action="/admin/users/${u.id}/permission"
+											class="d-flex flex-column gap-1 user-permission-form">
+											<input type="hidden" name="${_csrf.parameterName}"
+												value="${_csrf.token}">
+											<select class="form-select form-select-sm user-role-select"
+												name="role" aria-label="Vai trò mới cho ${u.email}">
+												<option value="ROLE_CUSTOMER" ${u.roles.iterator().next().name eq 'ROLE_CUSTOMER' ? 'selected' : ''}>Khách hàng</option>
+												<option value="ROLE_STAFF" ${u.roles.iterator().next().name eq 'ROLE_STAFF' ? 'selected' : ''}>Nhân viên</option>
+												<option value="ROLE_SHIPPER" ${u.roles.iterator().next().name eq 'ROLE_SHIPPER' ? 'selected' : ''}>Shipper</option>
+												<option value="ROLE_ADMIN" ${u.roles.iterator().next().name eq 'ROLE_ADMIN' ? 'selected' : ''}>Admin</option>
+											</select>
+											<select class="form-select form-select-sm user-branch-select"
+												name="branchId" aria-label="Chi nhánh của ${u.email}">
+												<option value="">Chọn chi nhánh</option>
+												<c:forEach items="${branches}" var="b">
+													<option value="${b.id}" ${u.branch.id eq b.id ? 'selected' : ''}>${b.name}</option>
+												</c:forEach>
+											</select>
+											<button type="submit" class="btn btn-sm btn-outline-primary">Lưu quyền</button>
+										</form>
+									</td>
 									<td>${u.branch.name}</td>
 									<td><span
 										class="badge ${u.blocked ? 'bg-danger'
@@ -185,5 +208,23 @@
 			</div>
 		</main>
 	</div>
+	<script>
+		(function () {
+			function updateBranchField(form) {
+				const role = form.querySelector('.user-role-select').value;
+				const branch = form.querySelector('.user-branch-select');
+				const needsBranch = role === 'ROLE_STAFF' || role === 'ROLE_SHIPPER';
+				branch.classList.toggle('d-none', !needsBranch);
+				branch.disabled = !needsBranch;
+				branch.required = needsBranch;
+			}
+			document.querySelectorAll('.user-permission-form').forEach(function (form) {
+				updateBranchField(form);
+				form.querySelector('.user-role-select').addEventListener('change', function () {
+					updateBranchField(form);
+				});
+			});
+		})();
+	</script>
 </body>
 </html>
