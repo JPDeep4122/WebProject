@@ -135,7 +135,7 @@ public class OrderController {
 			redirectAttributes.addFlashAttribute("successMessage", "Đã hủy đơn hàng thành công!");
 		} else {
 			redirectAttributes.addFlashAttribute("errorMessage",
-					"Không thể hủy đơn hàng này (chỉ hỗ trợ hủy khi đơn đang ở trạng thái Chờ xác nhận)!");
+					"Không thể hủy đơn hàng này. Bạn chỉ có thể hủy trước khi shipper bắt đầu giao hàng.");
 		}
 		return "redirect:/orders/" + orderCode;
 	}

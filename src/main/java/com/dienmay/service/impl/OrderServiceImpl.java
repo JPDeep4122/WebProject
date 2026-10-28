@@ -3,6 +3,7 @@ package com.dienmay.service.impl;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeMap;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +13,10 @@ import org.springframework.data.domain.Pageable;
 import com.dienmay.entity.auth.User;
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.order.DeliveryStatus;
+import com.dienmay.repository.branch.BranchInventoryRepository;
 import com.dienmay.repository.auth.UserRepository;
+import com.dienmay.repository.order.DeliveryAssignmentRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.service.order.OrderService;
 import com.dienmay.service.order.OrderStateMachine;
@@ -29,6 +33,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final OrderStateMachine stateMachine;
+    private final BranchInventoryRepository inventories;
+    private final DeliveryAssignmentRepository deliveryAssignments;
 
     @Override
     @Transactional(readOnly = true)
@@ -94,11 +100,32 @@ public class OrderServiceImpl implements OrderService {
             throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền hủy đơn hàng này.");
         }
 
-        if (order.getStatus() != OrderStatus.PENDING) {
+        OrderStatus currentStatus = order.getStatus();
+        if (currentStatus != OrderStatus.PENDING
+                && currentStatus != OrderStatus.CONFIRMED
+                && currentStatus != OrderStatus.PROCESSING) {
+            return false;
+        }
+        var assignment = order.getDeliveryAssignment();
+        if (assignment != null && (assignment.getPickedUpAt() != null
+                || assignment.getDeliveryStartedAt() != null
+                || assignment.getStatus() == DeliveryStatus.PICKED_UP
+                || assignment.getStatus() == DeliveryStatus.DELIVERING
+                || assignment.getStatus() == DeliveryStatus.DELIVERED_SUCCESS
+                || assignment.getStatus() == DeliveryStatus.DELIVERED_FAILED)) {
             return false;
         }
 
+        if (currentStatus != OrderStatus.PENDING) {
+            restoreInventory(order);
+        }
         stateMachine.transition(order, OrderStatus.CANCELLED);
+        if (assignment != null && assignment.getStatus() == DeliveryStatus.ASSIGNED) {
+            assignment.setStatus(DeliveryStatus.REJECTED);
+            assignment.setCompletedAt(LocalDateTime.now());
+            assignment.setFailureReason("Đơn hàng đã bị khách hủy trước khi giao.");
+            deliveryAssignments.save(assignment);
+        }
         String reasonText = (cancelReason != null && !cancelReason.trim().isEmpty())
                 ? " [Lý do hủy: " + cancelReason.trim() + "]"
                 : " [Khách hàng tự hủy đơn]";
@@ -109,6 +136,31 @@ public class OrderServiceImpl implements OrderService {
 
         orderRepository.save(order);
         return true;
+    }
+
+    private void restoreInventory(Order order) {
+        if (order.getBranch() == null || order.getBranch().getId() == null) {
+            throw new IllegalArgumentException("Đơn hàng chưa được gán chi nhánh để hoàn kho.");
+        }
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            throw new IllegalArgumentException("Đơn hàng không có sản phẩm để hoàn kho.");
+        }
+
+        var quantities = new TreeMap<Long, Integer>();
+        for (var item : order.getOrderItems()) {
+            if (item.getProduct() == null || item.getProduct().getId() == null
+                    || item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Sản phẩm hoặc số lượng trong đơn không hợp lệ.");
+            }
+            quantities.merge(item.getProduct().getId(), item.getQuantity(), Math::addExact);
+        }
+
+        for (var entry : quantities.entrySet()) {
+            var inventory = inventories.findForUpdate(order.getBranch().getId(), entry.getKey())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Chi nhánh chưa có tồn kho cho sản phẩm #" + entry.getKey()));
+            inventory.setStockQuantity(Math.addExact(inventory.getStockQuantity(), entry.getValue()));
+        }
     }
 
     @Override
