@@ -114,12 +114,22 @@
 								<dd class="col-sm-7">
 									<c:out value="${order.deliveryAssignment.status}" default="—" />
 								</dd>
-								<dt class="col-sm-5">Lý do giao thất bại</dt>
-								<dd class="col-sm-7">
-									<c:out value="${order.deliveryAssignment.failureReason}"
-										default="—" />
-								</dd>
+								<c:if test="${order.status eq 'CANCELLED'}">
+									<dt class="col-sm-5">Lý do giao thất bại</dt>
+									<dd class="col-sm-7">
+										<c:out value="${order.deliveryAssignment.failureReason}"
+											default="—" />
+									</dd>
+								</c:if>
 							</dl>
+							<c:if test="${not empty proofViewUrl}">
+								<hr class="my-3">
+								<div class="fw-semibold mb-2"><i class="bi bi-camera me-2"></i>Ảnh minh chứng giao hàng</div>
+								<a href="<c:out value='${proofViewUrl}'/>" target="_blank" rel="noopener noreferrer">
+									<img src="<c:out value='${proofViewUrl}'/>" alt="Ảnh minh chứng giao hàng"
+										class="img-fluid rounded-3 border" style="max-height: 320px">
+								</a>
+							</c:if>
 						</div>
 					</section>
 				</div>

@@ -92,15 +92,15 @@
 
         <div class="card border-0 shadow-sm">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-dark"><tr><th>Mã đơn</th><th>Khách hàng</th><th>Chi nhánh</th><th>Ngày tạo</th><th class="text-end">Thành tiền</th><th>Giao hàng</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+                <table class="table table-hover align-middle mb-0 admin-orders-table">
+                    <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Chi nhánh</th><th>Ngày tạo</th><th class="text-end">Thành tiền</th><th>Giao hàng</th><th class="text-center">Trạng thái</th><th class="text-center">Chi tiết</th></tr></thead>
                     <tbody>
                     <c:forEach items="${ordersPage.content}" var="order">
                         <tr>
-                            <td class="fw-semibold">${order.orderCode}</td>
+                            <td class="fw-semibold order-code-cell">${order.orderCode}</td>
                             <td><c:out value="${order.recipientName}"/><br><small class="text-secondary"><c:out value="${order.recipientPhone}"/></small></td>
                             <td><c:out value="${order.branch.name}" default="Chưa gán"/></td>
-                            <td>${order.createdAt}</td>
+                            <td class="order-date-cell">${order.createdAt}</td>
                             <td class="text-end"><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫</td>
                             <td style="min-width: 230px">
                                 <c:choose>
@@ -129,7 +129,7 @@
                                     </form>
                                 </c:if>
                             </td>
-                            <td><span class="badge text-bg-secondary">${order.status}</span>
+                            <td class="order-status-cell"><span class="badge text-bg-secondary">${order.status}</span>
                                 <c:if test="${order.status eq 'PENDING'}">
                                     <form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/confirm" class="mt-2">
                                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
@@ -164,7 +164,7 @@
                                     </a>
                                 </c:if>
                             </td>
-                            <td><a class="btn btn-sm btn-outline-primary" href="${pageContext.request.contextPath}/admin/orders/${order.id}"><i class="bi bi-eye me-1"></i>Chi tiết</a></td>
+                            <td class="order-detail-cell"><a class="btn btn-sm btn-outline-primary" href="${pageContext.request.contextPath}/admin/orders/${order.id}"><i class="bi bi-eye me-1"></i>Chi tiết</a></td>
                         </tr>
                     </c:forEach>
                     <c:if test="${empty ordersPage.content}"><tr><td colspan="8" class="text-center text-secondary py-5">Không có đơn hàng phù hợp.</td></tr></c:if>

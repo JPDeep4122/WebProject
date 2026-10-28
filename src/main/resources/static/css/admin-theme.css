@@ -223,6 +223,131 @@ body:has(.admin-sidebar) {
     border-radius: 10px;
 }
 
+/* Keep every administration screen on the same light storefront theme. */
+body:has(.admin-sidebar) {
+    color: var(--admin-text);
+    background: var(--admin-bg);
+}
+
+.admin-sidebar + main,
+.admin-sidebar + div.flex-grow-1 {
+    line-height: 1.5;
+}
+
+.admin-sidebar + main .table-responsive,
+.admin-sidebar + div.flex-grow-1 .table-responsive {
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background: var(--admin-surface);
+}
+
+.admin-sidebar + main .table,
+.admin-sidebar + div.flex-grow-1 .table {
+    margin-bottom: 0;
+    background: var(--admin-surface);
+}
+
+.admin-sidebar + main .table thead.table-dark th,
+.admin-sidebar + div.flex-grow-1 .table thead.table-dark th {
+    background: #edf3fb !important;
+    color: #172b4d !important;
+    border-color: var(--admin-border) !important;
+    border-bottom-width: 1px;
+}
+
+.admin-sidebar + main .table th,
+.admin-sidebar + main .table td,
+.admin-sidebar + div.flex-grow-1 .table th,
+.admin-sidebar + div.flex-grow-1 .table td {
+    padding: .75rem .85rem;
+}
+
+.admin-sidebar + main .table td,
+.admin-sidebar + div.flex-grow-1 .table td {
+    overflow-wrap: anywhere;
+}
+
+.admin-sidebar + main .table .badge,
+.admin-sidebar + div.flex-grow-1 .table .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    padding: .35rem .65rem;
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: .01em;
+}
+
+.admin-sidebar + main .table .btn,
+.admin-sidebar + div.flex-grow-1 .table .btn {
+    white-space: normal;
+}
+
+.admin-sidebar + main .pagination .page-link,
+.admin-sidebar + div.flex-grow-1 .pagination .page-link {
+    color: var(--dm-primary);
+    border-color: var(--admin-border);
+}
+
+.admin-sidebar + main .pagination .page-item.active .page-link,
+.admin-sidebar + div.flex-grow-1 .pagination .page-item.active .page-link {
+    color: #fff;
+    background: var(--dm-primary);
+    border-color: var(--dm-primary);
+}
+
+.admin-orders-table {
+    min-width: 1080px;
+    table-layout: fixed;
+}
+
+.admin-orders-table .order-code-cell {
+    min-width: 150px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-orders-table .order-date-cell {
+    min-width: 145px;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-orders-table .order-status-cell,
+.admin-orders-table .order-detail-cell {
+    text-align: center;
+}
+
+.admin-orders-table .order-status-cell {
+    min-width: 170px;
+}
+
+.admin-orders-table .order-detail-cell {
+    min-width: 112px;
+}
+
+.admin-orders-table .order-detail-cell .btn {
+    white-space: nowrap;
+}
+
+.admin-orders-table .order-status-cell form .btn {
+    max-width: 100%;
+}
+
+@media (max-width: 820px) {
+    .admin-sidebar + main,
+    .admin-sidebar + div.flex-grow-1 {
+        padding: 18px 14px !important;
+    }
+
+    .admin-sidebar + main .table th,
+    .admin-sidebar + main .table td,
+    .admin-sidebar + div.flex-grow-1 .table th,
+    .admin-sidebar + div.flex-grow-1 .table td {
+        padding: .65rem .7rem;
+    }
+}
+
 @media (max-width: 820px) {
     body:has(.admin-sidebar) > .d-flex {
         display: block !important;
