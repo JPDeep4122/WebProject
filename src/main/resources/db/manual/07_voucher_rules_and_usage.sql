@@ -25,7 +25,7 @@ ALTER TABLE public.promotions
 
 ALTER TABLE public.promotions
     ADD COLUMN IF NOT EXISTS discount_type VARCHAR(20)
-        NOT NULL DEFAULT 'PERCENT',
+        NOT NULL DEFAULT 'FIXED',
     ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(15, 2),
     ADD COLUMN IF NOT EXISTS max_discount_amount NUMERIC(15, 2),
     ADD COLUMN IF NOT EXISTS min_order_amount NUMERIC(15, 2)
@@ -34,6 +34,9 @@ ALTER TABLE public.promotions
     ADD COLUMN IF NOT EXISTS new_customer_only BOOLEAN
         NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS per_user_limit INTEGER;
+
+ALTER TABLE public.promotions
+    ALTER COLUMN discount_type SET DEFAULT 'FIXED';
 
 
 CREATE TABLE IF NOT EXISTS public.promotion_categories (

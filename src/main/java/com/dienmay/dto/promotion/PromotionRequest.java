@@ -25,7 +25,7 @@ public class PromotionRequest {
     private String code;
 
     @NotNull
-    private VoucherType discountType = VoucherType.PERCENT;
+    private VoucherType discountType = VoucherType.FIXED;
 
     @DecimalMin("0.01")
     @DecimalMax("100.00")

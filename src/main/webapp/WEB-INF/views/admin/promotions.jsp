@@ -421,7 +421,7 @@
                                 <th>Mã &amp; Chương trình</th>
                                 <th>Loại &amp; Mức giảm</th>
                                 <th>Điều kiện áp dụng</th>
-                                <th>Lượt sử dụng</th>
+                                <th>Đã áp dụng / giới hạn</th>
                                 <th>Thời gian hiệu lực</th>
                                 <th>Trạng thái</th>
                                 <th class="text-end">Thao tác</th>
@@ -526,6 +526,7 @@
                                         <div class="text-muted mt-1" style="font-size: 11.5px;">
                                             Mỗi khách: <strong>${empty p.perUserLimit ? 'Không giới hạn' : p.perUserLimit.toString().concat(' lượt')}</strong>
                                         </div>
+                                        <div class="text-muted" style="font-size: 11px;">Đếm theo đơn dùng mã, không phải số tài khoản lưu mã.</div>
                                     </td>
 
                                     <!-- 5. Thời gian hiệu lực -->

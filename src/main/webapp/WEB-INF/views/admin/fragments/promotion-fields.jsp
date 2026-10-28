@@ -12,7 +12,7 @@
             <div class="col-md-5">
                 <label class="form-label fw-semibold small">Tên chương trình voucher <span class="text-danger">*</span></label>
                 <input class="form-control" name="name" required maxlength="120"
-                       placeholder="VD: Siêu sale Black Friday giảm 15%"
+                       placeholder="VD: Siêu sale Black Friday giảm 100.000đ"
                        value="<c:out value='${formPromotion.name}'/>">
             </div>
 
@@ -34,10 +34,10 @@
             <div class="col-md-3">
                 <label class="form-label fw-semibold small">Loại ưu đãi <span class="text-danger">*</span></label>
                 <select class="form-select fw-semibold" name="discountType" onchange="syncVoucherTypeFields(this)">
-                    <option value="PERCENT" ${formPromotion.discountType == 'PERCENT' or empty formPromotion.discountType ? 'selected' : ''}>
-                        % Giảm theo phần trăm
-                    </option>
-                    <option value="FIXED" ${formPromotion.discountType == 'FIXED' ? 'selected' : ''}>
+                    <c:if test="${param.editMode == 'true' and formPromotion.discountType == 'PERCENT'}">
+                        <option value="PERCENT" selected>% Giảm theo phần trăm (voucher cũ)</option>
+                    </c:if>
+                    <option value="FIXED" ${formPromotion.discountType == 'FIXED' or empty formPromotion.discountType ? 'selected' : ''}>
                         ₫ Giảm số tiền cố định
                     </option>
                     <option value="SHIPPING" ${formPromotion.discountType == 'SHIPPING' ? 'selected' : ''}>
@@ -46,24 +46,25 @@
                 </select>
             </div>
 
-            <!-- Ô Phần trăm giảm (Chỉ hiện khi chọn PERCENT) -->
-            <div class="col-md-4" data-field-role="percent">
-                <label class="form-label fw-semibold small">Phần trăm giảm <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <input class="form-control" name="discountPercent"
-                           type="number" min="0.01" max="100" step="0.01"
-                           placeholder="VD: 15"
-                           value="${formPromotion.discountPercent}">
-                    <span class="input-group-text fw-bold">%</span>
+            <!-- Chỉ giữ trường phần trăm khi chỉnh sửa voucher cũ đã phát hành. -->
+            <c:if test="${param.editMode == 'true' and formPromotion.discountType == 'PERCENT'}">
+                <div class="col-md-4" data-field-role="percent">
+                    <label class="form-label fw-semibold small">Phần trăm giảm (voucher cũ) <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input class="form-control" name="discountPercent"
+                               type="number" min="0.01" max="100" step="0.01"
+                               value="${formPromotion.discountPercent}">
+                        <span class="input-group-text fw-bold">%</span>
+                    </div>
                 </div>
-            </div>
+            </c:if>
 
             <!-- Ô Số tiền giảm cố định (Chỉ hiện khi chọn FIXED) -->
             <div class="col-md-4" data-field-role="fixed">
                 <label class="form-label fw-semibold small">Số tiền giảm cố định <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <input class="form-control" name="discountAmount"
-                           type="number" min="0.01" step="0.01"
+                           type="number" min="1" step="1"
                            placeholder="VD: 100000"
                            value="${formPromotion.discountAmount}">
                     <span class="input-group-text fw-bold">₫</span>
