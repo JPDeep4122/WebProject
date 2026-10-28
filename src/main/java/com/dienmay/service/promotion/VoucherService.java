@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,8 @@ public class VoucherService {
 
     private static final ZoneId VN =
             ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final DateTimeFormatter VOUCHER_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final PromotionRepository promotions;
     private final VoucherUsageRepository usages;
@@ -66,9 +69,9 @@ public class VoucherService {
                     "Mức giảm tối đa phải lớn hơn 0.");
         }
 
-        if (p.getMaxUses() != null && p.getMaxUses() < 0) {
+        if (p.getMaxUses() != null && p.getMaxUses() < 1) {
             throw new IllegalArgumentException(
-                    "Giới hạn lượt dùng không hợp lệ.");
+                    "Tổng số lượt phải từ 1 trở lên; để trống nếu không giới hạn.");
         }
 
         if (p.getPerUserLimit() != null
@@ -144,6 +147,7 @@ public class VoucherService {
         LocalDateTime now = LocalDateTime.now(VN);
 
         if (!p.isActive()) {
+<<<<<<< HEAD
             throw new IllegalArgumentException("Voucher hiện không khả dụng. Vui lòng chọn mã khác.");
         }
         if (p.getStartsAt() != null && now.isBefore(p.getStartsAt())) {
@@ -151,6 +155,20 @@ public class VoucherService {
         }
         if (p.getEndsAt() != null && !now.isBefore(p.getEndsAt())) {
             throw new IllegalArgumentException("Voucher đã hết hạn. Vui lòng chọn mã khác.");
+=======
+            throw new IllegalArgumentException(
+                    "Mã khuyến mãi này hiện đã được tắt.");
+        }
+        if (p.getStartsAt() != null && now.isBefore(p.getStartsAt())) {
+            throw new IllegalArgumentException(
+                    "Mã khuyến mãi chưa đến thời gian áp dụng. Có hiệu lực từ "
+                            + p.getStartsAt().format(VOUCHER_DATE_FORMAT) + ".");
+        }
+        if (p.getEndsAt() != null && !now.isBefore(p.getEndsAt())) {
+            throw new IllegalArgumentException(
+                    "Mã khuyến mãi đã hết hạn từ "
+                            + p.getEndsAt().format(VOUCHER_DATE_FORMAT) + ".");
+>>>>>>> ef7ad95adc9b078a7c50a2ecde237f892e6bdd99
         }
 
         int used = p.getUsedCount() == null

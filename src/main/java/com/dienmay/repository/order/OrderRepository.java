@@ -54,9 +54,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	@EntityGraph(attributePaths = {"user", "branch", "payment"})
 	@Query("select o from Order o where o.status <> :excludedStatus "
-			+ "and (lower(o.orderCode) like lower(concat('%', :keyword, '%')) "
+			+ "and (:status is null or o.status = :status) "
+			+ "and (:branchId is null or o.branch.id = :branchId) "
+			+ "and (:keyword = '' or lower(o.orderCode) like lower(concat('%', :keyword, '%')) "
 			+ "or (:customerId is not null and o.user.id = :customerId))")
-	Page<Order> searchInvoices(@Param("excludedStatus") OrderStatus excludedStatus,
+	Page<Order> filterInvoices(@Param("excludedStatus") OrderStatus excludedStatus,
+			@Param("status") OrderStatus status, @Param("branchId") Long branchId,
 			@Param("keyword") String keyword, @Param("customerId") Long customerId, Pageable pageable);
 
 	@EntityGraph(attributePaths = {"user", "branch", "deliveryAssignment", "deliveryAssignment.shipper"})
@@ -75,7 +78,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	Optional<Order> findByOrderCodeAndRecipientPhone(String orderCode, String recipientPhone);
 
 	@Query("select count(distinct u.id) from Order o join o.user u join u.roles r "
+			+ "join o.payment p "
 			+ "where upper(r.name) = 'ROLE_CUSTOMER' "
+			+ "and p.paymentStatus = com.dienmay.entity.payment.PaymentStatus.SUCCESS "
 			+ "and o.status <> com.dienmay.entity.order.OrderStatus.CANCELLED "
 			+ "and exists (select 1 from OrderItem oi where oi.order = o)")
 	long countUniqueCustomersWithPurchases();

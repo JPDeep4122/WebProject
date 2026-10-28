@@ -8,7 +8,10 @@ import java.util.Objects;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,6 +33,9 @@ import com.dienmay.repository.branch.BranchRepository;
 import com.dienmay.repository.order.OrderRepository;
 import com.dienmay.service.order.OrderService;
 import com.dienmay.service.order.OrderStatusWebSocketNotifier;
+import com.dienmay.service.order.DeliveryProofStorageService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,6 +52,7 @@ public class AdminOrderController {
     private final com.dienmay.service.order.OrderPickingService pickingService;
     private final com.dienmay.service.order.OrderFulfillmentService fulfillmentService;
     private final com.dienmay.service.order.DeliveryAssignmentService deliveryAssignmentService;
+    private final DeliveryProofStorageService deliveryProofStorageService;
 
     @PostMapping("/{id}/confirm")
     public String confirm(
@@ -166,43 +173,14 @@ public class AdminOrderController {
     public String orderDetail(
             @PathVariable Long id,
             Principal principal,
-            Model model) {
+            Model model,
+            HttpServletRequest request) {
 
-        if (principal == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-        }
-
+        Order order = findAccessibleOrder(id, principal);
         User actor = userRepository.findByEmail(principal.getName())
-                .orElseThrow(() ->
-                        new AccessDeniedException("Không có quyền xem đơn hàng."));
-
+                .orElseThrow(() -> new AccessDeniedException("Không có quyền xem đơn hàng."));
         boolean admin = actor.getRoles().stream()
                 .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
-
-        boolean staff = actor.getRoles().stream()
-                .anyMatch(role -> "ROLE_STAFF".equals(role.getName()));
-
-        if (!actor.isActive() || actor.isBlocked() || (!admin && !staff)) {
-            throw new AccessDeniedException("Không có quyền xem đơn hàng.");
-        }
-
-        Order order = orderRepository.findDetailedById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Không tìm thấy đơn hàng."));
-
-        // Staff chỉ được xem đơn thuộc chi nhánh được gán.
-        if (!admin && (
-                actor.getBranch() == null
-                || order.getBranch() == null
-                || !Objects.equals(
-                        actor.getBranch().getId(),
-                        order.getBranch().getId()))) {
-
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Không tìm thấy đơn hàng.");
-        }
 
         var shippers = userRepository
                 .findDistinctByRoles_NameAndActiveTrueOrderByFullNameAsc(
@@ -218,6 +196,16 @@ public class AdminOrderController {
                 .toList();
 
         var assignment = order.getDeliveryAssignment();
+
+        if (assignment != null && assignment.getProofPublicId() != null) {
+            String proofUrl = deliveryProofStorageService.resolveViewUrl(
+                    assignment.getProofPublicId(), request.getContextPath());
+            // Local fallback files are served through this order-scoped, authenticated endpoint.
+            if (proofUrl != null && proofUrl.contains("/shipper/orders/proof/")) {
+                proofUrl = request.getContextPath() + "/admin/orders/" + order.getId() + "/proof";
+            }
+            model.addAttribute("proofViewUrl", proofUrl);
+        }
 
         boolean assignableOrder =
                 order.getBranch() != null
@@ -237,6 +225,52 @@ public class AdminOrderController {
         model.addAttribute("canAssign", assignableOrder && notPickedUp);
 
         return "admin/order-detail";
+    }
+
+    @GetMapping("/{id}/proof")
+    public ResponseEntity<byte[]> viewDeliveryProof(@PathVariable Long id, Principal principal) {
+        Order order = findAccessibleOrder(id, principal);
+        var assignment = order.getDeliveryAssignment();
+        if (assignment == null || assignment.getProofPublicId() == null
+                || assignment.getProofPublicId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ảnh minh chứng.");
+        }
+
+        try {
+            byte[] bytes = deliveryProofStorageService.loadLocalProofBytes(assignment.getProofPublicId());
+            MediaType mediaType = assignment.getProofPublicId().toLowerCase().endsWith(".png")
+                    ? MediaType.IMAGE_PNG : MediaType.IMAGE_JPEG;
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                    .contentType(mediaType)
+                    .body(bytes);
+        } catch (java.io.IOException | IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ảnh minh chứng.");
+        }
+    }
+
+    private Order findAccessibleOrder(Long id, Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+
+        User actor = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new AccessDeniedException("Không có quyền xem đơn hàng."));
+        boolean admin = actor.getRoles().stream()
+                .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
+        boolean staff = actor.getRoles().stream()
+                .anyMatch(role -> "ROLE_STAFF".equals(role.getName()));
+        if (!actor.isActive() || actor.isBlocked() || (!admin && !staff)) {
+            throw new AccessDeniedException("Không có quyền xem đơn hàng.");
+        }
+
+        Order order = orderRepository.findDetailedById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng."));
+        if (!admin && (actor.getBranch() == null || order.getBranch() == null
+                || !Objects.equals(actor.getBranch().getId(), order.getBranch().getId()))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.");
+        }
+        return order;
     }
 
     @GetMapping("/status-snapshot")
