@@ -24,7 +24,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (validity.valueMissing) message = 'Vui lòng nhập ' + label + '.';
             else if (validity.badInput || validity.typeMismatch) message = 'Vui lòng nhập đúng định dạng ' + label + '.';
             else if (validity.rangeUnderflow) {
-                message = input.name === 'perUserLimit'
+                message = input.name === 'maxUses'
+                    ? 'Tổng số lượt phải từ 1 trở lên; để trống nếu không giới hạn.'
+                    : input.name === 'perUserLimit'
                     ? 'Lượt dùng mỗi khách phải từ 1 trở lên; để trống nếu không giới hạn.'
                     : 'Giá trị ' + label + ' phải từ ' + input.min + ' trở lên.';
             } else if (validity.rangeOverflow) message = 'Giá trị ' + label + ' không được vượt quá ' + input.max + '.';

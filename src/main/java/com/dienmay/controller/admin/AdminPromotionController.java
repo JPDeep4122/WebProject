@@ -58,15 +58,7 @@ public class AdminPromotionController {
 
         if (errors.hasErrors()) {
             flash.addFlashAttribute(
-<<<<<<< HEAD
-                    "error", errors.getFieldErrors().stream()
-                        .map(error -> error.isBindingFailure()
-                            ? "Giá trị nhập cho " + fieldLabel(error.getField()) + " không hợp lệ."
-                            : error.getDefaultMessage())
-                        .distinct().collect(java.util.stream.Collectors.joining(" ")));
-=======
                     "error", validationMessage(errors));
->>>>>>> ef7ad95adc9b078a7c50a2ecde237f892e6bdd99
             return "redirect:/admin/promotions";
         }
 
@@ -167,20 +159,6 @@ public class AdminPromotionController {
         return "redirect:/admin/promotions";
     }
 
-<<<<<<< HEAD
-    private String fieldLabel(String field) {
-        return switch (field) {
-            case "startsAt" -> "thời gian bắt đầu";
-            case "endsAt" -> "thời gian kết thúc";
-            case "maxUses" -> "tổng số lượt";
-            case "perUserLimit" -> "lượt dùng mỗi khách";
-            case "discountPercent" -> "phần trăm giảm";
-            case "discountAmount" -> "số tiền giảm";
-            case "maxDiscountAmount" -> "mức giảm tối đa";
-            case "minOrderAmount" -> "giá trị đơn tối thiểu";
-            default -> "thông tin voucher";
-        };
-=======
     private String validationMessage(BindingResult errors) {
         var firstError = errors.getFieldErrors().stream().findFirst().orElse(null);
         if (firstError == null) {
@@ -199,7 +177,6 @@ public class AdminPromotionController {
         return firstError.getDefaultMessage() == null
                 ? "Thông tin voucher chưa hợp lệ. Vui lòng kiểm tra lại các trường."
                 : firstError.getDefaultMessage();
->>>>>>> ef7ad95adc9b078a7c50a2ecde237f892e6bdd99
     }
 
     @PostMapping("/{id}/toggle")

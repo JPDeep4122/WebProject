@@ -147,17 +147,7 @@ public class VoucherService {
         LocalDateTime now = LocalDateTime.now(VN);
 
         if (!p.isActive()) {
-<<<<<<< HEAD
             throw new IllegalArgumentException("Voucher hiện không khả dụng. Vui lòng chọn mã khác.");
-        }
-        if (p.getStartsAt() != null && now.isBefore(p.getStartsAt())) {
-            throw new IllegalArgumentException("Voucher chưa đến thời gian sử dụng.");
-        }
-        if (p.getEndsAt() != null && !now.isBefore(p.getEndsAt())) {
-            throw new IllegalArgumentException("Voucher đã hết hạn. Vui lòng chọn mã khác.");
-=======
-            throw new IllegalArgumentException(
-                    "Mã khuyến mãi này hiện đã được tắt.");
         }
         if (p.getStartsAt() != null && now.isBefore(p.getStartsAt())) {
             throw new IllegalArgumentException(
@@ -168,7 +158,6 @@ public class VoucherService {
             throw new IllegalArgumentException(
                     "Mã khuyến mãi đã hết hạn từ "
                             + p.getEndsAt().format(VOUCHER_DATE_FORMAT) + ".");
->>>>>>> ef7ad95adc9b078a7c50a2ecde237f892e6bdd99
         }
 
         int used = p.getUsedCount() == null
