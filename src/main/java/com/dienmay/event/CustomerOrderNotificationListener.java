@@ -6,6 +6,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.dienmay.service.notification.CustomerNotificationService;
 import com.dienmay.service.order.OrderStatusChangedEvent;
+import com.dienmay.service.order.OrderRefundConfirmedEvent;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,5 +20,12 @@ public class CustomerOrderNotificationListener {
         if (event.update() == null || event.update().status() == null) return;
         notifications.recordOrderStatus(event.recipientEmail(), event.update().orderCode(),
                 event.update().status().name());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOrderRefundConfirmed(OrderRefundConfirmedEvent event) {
+        if (event == null) return;
+        notifications.recordRefundConfirmed(event.recipientEmail(), event.orderCode(), event.amount(),
+                event.branchName(), event.branchAddress(), event.refundMethod());
     }
 }

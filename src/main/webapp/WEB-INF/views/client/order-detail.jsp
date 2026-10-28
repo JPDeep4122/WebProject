@@ -178,14 +178,10 @@
 				<c:if test="${order.refundRequired}">
 					<div class="alert alert-warning rounded-4 p-3 mt-3 mb-0">
 						<div class="fw-bold text-dark mb-1">
-							<i class="bi bi-cash-coin me-2"></i>HƯỚNG DẪN NHẬN HOÀN TIỀN ĐƠN TRẢ TRƯỚC (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫)
+							<i class="bi bi-cash-coin me-2"></i>ĐANG CHỜ XÁC NHẬN HOÀN TIỀN (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫)
 						</div>
 						<div class="small text-dark">
-							Vì đơn hàng này đã được thanh toán qua <b>VNPay</b> trước khi hủy, quý khách có thể nhận lại <b>100% số tiền (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫)</b> theo 1 trong 2 cách:
-							<ul class="mb-0 mt-1">
-								<li><b>Nhận tiền mặt tại quầy:</b> Quý khách mang Mã đơn <b>#${order.orderCode}</b> và SĐT <b>${order.recipientPhone}</b> đến <b><c:out value="${order.branch.name}" default="Chi nhánh đặt hàng"/></b> (<c:out value="${order.branch.address}"/>) hoặc <b>bất kỳ chi nhánh TECHSEVEN nào gần nhất</b> để được nhân viên chi hoàn tiền mặt ngay lập tức.</li>
-								<li><b>Nhận chuyển khoản trả hộ:</b> Liên hệ Hotline chi nhánh để nhân viên xác minh và chuyển khoản hoàn tiền trực tiếp vào tài khoản ngân hàng của quý khách.</li>
-							</ul>
+							Đơn hàng đã thanh toán qua <b>VNPay</b> và đang chờ Admin/nhân viên có thẩm quyền xác nhận hoàn tiền. Sau khi xác nhận, TECHSEVEN sẽ gửi thông báo ghi rõ <b>chi nhánh nhận tiền</b> và cách nhận. Vui lòng chưa đến chi nhánh trước khi nhận được thông báo.
 						</div>
 					</div>
 				</c:if>
@@ -193,11 +189,12 @@
 				<c:if test="${order.refundCompleted}">
 					<div class="alert alert-success rounded-4 p-3 mt-3 mb-0">
 						<div class="fw-bold mb-1">
-							<i class="bi bi-check-circle-fill me-2"></i>ĐÃ HOÀN TIỀN THÀNH CÔNG (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫)
+							<i class="bi bi-check-circle-fill me-2"></i>${order.payment.refundMethod eq 'CASH_AT_BRANCH' ? 'ĐÃ XÁC NHẬN HOÀN TIỀN — CHỜ NHẬN TẠI QUẦY' : 'ĐÃ XÁC NHẬN HOÀN TIỀN'} (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫)
 						</div>
 						<div class="small">
-							Hình thức hoàn: <b>${order.payment.refundMethod eq 'BANK_TRANSFER' ? 'Nhân viên chi nhánh chuyển khoản ngân hàng' : 'Nhận tiền mặt trực tiếp tại quầy chi nhánh'}</b><br>
-							Chi nhánh thực hiện: <b><c:out value="${order.payment.refundBranch.name}" default="Chi nhánh TECHSEVEN"/></b> • Thời gian: <b><c:out value="${order.payment.refundedAt}"/></b><br>
+							Hình thức hoàn: <b>${order.payment.refundMethod eq 'BANK_TRANSFER' ? 'Chuyển khoản ngân hàng' : 'Nhận tiền mặt trực tiếp tại quầy'}</b><br>
+							Chi nhánh: <b><c:out value="${order.payment.refundBranch.name}" default="Chi nhánh TECHSEVEN"/></b><c:if test="${order.payment.refundMethod eq 'CASH_AT_BRANCH'}"> — <c:out value="${order.payment.refundBranch.address}"/></c:if> • Thời gian xác nhận: <b><c:out value="${order.payment.refundedAt}"/></b><br>
+							<c:if test="${order.payment.refundMethod eq 'CASH_AT_BRANCH'}">Khi đến quầy, vui lòng cung cấp mã đơn <b>#${order.orderCode}</b> và số điện thoại <b><c:out value="${order.recipientPhone}"/></b> để nhận tiền.<br></c:if>
 							Ghi chú: <c:out value="${order.payment.refundNote}"/>
 						</div>
 					</div>
