@@ -30,6 +30,9 @@ import com.dienmay.dto.order.OrderStatusSnapshot;
 import com.dienmay.entity.auth.User;
 import com.dienmay.entity.order.Order;
 import com.dienmay.entity.order.OrderStatus;
+import com.dienmay.entity.payment.Payment;
+import com.dienmay.entity.payment.PaymentMethod;
+import com.dienmay.entity.payment.PaymentStatus;
 import com.dienmay.repository.auth.UserRepository;
 import com.dienmay.repository.branch.BranchRepository;
 import com.dienmay.repository.order.OrderRepository;
@@ -113,16 +116,81 @@ public class AdminOrderController {
 
     @PostMapping("/{id}/cancel")
     public String cancel(@PathVariable Long id,
+            @RequestParam(defaultValue = "list") String returnTo,
             Principal principal, RedirectAttributes flash) {
-        return execute(id, principal, flash, fulfillmentService::cancel,
-                "Đã hủy đơn hàng.");
+        try {
+            fulfillmentService.cancel(id, principal.getName());
+            Order cancelledOrder = orderRepository.findDetailedById(id).orElse(null);
+            if (cancelledOrder != null && cancelledOrder.isRefundRequired()) {
+                flash.addFlashAttribute("success",
+                        "Đã hủy đơn hàng. Vì đây là đơn đã thanh toán VNPay, vui lòng thực hiện hoàn tiền cho khách tại quầy hoặc chuyển khoản trả hộ.");
+                return "redirect:/admin/orders/" + id;
+            }
+            flash.addFlashAttribute("success", "Đã hủy đơn hàng và hoàn lại tồn kho.");
+        } catch (IllegalArgumentException | AccessDeniedException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        return orderActionRedirect(id, returnTo);
+    }
+
+    @PostMapping("/{id}/refund-cancelled")
+    @Transactional
+    public String refundCancelledPrepaidOrder(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "CASH_AT_BRANCH") String refundMethod,
+            @RequestParam(required = false) String refundNote,
+            Principal principal,
+            RedirectAttributes flash) {
+        try {
+            Order order = findAccessibleOrder(id, principal, true);
+            User actor = userRepository.findByEmail(principal.getName())
+                    .orElseThrow(() -> new AccessDeniedException("Vui lòng đăng nhập."));
+
+            if (order.getStatus() != OrderStatus.CANCELLED) {
+                throw new IllegalArgumentException("Chỉ có thể hoàn tiền theo luồng này cho đơn hàng đã hủy.");
+            }
+            Payment payment = order.getPayment();
+            if (payment == null || payment.getPaymentMethod() != PaymentMethod.VNPAY) {
+                throw new IllegalArgumentException("Đơn hàng này không phải đơn trả trước qua VNPay.");
+            }
+            if (payment.getPaymentStatus() == PaymentStatus.REFUNDED) {
+                throw new IllegalArgumentException("Đơn hàng này đã được hoàn tiền trước đó, không thể hoàn tiền lần thứ 2.");
+            }
+            if (payment.getPaymentStatus() != PaymentStatus.SUCCESS) {
+                throw new IllegalArgumentException("Đơn hàng chưa thanh toán thành công nên không cần hoàn tiền.");
+            }
+
+            String cleanMethod = "BANK_TRANSFER".equalsIgnoreCase(refundMethod)
+                    ? "BANK_TRANSFER"
+                    : "CASH_AT_BRANCH";
+            String cleanNote = (refundNote == null || refundNote.isBlank())
+                    ? (cleanMethod.equals("CASH_AT_BRANCH")
+                            ? "Khách hàng nhận lại tiền mặt trực tiếp tại quầy chi nhánh."
+                            : "Nhân viên chi nhánh đã chuyển khoản hoàn tiền cho khách hàng.")
+                    : refundNote.trim();
+
+            payment.setPaymentStatus(PaymentStatus.REFUNDED);
+            payment.setRefundedAt(LocalDateTime.now());
+            payment.setRefundedBy(actor);
+            payment.setRefundBranch(actor.getBranch() != null ? actor.getBranch() : order.getBranch());
+            payment.setRefundMethod(cleanMethod);
+            payment.setRefundNote(cleanNote);
+            order.setUpdatedAt(LocalDateTime.now());
+
+            String branchName = payment.getRefundBranch() != null ? payment.getRefundBranch().getName() : "Hệ thống";
+            flash.addFlashAttribute("success",
+                    "Đã xác nhận hoàn tiền " + order.getFinalAmount() + " ₫ cho khách hàng tại " + branchName + ".");
+        } catch (RuntimeException ex) {
+            flash.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/orders/" + id;
     }
 
     @PostMapping("/{id}/confirm-cod-handover")
     @Transactional
     public String confirmCodHandover(@PathVariable Long id, Principal principal, RedirectAttributes flash) {
         try {
-            Order order = findAccessibleOrder(id, principal);
+            Order order = findAccessibleOrder(id, principal, false);
             User actor = userRepository.findByEmail(principal.getName())
                     .orElseThrow(() -> new AccessDeniedException("Vui lòng đăng nhập."));
             boolean admin = actor.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
@@ -149,6 +217,7 @@ public class AdminOrderController {
     public String listOrders(
             @RequestParam(required = false) Long branchId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Principal principal,
@@ -161,6 +230,7 @@ public class AdminOrderController {
         Long effectiveBranchId = admin ? branchId
                 : currentUser.getBranch() == null ? null : currentUser.getBranch().getId();
         OrderStatus selectedStatus = parseStatus(status);
+        String cleanKeyword = keyword == null ? "" : keyword.trim();
         int safePage = Math.max(page, 0);
         int safeSize = Arrays.asList(10, 20, 50).contains(size) ? size : 20;
         var pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -169,6 +239,19 @@ public class AdminOrderController {
         if (!admin && effectiveBranchId == null) {
             orders = Page.empty(pageable);
             model.addAttribute("error", "Tài khoản nhân sự chưa được gán chi nhánh.");
+        } else if (!cleanKeyword.isEmpty()) {
+            // Cho phép tìm theo Mã đơn hàng (bao gồm cả đơn hủy cần hoàn tiền hộ tại chi nhánh gần nhất)
+            Page<Order> found = orderRepository.searchByOrderCodeKeyword(cleanKeyword, pageable);
+            if (!admin) {
+                var filtered = found.getContent().stream()
+                        .filter(o -> (o.getBranch() != null && Objects.equals(o.getBranch().getId(), effectiveBranchId))
+                                || o.isRefundRequired()
+                                || o.isRefundCompleted())
+                        .toList();
+                orders = new org.springframework.data.domain.PageImpl<>(filtered, pageable, filtered.size());
+            } else {
+                orders = found;
+            }
         } else {
             orders = orderService.getOrdersForBranch(effectiveBranchId, selectedStatus, pageable);
         }
@@ -177,6 +260,7 @@ public class AdminOrderController {
         model.addAttribute("statuses", OrderStatus.values());
         model.addAttribute("selectedStatus", selectedStatus == null ? "" : selectedStatus.name());
         model.addAttribute("selectedBranchId", effectiveBranchId);
+        model.addAttribute("keyword", cleanKeyword);
         model.addAttribute("branches", admin ? branchRepository.findByActiveTrue()
                 : currentUser.getBranch() == null ? List.of() : List.of(currentUser.getBranch()));
         var shippers = userRepository
@@ -205,7 +289,7 @@ public class AdminOrderController {
             Model model,
             HttpServletRequest request) {
 
-        Order order = findAccessibleOrder(id, principal);
+        Order order = findAccessibleOrder(id, principal, true);
 
         var shippers = userRepository
                 .findDistinctByRoles_NameAndActiveTrueOrderByFullNameAsc(
@@ -244,8 +328,7 @@ public class AdminOrderController {
 
         model.addAttribute("order", order);
         model.addAttribute("shippers", shippers);
-        model.addAttribute("canConfirm",
-                order.getStatus() == OrderStatus.PENDING);
+        model.addAttribute("canConfirm", order.isReadyForConfirmation());
         model.addAttribute("canAssign", assignableOrder && notPickedUp);
 
         return "admin/order-detail";
@@ -253,7 +336,7 @@ public class AdminOrderController {
 
     @GetMapping("/{id}/proof")
     public ResponseEntity<byte[]> viewDeliveryProof(@PathVariable Long id, Principal principal) {
-        Order order = findAccessibleOrder(id, principal);
+        Order order = findAccessibleOrder(id, principal, false);
         var assignment = order.getDeliveryAssignment();
         if (assignment == null || assignment.getProofPublicId() == null
                 || assignment.getProofPublicId().isBlank()) {
@@ -273,7 +356,7 @@ public class AdminOrderController {
         }
     }
 
-    private Order findAccessibleOrder(Long id, Principal principal) {
+    private Order findAccessibleOrder(Long id, Principal principal, boolean allowCrossBranchRefundLookup) {
         if (principal == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
@@ -292,8 +375,11 @@ public class AdminOrderController {
 
         Order order = orderRepository.findDetailedById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng."));
-        if (!admin && (actor.getBranch() == null || order.getBranch() == null
-                || !Objects.equals(actor.getBranch().getId(), order.getBranch().getId()))) {
+        boolean sameBranch = actor.getBranch() != null && order.getBranch() != null
+                && Objects.equals(actor.getBranch().getId(), order.getBranch().getId());
+        boolean crossBranchRefundEligible = allowCrossBranchRefundLookup
+                && (order.isRefundRequired() || order.isRefundCompleted());
+        if (!admin && !sameBranch && !crossBranchRefundEligible) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng.");
         }
         return order;

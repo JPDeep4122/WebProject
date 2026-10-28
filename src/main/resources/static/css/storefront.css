@@ -2592,7 +2592,6 @@ body {
 }
 .sf-branch-item .min-w-0 { min-width: 0; }
 
-/* Customer notification entry and unread indicator. */
 .sf-notification-link .bi-bell {
 	font-size: 1.15rem;
 }

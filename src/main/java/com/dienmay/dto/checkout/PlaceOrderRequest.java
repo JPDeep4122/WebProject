@@ -35,4 +35,8 @@ public class PlaceOrderRequest {
 	@NotBlank(message = "Vui lòng nhập số điện thoại")
 	@Pattern(regexp = "^(0|\\+84)[0-9]{9}$", message = "Số điện thoại không hợp lệ (phải gồm 10 chữ số bắt đầu bằng 0)")
 	private String recipientPhone;
+	
+	@NotBlank(message = "Vui lòng nhập phường/xã nhận hàng")
+	@Size(max = 100, message = "Phường/xã tối đa 100 ký tự")
+	private String ward;
 }

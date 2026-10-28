@@ -21,7 +21,7 @@ import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
-
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import com.dienmay.security.jwt.AuthTokenFilter;
 import com.dienmay.service.impl.UserDetailsImpl;
 
@@ -37,13 +37,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @Configuration
 public class SecurityConfig {
 
-	/**
-	 * Install identity-scoped PostgreSQL settings inside every JPA transaction.
-	 * RLS policies read these transaction-local settings; LOCAL ensures pooled
-	 * connections cannot carry a user's identity into the next request.
-	 */
 	@Bean
-	public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory, DataSource dataSource) {
+	public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory,
+			DataSource dataSource) {
 		JpaTransactionManager manager = new JpaTransactionManager(entityManagerFactory) {
 			@Override
 			protected void doBegin(Object transaction, TransactionDefinition definition) {
@@ -64,10 +60,8 @@ public class SecurityConfig {
 				&& authentication.getPrincipal() instanceof UserDetailsImpl principal) {
 			userId = principal.getId() == null ? "" : principal.getId().toString();
 			branchId = principal.getBranchId() == null ? "" : principal.getBranchId().toString();
-			roles = authentication.getAuthorities().stream()
-					.map(authority -> authority.getAuthority())
-					.filter(role -> role.matches("ROLE_[A-Z_]+"))
-					.collect(Collectors.joining(","));
+			roles = authentication.getAuthorities().stream().map(authority -> authority.getAuthority())
+					.filter(role -> role.matches("ROLE_[A-Z_]+")).collect(Collectors.joining(","));
 		}
 		Connection connection = DataSourceUtils.getConnection(dataSource);
 		try (PreparedStatement statement = connection.prepareStatement(
@@ -84,7 +78,7 @@ public class SecurityConfig {
 	}
 
 	@Autowired
-	private UserDetailsService userDetailsService; // Dùng Interface chuẩn của Spring Security
+	private UserDetailsService userDetailsService;
 
 	@Bean
 	public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -119,13 +113,13 @@ public class SecurityConfig {
 		CsrfTokenRequestAttributeHandler csrfHandler = new CsrfTokenRequestAttributeHandler();
 
 		csrfHandler.setCsrfRequestAttributeName(null);
-		http
-				.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-						.csrfTokenRequestHandler(csrfHandler))
+		http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+				.csrfTokenRequestHandler(csrfHandler))
+				.headers(headers -> headers
+						.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.ORIGIN_WHEN_CROSS_ORIGIN)))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-				.logout(logout -> logout.logoutUrl("/api/auth/logout")
-						.invalidateHttpSession(true).clearAuthentication(true)
-						.deleteCookies("accessToken", "jwtToken", "JSESSIONID")
+				.logout(logout -> logout.logoutUrl("/api/auth/logout").invalidateHttpSession(true)
+						.clearAuthentication(true).deleteCookies("accessToken", "jwtToken", "JSESSIONID")
 						.logoutSuccessHandler((request, response, authentication) -> {
 							response.setContentType("application/json;charset=UTF-8");
 							response.getWriter().write("{\"success\":true}");
@@ -136,34 +130,35 @@ public class SecurityConfig {
 						.requestMatchers("/admin/categories/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.POST, "/admin/products/**").hasRole("ADMIN")
 						.requestMatchers("/admin/products/*/edit").hasRole("ADMIN")
-						.requestMatchers("/admin/users/**", "/admin/invoices/**")
-						.hasAnyRole("ADMIN", "BRANCH_MANAGER")
+						.requestMatchers("/admin/users/**", "/admin/invoices/**").hasAnyRole("ADMIN", "BRANCH_MANAGER")
 						.requestMatchers("/admin/products/**", "/admin/orders/**", "/admin/inventory/**",
 								"/admin/returns/**", "/admin", "/admin/transfers/**")
-						.hasAnyRole("ADMIN", "BRANCH_MANAGER", "STAFF")
-						.requestMatchers("/admin/**").hasRole("ADMIN")
+						.hasAnyRole("ADMIN", "BRANCH_MANAGER", "STAFF").requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/shipper", "/shipper/**").hasRole("SHIPPER")
 						.requestMatchers("/account", "/account/**").authenticated().requestMatchers("/api/account/**")
 						.authenticated()
 						.requestMatchers("/checkout", "/checkout/**", "/api/checkout/**", "/orders", "/orders/**",
-								"/order-success/**", "/payment/vnpay-return", "/notifications", "/api/notifications/**").authenticated()
-						.requestMatchers("/api/auth/**", "/api/test/**", "/", "/products/**", "/cart/**",
-								"/login", "/register", "/css/**", "/js/**", "/images/**", "/static/**",
-								"/favicon.ico")
+								"/order-success/**", "/payment/vnpay-return", "/notifications", "/api/notifications/**")
+						.authenticated()
+						.requestMatchers("/api/auth/**", "/api/test/**", "/", "/products/**", "/cart/**", "/login",
+								"/register", "/css/**", "/js/**", "/images/**", "/static/**", "/favicon.ico")
 						.permitAll().anyRequest().permitAll());
 
-		http.exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
-				new CustomerAuthenticationEntryPoint(), request -> {
+		http.exceptionHandling(exceptions -> exceptions
+				.defaultAuthenticationEntryPointFor(new CustomerAuthenticationEntryPoint(), request -> {
 					String path = request.getRequestURI().substring(request.getContextPath().length());
 					return path.equals("/account") || path.startsWith("/account/") || path.startsWith("/api/account/")
-							|| path.equals("/checkout") || path.startsWith("/checkout/") || path.startsWith("/api/checkout/")
-							|| path.equals("/orders") || path.startsWith("/orders/") || path.startsWith("/order-success/")
-									|| path.equals("/notifications") || path.startsWith("/api/notifications/")
+							|| path.equals("/checkout") || path.startsWith("/checkout/")
+							|| path.startsWith("/api/checkout/") || path.equals("/orders")
+							|| path.startsWith("/orders/") || path.startsWith("/order-success/")
+							|| path.equals("/notifications") || path.startsWith("/api/notifications/")
 							|| path.equals("/payment/vnpay-return");
 				}).defaultAuthenticationEntryPointFor(new Http403ForbiddenEntryPoint(), request -> true));
 		http.userDetailsService(userDetailsService);
-		http.addFilterBefore(apiRateLimitFilter, AuthTokenFilter.class);
+
 		http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+
+		http.addFilterBefore(apiRateLimitFilter, AuthTokenFilter.class);
 
 		return http.build();
 	}

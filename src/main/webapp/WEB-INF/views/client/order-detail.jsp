@@ -174,6 +174,34 @@
 						</div>
 					</div>
 				</div>
+
+				<c:if test="${order.refundRequired}">
+					<div class="alert alert-warning rounded-4 p-3 mt-3 mb-0">
+						<div class="fw-bold text-dark mb-1">
+							<i class="bi bi-cash-coin me-2"></i>HƯỚNG DẪN NHẬN HOÀN TIỀN ĐƠN TRẢ TRƯỚC (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫)
+						</div>
+						<div class="small text-dark">
+							Vì đơn hàng này đã được thanh toán qua <b>VNPay</b> trước khi hủy, quý khách có thể nhận lại <b>100% số tiền (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫)</b> theo 1 trong 2 cách:
+							<ul class="mb-0 mt-1">
+								<li><b>Nhận tiền mặt tại quầy:</b> Quý khách mang Mã đơn <b>#${order.orderCode}</b> và SĐT <b>${order.recipientPhone}</b> đến <b><c:out value="${order.branch.name}" default="Chi nhánh đặt hàng"/></b> (<c:out value="${order.branch.address}"/>) hoặc <b>bất kỳ chi nhánh TECHSEVEN nào gần nhất</b> để được nhân viên chi hoàn tiền mặt ngay lập tức.</li>
+								<li><b>Nhận chuyển khoản trả hộ:</b> Liên hệ Hotline chi nhánh để nhân viên xác minh và chuyển khoản hoàn tiền trực tiếp vào tài khoản ngân hàng của quý khách.</li>
+							</ul>
+						</div>
+					</div>
+				</c:if>
+
+				<c:if test="${order.refundCompleted}">
+					<div class="alert alert-success rounded-4 p-3 mt-3 mb-0">
+						<div class="fw-bold mb-1">
+							<i class="bi bi-check-circle-fill me-2"></i>ĐÃ HOÀN TIỀN THÀNH CÔNG (<fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true"/> ₫)
+						</div>
+						<div class="small">
+							Hình thức hoàn: <b>${order.payment.refundMethod eq 'BANK_TRANSFER' ? 'Nhân viên chi nhánh chuyển khoản ngân hàng' : 'Nhận tiền mặt trực tiếp tại quầy chi nhánh'}</b><br>
+							Chi nhánh thực hiện: <b><c:out value="${order.payment.refundBranch.name}" default="Chi nhánh TECHSEVEN"/></b> • Thời gian: <b><c:out value="${order.payment.refundedAt}"/></b><br>
+							Ghi chú: <c:out value="${order.payment.refundNote}"/>
+						</div>
+					</div>
+				</c:if>
 			</c:when>
 
 			<c:otherwise>
@@ -307,11 +335,22 @@
 						</div>
 					</c:if>
 					<div class="d-flex justify-content-between pt-2 border-top mt-2">
-						<span class="fw-bold fs-5 text-dark">Tổng thanh toán:</span> <span
+						<span class="fw-bold fs-5 text-dark">Tổng giá trị đơn:</span> <span
 							class="fw-bold fs-4 text-danger"> <fmt:formatNumber
 								value="${order.finalAmount}" type="number" groupingUsed="true" />
 							₫
 						</span>
+					</div>
+					<div class="d-flex justify-content-between pt-2 border-top mt-2">
+						<span class="fw-bold text-dark">Cần thanh toán khi nhận hàng:</span>
+						<c:choose>
+							<c:when test="${order.prepaidVnPay}">
+								<span class="fw-bold fs-5 text-success">0 ₫ (Đã trả trước qua VNPay)</span>
+							</c:when>
+							<c:otherwise>
+								<span class="fw-bold fs-5 text-danger"><fmt:formatNumber value="${order.finalAmount}" type="number" groupingUsed="true" /> ₫</span>
+							</c:otherwise>
+						</c:choose>
 					</div>
 				</div>
 			</div>
@@ -328,6 +367,11 @@
 						class="text-muted ms-2">• ${order.recipientPhone}</span>
 				</div>
 				<div class="text-muted small mb-2">${order.shippingAddress}</div>
+				<c:if test="${not empty order.branch}">
+					<div class="small text-secondary mb-2">
+						Chi nhánh phụ trách: <b><c:out value="${order.branch.name}"/></b>
+					</div>
+				</c:if>
 				<c:if test="${not empty order.note}">
 					<div class="p-2 bg-light rounded-3 small text-muted border">
 						<i class="bi bi-chat-left-text me-1"></i>Ghi chú: ${order.note}
@@ -347,6 +391,16 @@
 				<div class="d-flex justify-content-between mb-2 small">
 					<span class="text-muted">Trạng thái:</span>
 					<c:choose>
+						<c:when test="${order.payment.paymentStatus == 'REFUNDED'}">
+							<span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+								<i class="bi bi-arrow-return-left me-1"></i>Đã hoàn tiền
+							</span>
+						</c:when>
+						<c:when test="${order.refundRequired}">
+							<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+								<i class="bi bi-hourglass-split me-1"></i>Chờ hoàn tiền tại chi nhánh
+							</span>
+						</c:when>
 						<c:when test="${order.payment.paymentStatus == 'SUCCESS'}">
 							<span
 								class="badge bg-success-subtle text-success border border-success-subtle">
@@ -413,6 +467,11 @@
 						Bạn có chắc chắn muốn hủy đơn hàng <b>#${order.orderCode}</b>? Sau
 						khi hủy, bạn không thể khôi phục lại đơn hàng này.
 					</p>
+					<c:if test="${order.prepaidVnPay}">
+						<div class="alert alert-info small py-2">
+							<i class="bi bi-info-circle me-1"></i>Đơn hàng đã thanh toán VNPay sau khi hủy sẽ được hoàn tiền 100% tại chi nhánh TECHSEVEN gần nhất hoặc qua chuyển khoản từ chi nhánh.
+						</div>
+					</c:if>
 					<label class="form-label small fw-bold text-dark">Vui lòng
 						chọn lý do hủy:</label>
 					<div class="form-check mb-2">

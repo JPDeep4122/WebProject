@@ -84,9 +84,13 @@
 	<div
 		class="bg-white rounded-4 shadow-sm border mb-4 px-2 overflow-x-auto">
 		<div class="d-flex gap-1">
+
 			<a href="${pageContext.request.contextPath}/orders?status=ALL"
 				class="order-tab-link ${currentStatus == 'ALL' ? 'active' : ''}">
 				Tất cả (${countAll}) </a> <a
+				href="${pageContext.request.contextPath}/orders?status=WAITING_PAYMENT"
+				class="order-tab-link ${currentStatus == 'WAITING_PAYMENT' ? 'active' : ''}">
+				Chờ thanh toán (${countAwaitingPayment}) </a> <a
 				href="${pageContext.request.contextPath}/orders?status=PENDING"
 				class="order-tab-link ${currentStatus == 'PENDING' ? 'active' : ''}">
 				Chờ xác nhận (${countPending}) </a> <a
@@ -102,6 +106,7 @@
 				href="${pageContext.request.contextPath}/orders?status=CANCELLED"
 				class="order-tab-link ${currentStatus == 'CANCELLED' ? 'active' : ''}">
 				Đã hủy (${countCancelled}) </a>
+
 		</div>
 	</div>
 
@@ -134,6 +139,21 @@
 						</div>
 						<div>
 							<c:choose>
+								<c:when test="${order.awaitingPayment}">
+									<span
+										class="badge bg-warning-subtle text-warning-emphasis
+                 border border-warning-subtle rounded-pill px-3 py-2">
+										<i class="bi bi-credit-card me-1"></i> <c:choose>
+											<c:when test="${order.payment.paymentStatus eq 'FAILED'}">
+                Thanh toán chưa thành công
+            </c:when>
+											<c:otherwise>
+                Chờ thanh toán
+            </c:otherwise>
+										</c:choose>
+									</span>
+								</c:when>
+
 								<c:when test="${order.status == 'PENDING'}">
 									<span
 										class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2 fw-semibold">
@@ -258,12 +278,20 @@
 								</span>
 							</div>
 
-							<a
-								href="${pageContext.request.contextPath}/orders/${order.orderCode}"
-								class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
-								<i class="bi bi-eye me-1"></i>Chi tiết
-							</a>
-							
+							<c:if test="${order.payment.paymentLinkAvailable}">
+								<form method="post"
+									action="${pageContext.request.contextPath}/checkout/orders/${order.orderCode}/pay"
+									class="d-inline">
+
+									<input type="hidden" name="${_csrf.parameterName}"
+										value="${_csrf.token}">
+
+									<button type="submit"
+										class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">
+										Thanh toán tiếp</button>
+								</form>
+							</c:if>
+
 							<c:if test="${order.status == 'DELIVERED'}">
 								<a
 									href="${pageContext.request.contextPath}/orders/${order.orderCode}"
@@ -281,7 +309,8 @@
 							<form
 								action="${pageContext.request.contextPath}/orders/${order.orderCode}/reorder"
 								method="post" class="d-inline">
-								<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+								<input type="hidden" name="${_csrf.parameterName}"
+									value="${_csrf.token}">
 								<button type="submit"
 									class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">
 									<i class="bi bi-arrow-repeat me-1"></i>Mua lại
@@ -298,8 +327,10 @@
 <div id="orderRealtime"
 	data-context-path="${pageContext.request.contextPath}"
 	data-poll-url="${pageContext.request.contextPath}/orders/status-snapshot"></div>
-<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script
+	src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+<script
+	src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script src="${pageContext.request.contextPath}/js/order-realtime.js"></script>
 
 <jsp:include page="fragments/footer.jsp" />

@@ -51,9 +51,15 @@ public class AdminUserController {
 	}
 
 	@GetMapping
-	public String list(@RequestParam(required = false) Long id, @RequestParam(required = false) String type,
-			@RequestParam(defaultValue = "id") String sort, @RequestParam(defaultValue = "asc") String direction,
-			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
+	public String list(@RequestParam(required = false) Long id,
+			@RequestParam(required = false) String name,
+			@RequestParam(required = false) String type,
+			@RequestParam(required = false) Long branchId,
+			@RequestParam(required = false) String status,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "15") int size,
+			@RequestParam(defaultValue = "createdAt") String sort,
+			@RequestParam(defaultValue = "desc") String direction,
 			Principal principal, Model model) {
 		if (id != null && id < 0) {
 			id = 0L;
@@ -63,53 +69,84 @@ public class AdminUserController {
 		boolean admin = hasRole(actor, ROLE_ADMIN);
 
 		Sort order = Sort.by("desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC,
-				List.of("id", "email", "fullName", "createdAt", "active").contains(sort) ? sort : "id");
-		int safePage = Math.max(0, page);
-		int safeSize = List.of(10, 20, 50).contains(size) ? size : 20;
-		Pageable pageable = PageRequest.of(safePage, safeSize, order);
-		Page<User> result;
+				List.of("id", "email", "fullName", "createdAt", "active").contains(sort) ? sort : "createdAt");
+		List<User> result;
 		if (admin) {
-			if (id != null) {
-				List<User> matches = users.findById(id).map(List::of).orElse(List.of());
-				result = new PageImpl<>(matches, PageRequest.of(0, safeSize, order), matches.size());
-			}
+			if (id != null)
+				result = users.findById(id).map(List::of).orElse(List.of());
 			else if (type != null && !type.isBlank())
-				result = users.findByRoles_Name(normalizeRole(type), pageable);
+				result = users.findByRoles_Name(normalizeRole(type), order);
 			else
-				result = users.findAll(pageable);
+				result = users.findAll(order);
+
+			if (branchId != null) {
+				result = result.stream()
+						.filter(u -> u.getBranch() != null && Objects.equals(u.getBranch().getId(), branchId))
+						.toList();
+			}
 		} else {
-			Long branchId = requireManagerBranch(actor).getId();
+			Long managerBranchId = requireManagerBranch(actor).getId();
 			if (type != null && !type.isBlank()) {
 				String normalizedType = normalizeRole(type);
 				result = MANAGER_ALLOWED_TARGET_ROLES.contains(normalizedType)
-						? users.findByBranch_IdAndRoles_Name(branchId, normalizedType, pageable)
-						: Page.empty(pageable);
+						? users.findByBranch_IdAndRoles_Name(managerBranchId, normalizedType, order)
+						: List.of();
 			} else {
-				result = users.findDistinctByBranch_IdAndRoles_NameIn(branchId,
-						List.of(ROLE_STAFF, ROLE_SHIPPER), pageable);
+				result = users.findByBranch_Id(managerBranchId, order).stream()
+						.filter(this::isStaffOrShipper)
+						.toList();
 			}
 			if (id != null) {
-				List<User> matches = users.findById(id)
-						.filter(u -> Objects.equals(u.getBranch().getId(), branchId) && isStaffOrShipper(u))
-						.map(List::of).orElse(List.of());
-				result = new PageImpl<>(matches, PageRequest.of(0, safeSize, order), matches.size());
+				result = result.stream().filter(u -> Objects.equals(u.getId(), selectedId)).toList();
 			}
 		}
 
-		model.addAttribute("usersPage", result);
+		// Lọc theo Họ tên / Email / SĐT
+		if (name != null && !name.isBlank()) {
+			String cleanName = name.trim().toLowerCase();
+			result = result.stream()
+					.filter(u -> (u.getFullName() != null && u.getFullName().toLowerCase().contains(cleanName))
+							|| (u.getEmail() != null && u.getEmail().toLowerCase().contains(cleanName))
+							|| (u.getPhoneNumber() != null && u.getPhoneNumber().contains(cleanName)))
+					.toList();
+		}
+
+		// Lọc theo trạng thái tài khoản
+		if (status != null && !status.isBlank()) {
+			if ("ACTIVE".equalsIgnoreCase(status)) {
+				result = result.stream().filter(u -> u.isActive() && !u.isBlocked()).toList();
+			} else if ("BLOCKED".equalsIgnoreCase(status)) {
+				result = result.stream().filter(User::isBlocked).toList();
+			} else if ("PENDING".equalsIgnoreCase(status)) {
+				result = result.stream().filter(u -> !u.isActive() && !u.isBlocked()).toList();
+			}
+		}
+
+		// Phân trang
+		int safePage = Math.max(0, page);
+		int safeSize = List.of(10, 15, 20, 50).contains(size) ? size : 15;
+		int total = result.size();
+		int start = safePage * safeSize;
+		List<User> pagedList = start >= total ? List.of() : result.subList(start, Math.min(start + safeSize, total));
+		org.springframework.data.domain.Page<User> usersPage = new org.springframework.data.domain.PageImpl<>(
+				pagedList, org.springframework.data.domain.PageRequest.of(safePage, safeSize, order), total);
+
+		model.addAttribute("users", usersPage.getContent());
+		model.addAttribute("usersPage", usersPage);
 		model.addAttribute("branches", admin ? branches.findAll(Sort.by("name")) : List.of(requireManagerBranch(actor)));
 		model.addAttribute("isAdminActor", admin);
 		model.addAttribute("actorBranch", actor.getBranch());
 		model.addAttribute("newUser", new AdminUserRequest());
 		model.addAttribute("selectedId", id);
+		model.addAttribute("selectedName", name != null ? name.trim() : "");
 		model.addAttribute("selectedType", type);
+		model.addAttribute("selectedBranchId", branchId);
+		model.addAttribute("selectedStatus", status);
 		model.addAttribute("selectedSort", sort);
 		model.addAttribute("selectedDirection", direction);
 		model.addAttribute("pageSize", safeSize);
-		model.addAttribute("paginationPages", paginationPages(result.getNumber(), result.getTotalPages()));
 		return "admin/users";
 	}
-
 	private List<PageNumber> paginationPages(int currentPage, int totalPages) {
 		if (totalPages <= 0) return List.of();
 		TreeSet<Integer> visible = new TreeSet<>();

@@ -1,18 +1,16 @@
 package com.dienmay.entity.payment;
 
+import com.dienmay.entity.auth.User;
+import com.dienmay.entity.branch.Branch;
 import com.dienmay.entity.order.Order;
+import com.dienmay.entity.order.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.time.Instant;
-import com.dienmay.entity.order.OrderStatus;
+import java.time.LocalDateTime;
 
-/**
- * Entity đại diện cho bảng payments (thông tin thanh toán đơn hàng)
- * Phân công: TV2 - Ngày 03/09
- */
 @Entity
 @Table(name = "payments")
 @Getter
@@ -22,64 +20,76 @@ import com.dienmay.entity.order.OrderStatus;
 @Builder
 public class Payment {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false, unique = true)
-    private Order order;
+	@OneToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "order_id", nullable = false, unique = true)
+	private Order order;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false, length = 30)
-    private PaymentMethod paymentMethod; // COD, VNPAY, MOMO,...
+	@Enumerated(EnumType.STRING)
+	@Column(name = "payment_method", nullable = false, length = 30)
+	private PaymentMethod paymentMethod;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false, length = 30)
-    private PaymentStatus paymentStatus; // PENDING, SUCCESS, FAILED,...
+	@Enumerated(EnumType.STRING)
+	@Column(name = "payment_status", nullable = false, length = 30)
+	private PaymentStatus paymentStatus;
 
-    @Column(name = "amount", nullable = false, precision = 15, scale = 2)
-    private BigDecimal amount;
+	@Column(name = "amount", nullable = false, precision = 15, scale = 2)
+	private BigDecimal amount;
 
-    @Column(name = "transaction_no", length = 100)
-    private String transactionNo; // Mã giao dịch từ VNPay / MoMo / Ngân hàng
+	@Column(name = "transaction_no", length = 100)
+	private String transactionNo;
 
-    @Column(name = "payment_time")
-    private LocalDateTime paymentTime;
+	@Column(name = "payment_time")
+	private LocalDateTime paymentTime;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private LocalDateTime createdAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        if (this.paymentStatus == null) {
-            this.paymentStatus = PaymentStatus.PENDING;
-        }
-    }
+	@Column(name = "payment_url", columnDefinition = "TEXT")
+	private String paymentUrl;
 
-    @Column(name = "payment_url", columnDefinition = "TEXT")
-    private String paymentUrl;
+	@Column(name = "payment_expires_at")
+	private Instant paymentExpiresAt;
 
-    @Column(name = "payment_expires_at")
-    private Instant paymentExpiresAt;
+	// --- Lưu vết hoàn tiền khi đơn trả trước (VNPay) bị hủy ---
+	@Column(name = "refunded_at")
+	private LocalDateTime refundedAt;
 
-    @Transient
-    public boolean isPaymentLinkAvailable() {
-        if (order == null
-                || paymentMethod != PaymentMethod.VNPAY
-                || paymentStatus != PaymentStatus.PENDING
-                || paymentUrl == null
-                || paymentUrl.isBlank()
-                || paymentExpiresAt == null
-                || !paymentExpiresAt.isAfter(Instant.now())) {
-            return false;
-        }
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "refunded_by_user_id")
+	private User refundedBy;
 
-        var status = order.getStatus();
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "refund_branch_id")
+	private Branch refundBranch;
 
-        return status == OrderStatus.PENDING
-                || status == OrderStatus.CONFIRMED
-                || status == OrderStatus.PROCESSING;
-    }
+	@Column(name = "refund_method", length = 40)
+	private String refundMethod; // CASH_AT_BRANCH hoặc BANK_TRANSFER
+
+	@Column(name = "refund_note", length = 500)
+	private String refundNote;
+
+	@PrePersist
+	protected void onCreate() {
+		this.createdAt = LocalDateTime.now();
+		if (this.paymentStatus == null) {
+			this.paymentStatus = PaymentStatus.PENDING;
+		}
+	}
+
+	@Transient
+	public boolean isPaymentLinkAvailable() {
+		if (order == null || paymentMethod != PaymentMethod.VNPAY || paymentStatus != PaymentStatus.PENDING
+				|| paymentUrl == null || paymentUrl.isBlank() || paymentExpiresAt == null
+				|| !paymentExpiresAt.isAfter(Instant.now())) {
+			return false;
+		}
+
+		var status = order.getStatus();
+
+		return status == OrderStatus.PENDING || status == OrderStatus.CONFIRMED || status == OrderStatus.PROCESSING;
+	}
 }

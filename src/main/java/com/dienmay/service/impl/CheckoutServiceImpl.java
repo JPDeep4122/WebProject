@@ -208,8 +208,14 @@ public class CheckoutServiceImpl implements CheckoutService {
 		if (method == PaymentMethod.VNPAY) {
 			vnPayService.requireConfigured();
 		}
-		ShippingQuoteResponse shippingQuote = shippingService.quote(request.getShippingAddress(),
-				request.getProvince());
+		String deliveryAddress = String.join(
+		        ", ",
+		        request.getShippingAddress().strip(),
+		        request.getWard().strip());
+
+		ShippingQuoteResponse shippingQuote = shippingService.quote(
+		        deliveryAddress,
+		        request.getProvince());
 
 		Order order = transactionTemplate
 				.execute(status -> createOrder(request, userEmail, session, shippingQuote, method, servletRequest));
@@ -229,8 +235,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 			throw new IllegalArgumentException("Giỏ hàng của bạn đang trống!");
 		}
 		Long cartId = cart.getId();
-		// A checkout page may already have loaded this cart via OpenEntityManagerInView.
-		// Reload under the database lock before reading any selected items.
+		
 		entityManager.detach(cart);
 		cart = cartRepository.findForUpdate(cartId)
 				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giỏ hàng."));
@@ -280,7 +285,11 @@ public class CheckoutServiceImpl implements CheckoutService {
 				.recipientName(request.getRecipientName()).recipientPhone(request.getRecipientPhone())
 				.recipientEmail(request.getRecipientEmail() == null || request.getRecipientEmail().isBlank()
 						? null : request.getRecipientEmail().trim())
-				.shippingAddress(request.getShippingAddress()).note(request.getNote()).build();
+				.shippingAddress(String.join(
+				        ", ",
+				        request.getShippingAddress().strip(),
+				        request.getWard().strip(),
+				        request.getProvince().strip())).note(request.getNote()).build();
 
 		Order savedOrder = orderRepository.save(order);
 

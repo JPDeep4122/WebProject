@@ -8,7 +8,7 @@
 
 <div class="container-fluid py-4">
 
-	
+
 	<nav aria-label="breadcrumb" class="mb-4">
 		<ol class="breadcrumb small">
 			<li class="breadcrumb-item"><a
@@ -39,17 +39,17 @@
 
 		<div class="row g-4">
 
-			
+
 			<div class="col-lg-7">
 
-				
+
 				<div class="bg-white p-4 rounded-4 shadow-sm border mb-4">
 					<h5 class="fw-bold mb-3 text-dark border-bottom pb-2">
 						<i class="bi bi-geo-alt-fill text-danger me-2"></i>1. Địa Chỉ Nhận
 						Hàng
 					</h5>
 
-					
+
 					<c:if test="${not empty checkoutData.savedAddresses}">
 						<div class="mb-3">
 							<label class="form-label small fw-bold text-muted">Chọn
@@ -97,9 +97,19 @@
 							</label>
 							<textarea name="shippingAddress" id="shippingAddress" rows="2"
 								class="form-control rounded-3" required
-								placeholder="Số 123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM"><c:out
+								placeholder="Số 1, Võ Văn Ngân"><c:out
 									value="${orderForm.shippingAddress}" /></textarea>
 						</div>
+
+						<div class="col-12">
+							<label for="shippingWard" class="form-label small fw-bold">
+								Phường / xã <span class="text-danger">*</span>
+							</label> <input type="text" name="ward" id="shippingWard"
+								class="form-control rounded-3"
+								value="${fn:escapeXml(orderForm.ward)}" maxlength="100"
+								placeholder="Nhập tên phường hoặc xã" required>
+						</div>
+
 						<div class="col-12">
 							<label class="form-label small fw-bold">Tỉnh / thành phố
 								<span class="text-danger">*</span>
@@ -110,6 +120,9 @@
 								class="text-muted">Nhập tỉnh/thành để xác định miễn phí
 								cùng tỉnh hoặc tính tuyến đường liên tỉnh.</small>
 						</div>
+
+
+
 						<div class="col-12">
 							<label class="form-label small fw-bold">Ghi chú đơn hàng
 								(Tùy chọn)</label> <input type="text" name="note"
@@ -120,7 +133,7 @@
 					</div>
 				</div>
 
-				
+
 				<div class="bg-white p-4 rounded-4 shadow-sm border">
 					<h5 class="fw-bold mb-3 text-dark border-bottom pb-2">
 						<i class="bi bi-wallet2 text-primary me-2"></i>2. Phương Thức
@@ -128,7 +141,7 @@
 					</h5>
 
 					<div class="d-flex flex-column gap-3">
-						
+
 						<label
 							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option ${orderForm.paymentMethod eq 'COD' ? 'active-payment' : ''}">
 							<div class="d-flex align-items-center gap-3">
@@ -145,10 +158,7 @@
 								</div>
 
 							</div> <i class="bi bi-cash-stack fs-3 text-success"></i>
-						</label>
-
-						
-						<label
+						</label> <label
 							class="d-flex align-items-center justify-content-between p-3 border rounded-3 cursor-pointer payment-option ${orderForm.paymentMethod eq 'VNPAY' ? 'active-payment' : ''}">
 							<div class="d-flex align-items-center gap-3">
 
@@ -173,7 +183,7 @@
 
 			</div>
 
-			
+
 			<div class="col-lg-5">
 				<div class="bg-white p-4 rounded-4 shadow-sm border position-sticky"
 					style="top: 20px;">
@@ -182,7 +192,7 @@
 						Bạn (${checkoutData.items.size()} món)
 					</h5>
 
-					
+
 					<div class="d-flex flex-column gap-3 mb-4"
 						style="max-height: 250px; overflow-y: auto;">
 						<c:forEach items="${checkoutData.items}" var="item">
@@ -205,7 +215,7 @@
 						</c:forEach>
 					</div>
 
-					
+
 					<div class="mb-4 pt-3 border-top">
 						<label class="form-label small fw-bold text-dark"> <i
 							class="bi bi-ticket-perforated-fill text-warning me-1"></i>Mã
@@ -223,7 +233,7 @@
 							value="">
 					</div>
 
-					
+
 					<div class="d-flex flex-column gap-2 border-top pt-3 mb-4">
 						<div class="d-flex justify-content-between text-muted small">
 							<span>Tạm tính:</span> <span class="fw-bold text-dark"> <fmt:formatNumber
@@ -256,7 +266,7 @@
 						</div>
 					</div>
 
-					
+
 					<button type="submit"
 						class="btn btn-danger w-100 rounded-pill py-3 fw-bold fs-5 shadow">
 						ĐẶT HÀNG NGAY <i class="bi bi-arrow-right ms-1"></i>
@@ -293,6 +303,8 @@
     const hiddenCode = document.getElementById('hiddenVoucherCode');
     const addressInput = document.getElementById('shippingAddress');
     const provinceInput = document.getElementById('shippingProvince');
+    
+    const wardInput = document.getElementById('shippingWard');
 
     const voucherMsg = document.getElementById('voucherMsg');
     const shippingMsg = document.getElementById('shippingQuoteMessage');
@@ -314,7 +326,10 @@
     function payload() {
         return {
             code: codeInput.value.trim().toUpperCase(),
-            shippingAddress: addressInput.value.trim(),
+            shippingAddress: [
+                addressInput.value.trim(),
+                wardInput.value.trim()
+            ].filter(Boolean).join(', '),
             province: provinceInput.value.trim(),
             paymentMethod:
                 form.querySelector(
@@ -340,7 +355,7 @@
     async function calculate(requestVersion) {
         const request = payload();
 
-        if (!request.shippingAddress || !request.province) {
+        if (!addressInput.value.trim() || !wardInput.value.trim() || !request.province) {
             if (requestVersion !== version) return;
 
             feeDisplay.textContent = 'Nhập địa chỉ để tính phí';
@@ -419,6 +434,7 @@
     window.applyVoucher = () => scheduleQuote(0);
 
     window.onSelectSavedAddress = select => {
+    		wardInput.value = '';
         const option = select.options[select.selectedIndex];
 
         if (!select.value) return;
@@ -436,9 +452,10 @@
     };
 
     addressInput.addEventListener('input', () => scheduleQuote());
+    wardInput.addEventListener('input', () => scheduleQuote());
     provinceInput.addEventListener('input', () => scheduleQuote());
     codeInput.addEventListener('input', () => scheduleQuote());
-
+    
     form.querySelectorAll('input[name="paymentMethod"]')
         .forEach(radio => {
             radio.addEventListener('change', () => {

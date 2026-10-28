@@ -25,6 +25,9 @@ import com.dienmay.service.order.ReturnRequestService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Locale;
+import java.util.Set;
+
 @Controller
 @RequestMapping("/orders")
 @RequiredArgsConstructor
@@ -34,83 +37,96 @@ public class OrderController {
 	private final CartService cartService;
 	private final ReturnRequestService returnRequestService;
 
-	// 1. DANH SÁCH ĐƠN HÀNG CỦA TÔI
 	@GetMapping
 	public String listOrders(@RequestParam(required = false) String status, Principal principal, Model model) {
+
 		String userEmail = principal != null ? principal.getName() : null;
+
 		if (userEmail == null || userEmail.equalsIgnoreCase("anonymousUser")) {
 			return "redirect:/login?redirect=/orders";
 		}
 
-		OrderStatus orderStatus = null;
-		if (status != null && !status.trim().isEmpty() && !status.equalsIgnoreCase("ALL")) {
-			try {
-				orderStatus = OrderStatus.valueOf(status.trim().toUpperCase());
-			} catch (Exception ignored) {
-			}
-		}
+		String requestedStatus = status == null || status.isBlank() ? "ALL" : status.trim().toUpperCase(Locale.ROOT);
 
-		List<Order> orders = orderService.getOrdersByUser(userEmail, orderStatus);
+		Set<String> allowedFilters = Set.of("ALL", "WAITING_PAYMENT", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPING",
+				"DELIVERED", "CANCELLED", "RETURN_REQUESTED", "RETURNED");
 
-		long countAll = orderService.getOrdersByUser(userEmail, null).size();
-		long countPending = orderService.getOrdersByUser(userEmail, OrderStatus.PENDING).size();
-		long countConfirmed = orderService.getOrdersByUser(userEmail, OrderStatus.CONFIRMED).size();
-		long countShipping = orderService.getOrdersByUser(userEmail, OrderStatus.SHIPPING).size();
-		long countDelivered = orderService.getOrdersByUser(userEmail, OrderStatus.DELIVERED).size();
-		long countCancelled = orderService.getOrdersByUser(userEmail, OrderStatus.CANCELLED).size();
+		final String currentStatus = allowedFilters.contains(requestedStatus) ? requestedStatus : "ALL";
+
+		List<Order> allOrders = orderService.getOrdersByUser(userEmail, null);
+
+		List<Order> awaitingPaymentOrders = allOrders.stream().filter(Order::isAwaitingPayment).toList();
+
+		List<Order> pendingConfirmationOrders = allOrders.stream().filter(Order::isReadyForConfirmation).toList();
+
+		List<Order> orders = switch (currentStatus) {
+
+		case "ALL" -> allOrders;
+
+		case "WAITING_PAYMENT" -> awaitingPaymentOrders;
+
+		case "PENDING" -> pendingConfirmationOrders;
+
+		default -> allOrders.stream()
+				.filter(order -> order.getStatus() != null && order.getStatus().name().equals(currentStatus)).toList();
+		};
 
 		model.addAttribute("orders", orders);
-		model.addAttribute("currentStatus", (status != null && !status.isEmpty()) ? status.toUpperCase() : "ALL");
-		model.addAttribute("countAll", countAll);
-		model.addAttribute("countPending", countPending);
-		model.addAttribute("countConfirmed", countConfirmed);
-		model.addAttribute("countShipping", countShipping);
-		model.addAttribute("countDelivered", countDelivered);
-		model.addAttribute("countCancelled", countCancelled);
+		model.addAttribute("currentStatus", currentStatus);
+
+		model.addAttribute("countAll", allOrders.size());
+
+		model.addAttribute("countAwaitingPayment", awaitingPaymentOrders.size());
+
+		model.addAttribute("countPending", pendingConfirmationOrders.size());
+
+		model.addAttribute("countConfirmed",
+				allOrders.stream().filter(order -> order.getStatus() == OrderStatus.CONFIRMED).count());
+
+		model.addAttribute("countShipping",
+				allOrders.stream().filter(order -> order.getStatus() == OrderStatus.SHIPPING).count());
+
+		model.addAttribute("countDelivered",
+				allOrders.stream().filter(order -> order.getStatus() == OrderStatus.DELIVERED).count());
+
+		model.addAttribute("countCancelled",
+				allOrders.stream().filter(order -> order.getStatus() == OrderStatus.CANCELLED).count());
 
 		return "client/order-history";
 	}
 
 	@GetMapping("/status-snapshot")
 	@ResponseBody
-	public List<OrderStatusSnapshot> statusSnapshot(
-			@RequestParam(required = false) String orderCode,
+	public List<OrderStatusSnapshot> statusSnapshot(@RequestParam(required = false) String orderCode,
 			Principal principal) {
 		if (principal == null) {
 			throw new org.springframework.web.server.ResponseStatusException(
 					org.springframework.http.HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập.");
 		}
 		if (orderCode != null && !orderCode.isBlank()) {
-			return List.of(OrderStatusSnapshot.from(
-					orderService.getOrderDetail(orderCode, principal.getName())));
+			return List.of(OrderStatusSnapshot.from(orderService.getOrderDetail(orderCode, principal.getName())));
 		}
-		return orderService.getOrdersByUser(principal.getName(), null).stream()
-				.map(OrderStatusSnapshot::from).toList();
+		return orderService.getOrdersByUser(principal.getName(), null).stream().map(OrderStatusSnapshot::from).toList();
 	}
 
 	// 2. CHI TIẾT ĐƠN HÀNG
 	@GetMapping("/{orderCode}")
-	public String orderDetail(
-	        @PathVariable String orderCode,
-	        Principal principal,
-	        Model model) {
+	public String orderDetail(@PathVariable String orderCode, Principal principal, Model model) {
 
-	    if (principal == null) {
-	        return "redirect:/login?redirect=/orders";
-	    }
+		if (principal == null) {
+			return "redirect:/login?redirect=/orders";
+		}
 
-	    Order order = orderService.getOrderDetail(
-	            orderCode, principal.getName());
+		Order order = orderService.getOrderDetail(orderCode, principal.getName());
 
-	    model.addAttribute("order", order);
-	    model.addAttribute("returnRequest",
-	            returnRequestService.findLatestForCustomer(order.getId(), principal.getName()).orElse(null));
-	    return "client/order-detail";
+		model.addAttribute("order", order);
+		model.addAttribute("returnRequest",
+				returnRequestService.findLatestForCustomer(order.getId(), principal.getName()).orElse(null));
+		return "client/order-detail";
 	}
 
 	@PostMapping("/{orderCode}/return-request")
-	public String requestReturn(@PathVariable String orderCode,
-			@RequestParam String reason, Principal principal,
+	public String requestReturn(@PathVariable String orderCode, @RequestParam String reason, Principal principal,
 			RedirectAttributes redirectAttributes) {
 		if (principal == null) {
 			return "redirect:/login?redirect=/orders/" + orderCode;
@@ -166,12 +182,14 @@ public class OrderController {
 	}
 
 	@PostMapping("/tracking")
-	public String trackOrder(@RequestParam String orderCode, @RequestParam String phone, Principal principal, Model model) {
-		if (principal == null) return "redirect:/login-required?redirect=/orders/tracking";
+	public String trackOrder(@RequestParam String orderCode, @RequestParam String phone, Principal principal,
+			Model model) {
+		if (principal == null)
+			return "redirect:/login-required?redirect=/orders/tracking";
 		Order order = orderService.trackOrder(orderCode, phone, principal.getName());
 		if (order != null) {
-		    model.addAttribute("order", order);
-		    return "client/order-detail";
+			model.addAttribute("order", order);
+			return "client/order-detail";
 		} else {
 			model.addAttribute("errorMessage",
 					"Không tìm thấy đơn hàng với thông tin đã nhập. Vui lòng kiểm tra lại Mã đơn hàng và Số điện thoại!");
