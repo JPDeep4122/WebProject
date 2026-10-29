@@ -53,7 +53,10 @@ public class PaymentController {
 		// Giúp môi trường localhost (không có public IPN) vẫn cập nhật trạng thái
 		// SUCCESS ngay lập tức.
 		try {
-			vnPayService.processIpn(allParams);
+			Map<String, String> result = vnPayService.processIpn(allParams);
+			log.info("VNPay return: ref={}, responseCode={}, transactionStatus={}, resultCode={}, resultMessage={}",
+					allParams.get("vnp_TxnRef"), allParams.get("vnp_ResponseCode"),
+					allParams.get("vnp_TransactionStatus"), result.get("RspCode"), result.get("Message"));
 		} catch (Exception ex) {
 			log.warn("Không thể cập nhật trạng thái thanh toán tại vnpay-return", ex);
 		}

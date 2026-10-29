@@ -2,6 +2,84 @@
 	pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="jakarta.tags.core"%>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt"%>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions"%>
+
+
+<style>
+/* Product Image Box & Thumbnails */
+.product-main-img-box {
+    height: 420px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-radius: 1.25rem;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+.product-main-img-box img {
+    max-height: 380px;
+    max-width: 90%;
+    object-fit: contain;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+.product-main-img-box:hover img {
+    transform: scale(1.04);
+}
+.product-thumb-item {
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    padding: 4px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.product-thumb-item:hover {
+    border-color: #0d6efd !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.15);
+}
+.product-thumb-item.active-thumb {
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+.product-thumb-item img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+}
+.branch-stock-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 1.1rem;
+    transition: all 0.2s ease;
+}
+.branch-stock-select {
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-color: #cbd5e1;
+    border-radius: 8px;
+}
+.branch-stock-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+.branch-info-preview {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+</style>
 
 <jsp:include page="fragments/header.jsp" />
 
@@ -25,22 +103,37 @@
 
 		
 		<div class="col-lg-5">
-			<div
-				class="bg-white p-4 rounded-4 shadow-sm border text-center position-relative">
-				<c:if
-					test="${product.sellingPrice != null && product.sellingPrice < product.originalPrice}">
-					<span
-						class="position-absolute top-0 start-0 bg-danger text-white px-3 py-1 m-3 rounded-pill small fw-bold">
-						Giảm sốc </span>
-				</c:if>
-				<img src="${product.mainImageUrl}"
-					class="img-fluid rounded-4 object-fit-contain"
-					style="max-height: 380px;" alt="${product.name}">
-				<div class="d-flex gap-2 flex-wrap mt-3">
-					<c:forEach items="${product.images}" var="image">
-						<img src="${image.imageUrl}"
-							style="width: 72px; height: 72px; object-fit: cover"
-							class="rounded border" alt="${product.name}">
+			<div class="sticky-top" style="top: 85px; z-index: 10;">
+				<div class="product-main-img-box">
+					<c:if test="${product.sellingPrice != null && product.sellingPrice < product.originalPrice}">
+						<span class="position-absolute top-0 start-0 m-3 badge bg-danger px-3 py-2 rounded-pill shadow-sm fw-bold fs-7 d-flex align-items-center gap-1">
+							<i class="bi bi-fire"></i> Giảm sốc
+							<c:if test="${product.originalPrice > 0}">
+								<fmt:formatNumber value="${(1 - product.sellingPrice / product.originalPrice) * 100}" maxFractionDigits="0"/>%
+							</c:if>
+						</span>
+					</c:if>
+					<img id="mainProductImage" src="${product.mainImageUrl}"
+						class="img-fluid" alt="${product.name}">
+				</div>
+
+				<!-- THUMBNAILS GALLERY -->
+				<div class="d-flex gap-2 justify-content-center flex-wrap mt-3" id="productThumbGallery">
+					<c:if test="${not empty product.mainImageUrl}">
+						<div class="product-thumb-item active-thumb"
+							onclick="switchProductImage(this, '${product.mainImageUrl}')"
+							title="Ảnh đại diện">
+							<img src="${product.mainImageUrl}" alt="Ảnh đại diện ${product.name}">
+						</div>
+					</c:if>
+					<c:forEach items="${product.images}" var="img" varStatus="status">
+						<c:if test="${img.imageUrl ne product.mainImageUrl}">
+							<div class="product-thumb-item"
+								onclick="switchProductImage(this, '${img.imageUrl}')"
+								title="Ảnh chi tiết ${status.index + 1}">
+								<img src="${img.imageUrl}" alt="${product.name} - Ảnh ${status.index + 1}">
+							</div>
+						</c:if>
 					</c:forEach>
 				</div>
 			</div>
@@ -88,40 +181,108 @@
 				<p class="text-muted mb-4">${product.shortDescription}</p>
 
 				
-				<div class="card border-primary-subtle mb-4 rounded-3">
-					<div
-						class="card-header bg-primary-subtle text-primary fw-bold py-2 small">
-						<i class="bi bi-geo-alt-fill me-1"></i> CỬA HÀNG CÒN SẢN PHẨM NÀY
-						(BẤM ĐỂ CHỌN NƠI MUA GẦN BẠN):
+				<!-- CỬA HÀNG CÒN HÀNG (DROPDOWN GỌN GÀNG) -->
+				<div class="branch-stock-card mb-4 shadow-sm">
+					<div class="d-flex align-items-center justify-content-between mb-2">
+						<label for="branchStockSelect" class="form-label fw-bold text-dark mb-0 small text-uppercase letter-spacing-1 d-flex align-items-center gap-2">
+							<i class="bi bi-geo-alt-fill text-danger fs-6"></i>
+							<span>Kiểm tra tồn kho theo chi nhánh:</span>
+						</label>
+						<c:if test="${not empty branchStocks}">
+							<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 small fw-medium">
+								${branchStocks.size()} điểm bán
+							</span>
+						</c:if>
 					</div>
-					<ul class="list-group list-group-flush small">
-						<c:forEach items="${branchStocks}" var="stock">
-							<li
-								class="list-group-item d-flex justify-content-between align-items-center py-2">
-								<div>
-									<b class="text-dark">${stock.branch.name}</b>: <span
-										class="text-muted">${stock.branch.address}</span>
-									<div class="text-muted" style="font-size: 11px;">
-										<i class="bi bi-telephone"></i> ${stock.branch.phone}
+
+					<c:choose>
+						<c:when test="${not empty branchStocks}">
+							<!-- Dropdown Select -->
+							<select id="branchStockSelect" class="form-select branch-stock-select py-2 mb-2" onchange="onBranchStockChange(this)">
+								<c:forEach items="${branchStocks}" var="stock" varStatus="loop">
+									<option value="${stock.branch.id}"
+										data-name="${fn:escapeXml(stock.branch.name)}"
+										data-qty="${stock.availableQuantity}"
+										data-address="${fn:escapeXml(stock.branch.address)}"
+										data-phone="${fn:escapeXml(stock.branch.phone)}"
+										<c:if test="${(not empty headerSelectedBranch && stock.branch.id == headerSelectedBranch.id) || (empty headerSelectedBranch && loop.first)}">selected</c:if>>
+										${stock.branch.name} — <c:choose><c:when test="${stock.availableQuantity > 0}">Còn ${stock.availableQuantity} máy</c:when><c:otherwise>Hết hàng</c:otherwise></c:choose>
+									</option>
+								</c:forEach>
+							</select>
+
+							<!-- Selected Branch Preview Card -->
+							<div class="branch-info-preview shadow-sm" id="branchInfoPreview">
+								<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+									<div class="fw-bold text-dark d-flex align-items-center gap-2">
+										<i class="bi bi-shop text-primary"></i>
+										<span id="selectedBranchName">---</span>
+									</div>
+									<div id="selectedBranchStockBadge">
+										<!-- Dynamic Stock Badge -->
 									</div>
 								</div>
-								<div>
-									<c:choose>
-										<c:when test="${stock.availableQuantity > 0}">
-											<span
-												class="badge bg-success-subtle text-success border border-success rounded-pill px-2 py-1">
-												Còn ${stock.availableQuantity} máy </span>
-										</c:when>
-										<c:otherwise>
-											<span
-												class="badge bg-danger-subtle text-danger border border-danger rounded-pill px-2 py-1">
-												Hết hàng </span>
-										</c:otherwise>
-									</c:choose>
+
+								<div class="text-secondary small d-flex align-items-start gap-2 mb-2">
+									<i class="bi bi-geo-alt text-danger mt-1 flex-shrink-0"></i>
+									<span id="selectedBranchAddress">---</span>
 								</div>
-							</li>
-						</c:forEach>
-					</ul>
+
+								<div class="d-flex align-items-center justify-content-between pt-2 border-top small">
+									<span class="text-muted">
+										<i class="bi bi-telephone-fill text-primary me-1"></i>Hotline chi nhánh:
+									</span>
+									<a id="selectedBranchPhone" href="#" class="fw-bold text-primary text-decoration-none">---</a>
+								</div>
+							</div>
+
+							<!-- Collapsible view for all branches -->
+							<div class="mt-2 text-end">
+								<a class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1"
+									data-bs-toggle="collapse" href="#allBranchesCollapse" role="button" aria-expanded="false" aria-controls="allBranchesCollapse">
+									<i class="bi bi-list-nested"></i>
+									<span>Xem toàn bộ chi nhánh</span>
+									<i class="bi bi-chevron-down small"></i>
+								</a>
+							</div>
+
+							<div class="collapse mt-2" id="allBranchesCollapse">
+								<div class="card card-body p-2 border bg-white rounded-3 shadow-sm" style="max-height: 220px; overflow-y: auto;">
+									<ul class="list-group list-group-flush small">
+										<c:forEach items="${branchStocks}" var="stock">
+											<li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-2 rounded-2"
+												style="cursor: pointer;"
+												onclick="selectBranchFromList(${stock.branch.id})">
+												<div>
+													<b class="text-dark">${stock.branch.name}</b>
+													<div class="text-muted" style="font-size: 11px;">${stock.branch.address}</div>
+												</div>
+												<div>
+													<c:choose>
+														<c:when test="${stock.availableQuantity > 0}">
+															<span class="badge bg-success-subtle text-success border border-success rounded-pill px-2 py-1">
+																Còn ${stock.availableQuantity} máy
+															</span>
+														</c:when>
+														<c:otherwise>
+															<span class="badge bg-danger-subtle text-danger border border-danger rounded-pill px-2 py-1">
+																Hết hàng
+															</span>
+														</c:otherwise>
+													</c:choose>
+												</div>
+											</li>
+										</c:forEach>
+									</ul>
+								</div>
+							</div>
+						</c:when>
+						<c:otherwise>
+							<div class="alert alert-warning py-2 px-3 small mb-0 rounded-3">
+								<i class="bi bi-exclamation-triangle me-1"></i> Hiện chưa có thông tin tồn kho cho sản phẩm này tại các chi nhánh.
+							</div>
+						</c:otherwise>
+					</c:choose>
 				</div>
 
 				
@@ -635,6 +796,72 @@
 <jsp:include page="fragments/footer.jsp" />
 
 <script>
+
+// 1. Chuyen anh san pham khi bam vao thumbnail
+function switchProductImage(thumbElement, newImageUrl) {
+    const mainImg = document.getElementById('mainProductImage');
+    if (!mainImg || !newImageUrl) return;
+
+    mainImg.style.opacity = '0.3';
+    setTimeout(function() {
+        mainImg.src = newImageUrl;
+        mainImg.style.opacity = '1';
+    }, 150);
+
+    document.querySelectorAll('.product-thumb-item').forEach(function(el) {
+        el.classList.remove('active-thumb');
+    });
+    if (thumbElement) {
+        thumbElement.classList.add('active-thumb');
+    }
+}
+
+// 2. Xu ly khi thay doi chi nhanh kiem tra ton kho
+function onBranchStockChange(selectEl) {
+    if (!selectEl) return;
+    const opt = selectEl.options[selectEl.selectedIndex];
+    if (!opt) return;
+
+    const name = opt.getAttribute('data-name') || opt.text;
+    const qty = parseInt(opt.getAttribute('data-qty') || '0', 10);
+    const address = opt.getAttribute('data-address') || 'Đang cập nhật';
+    const phone = opt.getAttribute('data-phone') || '1800.6789';
+
+    const nameEl = document.getElementById('selectedBranchName');
+    const addrEl = document.getElementById('selectedBranchAddress');
+    const phoneEl = document.getElementById('selectedBranchPhone');
+    const badgeEl = document.getElementById('selectedBranchStockBadge');
+
+    if (nameEl) nameEl.textContent = name;
+    if (addrEl) addrEl.textContent = address;
+    if (phoneEl) {
+        phoneEl.textContent = phone;
+        phoneEl.href = 'tel:' + phone.replace(/[^0-9+]/g, '');
+    }
+    if (badgeEl) {
+        if (qty > 0) {
+            badgeEl.innerHTML = '<span class="badge bg-success-subtle text-success border border-success rounded-pill px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Còn ' + qty + ' máy</span>';
+        } else {
+            badgeEl.innerHTML = '<span class="badge bg-danger-subtle text-danger border border-danger rounded-pill px-2 py-1"><i class="bi bi-x-circle-fill me-1"></i>Tạm hết hàng</span>';
+        }
+    }
+}
+
+function selectBranchFromList(branchId) {
+    const select = document.getElementById('branchStockSelect');
+    if (!select) return;
+    select.value = branchId;
+    onBranchStockChange(select);
+    select.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const select = document.getElementById('branchStockSelect');
+    if (select) {
+        onBranchStockChange(select);
+    }
+});
+
 function changeQty(delta) {
     const input = document.getElementById('buyQty');
     const current = Number(input.value);

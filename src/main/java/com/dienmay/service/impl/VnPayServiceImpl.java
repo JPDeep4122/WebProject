@@ -34,7 +34,9 @@ import com.dienmay.service.promotion.VoucherService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class VnPayServiceImpl implements VnPayService {
@@ -51,7 +53,7 @@ public class VnPayServiceImpl implements VnPayService {
                     "VNPay chưa được cấu hình. Hãy đặt VNPAY_TMN_CODE và VNPAY_HASH_SECRET.");
         }
         requireHttpUrl(vnPayConfig.getVnpPayUrl());
-        requireHttpUrl(vnPayConfig.getVnpReturnUrl());
+        requireReturnUrl();
     }
 
     private void requireHttpUrl(String value) {
@@ -66,9 +68,37 @@ public class VnPayServiceImpl implements VnPayService {
         }
     }
 
+    private String requireReturnUrl() {
+        String returnUrl = vnPayConfig.getVnpReturnUrl();
+
+        if (returnUrl == null || returnUrl.isBlank()) {
+            throw new IllegalStateException(
+                    "Chưa cấu hình VNPAY_RETURN_URL.");
+        }
+
+        returnUrl = returnUrl.trim();
+        requireHttpUrl(returnUrl);
+
+        URI uri = URI.create(returnUrl);
+
+        if (!"/payment/vnpay-return".equals(uri.getPath())
+                || uri.getRawQuery() != null
+                || uri.getRawFragment() != null
+                || uri.getRawUserInfo() != null) {
+
+            throw new IllegalStateException(
+                    "VNPAY_RETURN_URL phải có đường dẫn "
+                    + "/payment/vnpay-return, "
+                    + "không chứa query hoặc fragment.");
+        }
+
+        return returnUrl;
+    }
+
     @Override
     public String createPaymentUrl(Order order, HttpServletRequest request, Instant expiresAt) {
         requireConfigured();
+        String returnUrl = requireReturnUrl();
         if (expiresAt == null || !expiresAt.isAfter(Instant.now())) {
             throw new IllegalArgumentException("Thời hạn thanh toán không hợp lệ.");
         }
@@ -97,10 +127,9 @@ public class VnPayServiceImpl implements VnPayService {
         vnp_Params.put("vnp_OrderInfo", "Thanh toan don hang " + vnp_TxnRef);
         vnp_Params.put("vnp_OrderType", "other");
         vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_ReturnUrl", vnPayConfig.getVnpReturnUrl());
+        vnp_Params.put("vnp_ReturnUrl", returnUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
-        // Múi giờ chuẩn Việt Nam GMT+7
         TimeZone vnTimeZone = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
         Calendar cld = Calendar.getInstance(vnTimeZone);
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -113,21 +142,17 @@ public class VnPayServiceImpl implements VnPayService {
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 
-        // 1. Sắp xếp danh sách tham số theo A-Z
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
 
-        // 2. Xây dựng đồng thời hashData và query theo chuẩn mẫu VNPAY Java
         StringBuilder hashData = new StringBuilder();
         StringBuilder query = new StringBuilder();
         for (String fieldName : fieldNames) {
             String fieldValue = vnp_Params.get(fieldName);
             if (fieldValue != null && !fieldValue.isEmpty()) {
                 try {
-                    // hashData
                     hashData.append(fieldName).append('=')
                             .append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString())).append('&');
-                    // query
                     query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString())).append('=')
                             .append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString())).append('&');
                 } catch (Exception e) {
@@ -136,17 +161,17 @@ public class VnPayServiceImpl implements VnPayService {
             }
         }
 
-        // Xóa dấu '&' cuối cùng
         if (hashData.length() > 0) hashData.setLength(hashData.length() - 1);
         if (query.length() > 0) query.setLength(query.length() - 1);
 
-        // 3. Ký số trên chuỗi hashData
         String vnp_SecureHash = VnPayConfig.hmacSHA512(vnPayConfig.getVnpHashSecret(), hashData.toString());
         if (vnp_SecureHash == null || !vnp_SecureHash.matches("(?i)[0-9a-f]{128}")) {
             throw new IllegalStateException("Không thể tạo chữ ký thanh toán VNPay.");
         }
         String paymentUrl = vnPayConfig.getVnpPayUrl() + "?" + query.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
 
+        log.info("Tạo URL VNPay: order={}, returnUrl={}, expiresAt={}",
+                order.getOrderCode(), returnUrl, expiresAt);
         return paymentUrl;
     }
     @Override
@@ -285,7 +310,6 @@ public class VnPayServiceImpl implements VnPayService {
                     "VNPAY_FAILED");
         }
         
-        // Trạng thái xử lý đơn hàng vẫn do chi nhánh xác nhận.
         return ipnResult("00", "Confirm Success");
     }
 
