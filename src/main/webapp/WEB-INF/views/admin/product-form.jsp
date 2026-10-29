@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
-	pageEncoding="UTF-8"%><%@ taglib prefix="c" uri="jakarta.tags.core"%>
+	pageEncoding="UTF-8"%><%@ taglib prefix="c" uri="jakarta.tags.core"%><%@ taglib prefix="fn" uri="jakarta.tags.functions"%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -15,6 +15,13 @@
 	<div class="d-flex"><jsp:include page="fragments/sidebar.jsp" /><main
 			class="flex-grow-1 bg-light p-4">
 			<h3>Sửa sản phẩm</h3>
+			<c:if test="${not empty validationErrors}">
+				<div class="alert alert-danger" role="alert">
+					<c:forEach items="${validationErrors}" var="validationError">
+						<div><c:out value="${validationError}"/></div>
+					</c:forEach>
+				</div>
+			</c:if>
 
 			<c:url var="editProductUrl" value="/admin/products/${productId}/edit">
 				<c:param name="${_csrf.parameterName}" value="${_csrf.token}" />
@@ -27,15 +34,15 @@
 				<div class="col-12"><small class="text-secondary">Các mục có dấu <span class="text-danger fw-bold">*</span> là bắt buộc.</small></div>
 				<div class="col-md-6">
 					<label class="form-label">Tên <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><input class="form-control"
-						name="name" value="${form.name}" required>
+						name="name" value="${fn:escapeXml(form.name)}" required>
 				</div>
 				<div class="col-md-6">
 					<label class="form-label">Slug <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><input class="form-control"
-						name="slug" value="${form.slug}" required>
+						name="slug" value="${fn:escapeXml(form.slug)}" required>
 				</div>
 				<div class="col-md-4">
 					<label class="form-label">SKU <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><input class="form-control"
-						name="sku" value="${form.sku}" required>
+						name="sku" value="${fn:escapeXml(form.sku)}" required>
 				</div>
 				<div class="col-md-4">
 					<label class="form-label">Giá gốc <span class="text-danger fw-bold" aria-hidden="true">*</span><span class="visually-hidden">(bắt buộc)</span></label><input
@@ -73,15 +80,15 @@
 				</div>
 				<div class="col-12">
 					<label class="form-label">Mô tả ngắn</label>
-					<textarea class="form-control" name="shortDescription">${form.shortDescription}</textarea>
+					<textarea class="form-control" name="shortDescription">${fn:escapeXml(form.shortDescription)}</textarea>
 				</div>
 				<div class="col-12">
 					<label class="form-label">Mô tả</label>
-					<textarea class="form-control" name="description">${form.description}</textarea>
+					<textarea class="form-control" name="description">${fn:escapeXml(form.description)}</textarea>
 				</div>
 				<div class="col-12">
 					<label class="form-label">Thông số kỹ thuật</label>
-					<textarea class="form-control" name="specifications" rows="8">${form.specifications}</textarea>
+					<textarea class="form-control" name="specifications" rows="8">${fn:escapeXml(form.specifications)}</textarea>
 				</div>
 				<div class="col-md-3">
 					<label class="form-label">Trạng thái</label><select

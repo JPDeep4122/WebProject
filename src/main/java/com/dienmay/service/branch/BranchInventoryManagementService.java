@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.dienmay.dto.branch.BranchInventoryOverview;
+import com.dienmay.dto.branch.InventoryStockRequest;
 import com.dienmay.entity.auth.User;
 import com.dienmay.entity.branch.BranchInventory;
 import com.dienmay.entity.branch.InventoryAdjustment;
@@ -29,9 +31,9 @@ public class BranchInventoryManagementService {
     private static final String STAFF_ROLE = "ROLE_STAFF";
 
     private final BranchInventoryRepository inventories;
-    private final InventoryAdjustmentRepository adjustments;
     private final BranchRepository branches;
     private final UserRepository users;
+    private final InventoryAdjustmentRepository adjustments;
 
     @Transactional(readOnly = true)
     public BranchInventoryOverview load(String actorEmail, Long requestedBranchId,
@@ -50,21 +52,12 @@ public class BranchInventoryManagementService {
                 : inventories.search(effectiveBranchId, normalizedKeyword, pageable);
         List<com.dienmay.entity.branch.Branch> visibleBranches = branches.findByActiveTrue();
 
-        List<InventoryAdjustment> recent;
-        if (!viewingOwnBranchOrAdmin) {
-            recent = List.of();
-        } else if (effectiveBranchId == null) {
-            recent = adjustments.findTop20ByOrderByCreatedAtDesc();
-        } else {
-            recent = adjustments.findTop20ByBranchIdOrderByCreatedAtDesc(effectiveBranchId);
-        }
-
         return BranchInventoryOverview.builder()
                 .inventories(result)
                 .branches(visibleBranches)
-                .recentAdjustments(recent)
                 .selectedBranchId(effectiveBranchId)
                 .canChooseBranch(true)
+                .canEditInventory(viewingOwnBranchOrAdmin)
                 .warning(!admin && ownBranchId == null
                         ? "Tài khoản nhân sự chưa được gán chi nhánh."
                         : (!viewingOwnBranchOrAdmin
@@ -74,89 +67,47 @@ public class BranchInventoryManagementService {
     }
 
     @Transactional
-    public void adjust(Long inventoryId, Integer newStock, String reason, String actorEmail) {
+    @CacheEvict(cacheNames = {"customerHomeProducts", "customerProductDetails",
+            "customerCatalogPages", "customerFilteredBrands"}, allEntries = true)
+    public void updateStock(Long inventoryId, InventoryStockRequest request, String actorEmail) {
         User actor = requireActor(actorEmail);
         BranchInventory inventory = inventories.findByIdForUpdate(inventoryId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tồn kho cần điều chỉnh."));
-        authorizeBranch(actor, inventory);
-        validateAdjustment(inventory, newStock, reason);
-
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tồn kho sản phẩm."));
+        if (!hasRole(actor, ADMIN_ROLE) && (actor.getBranch() == null
+                || !Objects.equals(actor.getBranch().getId(), inventory.getBranch().getId()))) {
+            throw new AccessDeniedException("Bạn chỉ được sửa tồn kho của chi nhánh mình.");
+        }
+        if (!inventory.getBranch().isActive()) {
+            throw new IllegalArgumentException("Không thể sửa tồn kho của chi nhánh đã ngừng hoạt động.");
+        }
+        Integer newStock = request.getNewStock();
+        String reason = request.getReason() == null ? "" : request.getReason().trim();
+        if (newStock == null || newStock < 0 || reason.isBlank() || reason.length() > 500) {
+            throw new IllegalArgumentException("Nhập tồn thực tế không âm và lý do từ 1 đến 500 ký tự.");
+        }
+        if (!Objects.equals(request.getExpectedStock(), inventory.getStockQuantity())) {
+            throw new IllegalArgumentException("Tồn kho đã thay đổi. Vui lòng tải lại trang và kiểm tra trước khi lưu.");
+        }
+        long held = (long) (inventory.getReservedQuantity() == null ? 0 : inventory.getReservedQuantity())
+                + (inventory.getTransferReservedQuantity() == null ? 0 : inventory.getTransferReservedQuantity())
+                + (inventory.getQuarantineQuantity() == null ? 0 : inventory.getQuarantineQuantity());
+        if (newStock < held) {
+            throw new IllegalArgumentException("Tồn thực tế phải từ " + held
+                    + " trở lên để đủ hàng đang giữ và hàng cách ly.");
+        }
         int previousStock = inventory.getStockQuantity();
-        int delta = newStock - previousStock;
-        String normalizedReason = reason.trim();
-
+        if (newStock == previousStock) {
+            throw new IllegalArgumentException("Tồn thực tế mới phải khác số tồn hiện tại.");
+        }
+        inventory.setStockQuantity(newStock);
+        inventory.recalculateAvailable();
+        inventories.save(inventory);
         adjustments.save(InventoryAdjustment.builder()
-                .inventory(inventory)
-                .branch(inventory.getBranch())
-                .product(inventory.getProduct())
-                .adjustedBy(actor)
-                .previousStock(previousStock)
-                .newStock(newStock)
-                .deltaQuantity(delta)
-                .reservedQuantity(inventory.getReservedQuantity())
-                .reason(normalizedReason)
-                .status("PENDING")
-                .build());
-    }
-
-    @Transactional
-    public void reviewAdjustment(Long adjustmentId, String decision, String reviewNote, String actorEmail) {
-        User actor = requireActor(actorEmail);
-        boolean admin = hasRole(actor, ADMIN_ROLE);
-        boolean manager = hasRole(actor, MANAGER_ROLE);
-        if (!admin && !manager) {
-            throw new AccessDeniedException("Nhân viên không có quyền phê duyệt phiếu điều chỉnh kho.");
-        }
-
-        InventoryAdjustment adjustment = adjustments.findByIdForUpdate(adjustmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu điều chỉnh kho."));
-        if (!"PENDING".equals(adjustment.getStatus())) {
-            throw new IllegalArgumentException("Phiếu điều chỉnh kho này đã được xử lý trước đó.");
-        }
-
-        if (!admin && (actor.getBranch() == null
-                || !Objects.equals(actor.getBranch().getId(), adjustment.getBranch().getId()))) {
-            throw new AccessDeniedException("Bạn chỉ được phê duyệt phiếu điều chỉnh thuộc chi nhánh của mình.");
-        }
-
-        User creator = adjustment.getAdjustedBy();
-        if (creator != null && Objects.equals(creator.getId(), actor.getId())) {
-            throw new AccessDeniedException("Nguyên tắc kiểm soát nội bộ: Người tạo phiếu không được tự phê duyệt phiếu của chính mình.");
-        }
-        if (creator != null && hasRole(creator, MANAGER_ROLE) && !admin) {
-            throw new AccessDeniedException("Phiếu điều chỉnh do Quản lý chi nhánh tạo phải do Admin tổng phê duyệt.");
-        }
-
-        String normalizedDecision = decision == null ? "" : decision.trim().toUpperCase();
-        if (!"APPROVED".equals(normalizedDecision) && !"REJECTED".equals(normalizedDecision)) {
-            throw new IllegalArgumentException("Quyết định phê duyệt không hợp lệ.");
-        }
-
-        if ("APPROVED".equals(normalizedDecision)) {
-            BranchInventory inventory = inventories.findByIdForUpdate(adjustment.getInventory().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bản ghi tồn kho."));
-            int currentStock = inventory.getStockQuantity();
-            int delta = adjustment.getDeltaQuantity() != null
-                    ? adjustment.getDeltaQuantity()
-                    : (adjustment.getNewStock() - adjustment.getPreviousStock());
-            int updatedStock = currentStock + delta;
-            int minRequired = inventory.getTotalHeldAndQuarantine();
-            if (updatedStock < minRequired) {
-                throw new IllegalArgumentException("Không thể duyệt: Tồn thực tế sau điều chỉnh (" + updatedStock
-                        + ") thấp hơn tổng hàng giữ và cách ly hiện tại (" + minRequired + ").");
-            }
-            adjustment.setPreviousStock(currentStock);
-            adjustment.setNewStock(updatedStock);
-            inventory.setStockQuantity(updatedStock);
-            inventory.recalculateAvailable();
-            inventories.save(inventory);
-        }
-
-        adjustment.setStatus(normalizedDecision);
-        adjustment.setReviewedBy(actor);
-        adjustment.setReviewedAt(LocalDateTime.now());
-        adjustment.setReviewNote(reviewNote == null || reviewNote.isBlank() ? null : reviewNote.trim());
-        adjustments.save(adjustment);
+                .inventory(inventory).branch(inventory.getBranch()).product(inventory.getProduct())
+                .adjustedBy(actor).previousStock(previousStock).newStock(newStock)
+                .deltaQuantity(newStock - previousStock).reservedQuantity(inventory.getReservedQuantity())
+                .reason(reason).status("APPROVED").reviewedBy(actor).reviewedAt(LocalDateTime.now())
+                .reviewNote("Cập nhật tồn kho trực tiếp").build());
     }
 
     private Long effectiveBranchId(User actor, boolean admin, Long requestedBranchId) {
@@ -180,36 +131,6 @@ public class BranchInventoryManagementService {
             throw new AccessDeniedException("Tài khoản không có quyền quản lý tồn kho.");
         }
         return actor;
-    }
-
-    private void authorizeBranch(User actor, BranchInventory inventory) {
-        if (hasRole(actor, ADMIN_ROLE)) {
-            return;
-        }
-        if (actor.getBranch() == null
-                || !Objects.equals(actor.getBranch().getId(), inventory.getBranch().getId())) {
-            throw new AccessDeniedException("Bạn chỉ được lập yêu cầu điều chỉnh tồn kho tại chi nhánh của mình.");
-        }
-    }
-
-    private void validateAdjustment(BranchInventory inventory, Integer newStock, String reason) {
-        if (newStock == null || newStock < 0) {
-            throw new IllegalArgumentException("Tồn kho mới phải là số không âm.");
-        }
-        int minRequired = inventory.getTotalHeldAndQuarantine();
-        if (newStock < minRequired) {
-            throw new IllegalArgumentException("Tồn kho mới không được thấp hơn tổng lượng đang giữ và cách ly ("
-                    + minRequired + ").");
-        }
-        if (newStock.equals(inventory.getStockQuantity())) {
-            throw new IllegalArgumentException("Tồn kho mới không thay đổi so với hiện tại.");
-        }
-        if (reason == null || reason.isBlank()) {
-            throw new IllegalArgumentException("Vui lòng nhập lý do điều chỉnh tồn kho.");
-        }
-        if (reason.trim().length() > 500) {
-            throw new IllegalArgumentException("Lý do điều chỉnh tối đa 500 ký tự.");
-        }
     }
 
     private boolean hasRole(User user, String roleName) {

@@ -12,6 +12,7 @@
     <jsp:include page="fragments/theme.jsp"/>
 </head>
 <body>
+<c:set var="canReviewReturns" value="${pageContext.request.isUserInRole('ADMIN') or pageContext.request.isUserInRole('BRANCH_MANAGER')}"/>
 <div class="d-flex"><jsp:include page="fragments/sidebar.jsp"/>
 <main class="flex-grow-1 bg-light p-4" style="min-width:0">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -51,7 +52,7 @@
                 <c:when test="${request.status eq 'COMPLETED'}"><span class="badge text-bg-success">Đã hoàn tất</span></c:when>
                 <c:otherwise><span class="badge text-bg-danger">Từ chối</span></c:otherwise></c:choose>
                 <c:if test="${not empty request.reviewNote}"><div class="small text-secondary mt-1"><c:out value="${request.reviewNote}"/></div></c:if></td>
-            <td><c:if test="${request.status eq 'PENDING'}">
+            <td><c:if test="${request.status eq 'PENDING' and canReviewReturns}">
                 <form method="post" action="${pageContext.request.contextPath}/admin/returns/${request.id}/review" class="mb-2">
                     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"><input type="hidden" name="decision" value="APPROVED"><input type="hidden" name="branchId" value="${selectedBranchId}">
                     <input class="form-control form-control-sm mb-2" name="reviewNote" maxlength="500" placeholder="Ghi chú duyệt (không bắt buộc)">
@@ -62,7 +63,7 @@
                     <input class="form-control form-control-sm mb-2" name="reviewNote" maxlength="500" placeholder="Lý do từ chối" required>
                     <button class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Từ chối yêu cầu trả hàng này?');"><i class="bi bi-x-circle"></i> Từ chối</button>
                 </form></c:if>
-                                <c:if test="${request.status eq 'APPROVED'}">
+                                <c:if test="${request.status eq 'APPROVED' and canReviewReturns}">
                     <form method="post" action="${pageContext.request.contextPath}/admin/returns/${request.id}/complete">
                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"><input type="hidden" name="branchId" value="${selectedBranchId}">
                         <select class="form-select form-select-sm mb-2" name="disposition">
@@ -73,6 +74,9 @@
                         <button class="btn btn-sm btn-success w-100" onclick="return confirm('Xác nhận đã nhận hàng trả và hoàn tiền?');"><i class="bi bi-box-arrow-in-down"></i> Hoàn tất trả hàng</button>
                     </form>
                     <div class="small text-secondary mt-2">Đã duyệt bởi <c:out value="${request.reviewedBy.fullName}"/></div>
+                </c:if>
+                <c:if test="${not canReviewReturns and (request.status eq 'PENDING' or request.status eq 'APPROVED')}">
+                    <span class="small text-secondary">Quản lý chi nhánh/Admin xử lý xét duyệt và hoàn tiền.</span>
                 </c:if>
                 <c:if test="${request.status eq 'REJECTED'}"><span class="small text-secondary">Đã từ chối bởi <c:out value="${request.reviewedBy.fullName}"/></span></c:if>
                 <c:if test="${request.status eq 'COMPLETED'}">
