@@ -11,13 +11,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
+import jakarta.validation.Valid;
+import com.dienmay.dto.branch.InventoryStockRequest;
 import com.dienmay.service.branch.BranchInventoryManagementService;
 
 import lombok.RequiredArgsConstructor;
@@ -43,15 +46,37 @@ public class AdminInventoryController {
 
         model.addAttribute("inventoryPage", overview.getInventories());
         model.addAttribute("branches", overview.getBranches());
-        model.addAttribute("adjustments", overview.getRecentAdjustments());
+
         model.addAttribute("selectedBranchId", overview.getSelectedBranchId());
         model.addAttribute("canChooseBranch", overview.isCanChooseBranch());
+        model.addAttribute("canEditInventory", overview.isCanEditInventory());
         model.addAttribute("warning", overview.getWarning());
         model.addAttribute("keyword", keyword == null ? "" : keyword.trim());
         model.addAttribute("pageSize", safeSize);
         model.addAttribute("paginationPages", paginationPages(overview.getInventories().getNumber(),
                 overview.getInventories().getTotalPages()));
         return "admin/inventory";
+    }
+
+    @PostMapping("/{id}/stock")
+    public String updateStock(@PathVariable Long id,
+            @Valid @ModelAttribute InventoryStockRequest request, BindingResult result,
+            @RequestParam(required = false) Long branchId,
+            Principal principal, RedirectAttributes redirect) {
+        if (branchId != null) redirect.addAttribute("branchId", branchId);
+        if (result.hasErrors()) {
+            redirect.addFlashAttribute("error", result.getAllErrors().getFirst().getDefaultMessage());
+            return "redirect:/admin/inventory";
+        }
+        try {
+            inventoryService.updateStock(id, request, principal.getName());
+            redirect.addFlashAttribute("success", "Đã cập nhật tồn kho thành công.");
+        } catch (AccessDeniedException exception) {
+            throw exception;
+        } catch (IllegalArgumentException exception) {
+            redirect.addFlashAttribute("error", exception.getMessage());
+        }
+        return "redirect:/admin/inventory";
     }
 
     private List<PageNumber> paginationPages(int currentPage, int totalPages) {
@@ -77,42 +102,4 @@ public class AdminInventoryController {
 
     public record PageNumber(int index, boolean gapBefore) { }
 
-    @PostMapping("/{id}/adjust")
-    public String adjust(@PathVariable Long id,
-            @RequestParam Integer newStock,
-            @RequestParam String reason,
-            @RequestParam(required = false) Long branchId,
-            Principal principal, RedirectAttributes flash) {
-        try {
-            inventoryService.adjust(id, newStock, reason, principal.getName());
-            flash.addFlashAttribute("success",
-                    "Đã lập phiếu yêu cầu điều chỉnh tồn kho (chờ Quản lý/Admin phê duyệt).");
-        } catch (IllegalArgumentException | AccessDeniedException ex) {
-            flash.addFlashAttribute("error", ex.getMessage());
-        }
-        if (branchId != null) {
-            flash.addAttribute("branchId", branchId);
-        }
-        return "redirect:/admin/inventory";
-    }
-
-    @PostMapping("/adjustments/{adjustmentId}/review")
-    public String reviewAdjustment(@PathVariable Long adjustmentId,
-            @RequestParam String decision,
-            @RequestParam(required = false) String reviewNote,
-            @RequestParam(required = false) Long branchId,
-            Principal principal, RedirectAttributes flash) {
-        try {
-            inventoryService.reviewAdjustment(adjustmentId, decision, reviewNote, principal.getName());
-            flash.addFlashAttribute("success", "APPROVED".equalsIgnoreCase(decision)
-                    ? "Đã phê duyệt phiếu điều chỉnh và cập nhật tồn kho thực tế."
-                    : "Đã từ chối phiếu điều chỉnh tồn kho.");
-        } catch (IllegalArgumentException | AccessDeniedException ex) {
-            flash.addFlashAttribute("error", ex.getMessage());
-        }
-        if (branchId != null) {
-            flash.addAttribute("branchId", branchId);
-        }
-        return "redirect:/admin/inventory";
-    }
 }

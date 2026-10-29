@@ -11,9 +11,9 @@
 	value="${fn:substringAfter(adminCurrentPath, pageContext.request.contextPath)}" />
 <c:set var="principalText">${pageContext.request.userPrincipal}</c:set>
 <c:set var="isAdminRole"
-	value="${fn:contains(principalText, 'ROLE_ADMIN')}" />
+	value="${pageContext.request.isUserInRole('ADMIN')}" />
 <c:set var="isBranchManagerRole"
-	value="${fn:contains(principalText, 'ROLE_BRANCH_MANAGER')}" />
+	value="${pageContext.request.isUserInRole('BRANCH_MANAGER')}" />
 <c:set var="isManagerOrAdmin"
 	value="${isAdminRole or isBranchManagerRole}" />
 
@@ -56,10 +56,6 @@
 			${fn:startsWith(adminCurrentPath, '/admin/inventory') ? 'aria-current="page"' : ''}><i
 				class="bi bi-boxes me-2"></i> Tồn kho chi nhánh</a></li>
 
-		<li><a href="${pageContext.request.contextPath}/admin/transfers"
-			class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/transfers') ? 'active text-white' : 'text-white-50'}"
-			${fn:startsWith(adminCurrentPath, '/admin/transfers') ? 'aria-current="page"' : ''}><i
-				class="bi bi-arrow-left-right me-2"></i> Điều chuyển kho</a></li>
 				
 		<li><a href="${pageContext.request.contextPath}/admin/returns"
 			class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/returns') ? 'active text-white' : 'text-white-50'}"
@@ -75,10 +71,14 @@
 				class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/promotions') ? 'active text-white' : 'text-white-50'}"
 				${fn:startsWith(adminCurrentPath, '/admin/promotions') ? 'aria-current="page"' : ''}><i
 					class="bi bi-percent me-2"></i> Khuyến mãi & Mã giảm</a></li>
+		</c:if>
+		<c:if test="${isManagerOrAdmin}">
 			<li><a href="${pageContext.request.contextPath}/admin/users"
 				class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/users') ? 'active text-white' : 'text-white-50'}"
 				${fn:startsWith(adminCurrentPath, '/admin/users') ? 'aria-current="page"' : ''}><i
 					class="bi bi-people me-2"></i> Quản lý Người dùng</a></li>
+		</c:if>
+		<c:if test="${isAdminRole}">
 			<li><a
 				href="${pageContext.request.contextPath}/admin/audit-logs"
 				class="nav-link ${fn:startsWith(adminCurrentPath, '/admin/audit-logs') ? 'active text-white' : 'text-white-50'}"

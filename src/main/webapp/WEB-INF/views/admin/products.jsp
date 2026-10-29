@@ -17,10 +17,10 @@
 			class="flex-grow-1 bg-light p-4">
 			<h3>Quản lý sản phẩm</h3>
 			<c:if test="${not empty success}">
-				<div class="alert alert-success">${success}</div>
+				<div class="alert alert-success"><c:out value="${success}"/></div>
 			</c:if>
 			<c:if test="${not empty error}">
-				<div class="alert alert-danger">${error}</div>
+				<div class="alert alert-danger"><c:out value="${error}"/></div>
 			</c:if>
 
 			<!-- 1. BỘ LỌC VÀ TÌM KIẾM SẢN PHẨM -->
@@ -185,10 +185,10 @@
 							<c:forEach items="${productsPage.content}" var="p">
 								<tr>
 									<td>${p.id}</td>
-									<td><strong>${p.name}</strong></td>
-									<td><code>${p.sku}</code></td>
-									<td>${p.category.name}</td>
-									<td>${p.brand.name}</td>
+									<td><strong><c:out value="${p.name}"/></strong></td>
+									<td><code><c:out value="${p.sku}"/></code></td>
+									<td><c:out value="${p.category.name}"/></td>
+									<td><c:out value="${p.brand.name}"/></td>
 									<td>
 										<c:choose>
 											<c:when test="${p.discounted}">
@@ -206,11 +206,13 @@
 									</td>
 									<td class="text-nowrap">
 										<a class="btn btn-sm btn-outline-primary" href="/admin/products/${p.id}/edit">Sửa</a>
+										<c:if test="${pageContext.request.isUserInRole('ADMIN')}">
 										<form method="post" action="/admin/products/${p.id}/delete" class="d-inline"
 											onsubmit="return confirm('Ẩn sản phẩm này khỏi cửa hàng?')">
 											<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
 											<button class="btn btn-sm btn-outline-danger">Ẩn/Xóa</button>
 										</form>
+										</c:if>
 									</td>
 								</tr>
 							</c:forEach>

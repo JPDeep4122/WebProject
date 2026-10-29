@@ -13,6 +13,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -96,7 +98,7 @@ public class AdminProductController {
     @PostMapping(consumes = "multipart/form-data")
     public String create(@Valid @ModelAttribute("newProduct") AdminProductRequest request, BindingResult result, Model model, RedirectAttributes flash) {
         if (result.hasErrors()) {
-            flash.addFlashAttribute("error", "Thông tin sản phẩm chưa hợp lệ.");
+            flash.addFlashAttribute("error", result.getAllErrors().getFirst().getDefaultMessage());
             return "redirect:/admin/products";
         }
         try { 
@@ -110,8 +112,8 @@ public class AdminProductController {
 
     @GetMapping("/{id}/edit")
     public String edit(@PathVariable Long id, Model model) {
-        Product product = productService.getAllProductsForAdmin().stream().filter(p -> p.getId().equals(id)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm"));
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm"));
         AdminProductRequest form = new AdminProductRequest();
         form.setName(product.getName()); form.setSlug(product.getSlug()); form.setSku(product.getSku());
         form.setShortDescription(product.getShortDescription()); form.setDescription(product.getDescription());
@@ -127,6 +129,8 @@ public class AdminProductController {
     @PostMapping(value = "/{id}/edit", consumes = "multipart/form-data")
     public String update(@PathVariable Long id, @Valid @ModelAttribute("form") AdminProductRequest request, BindingResult result, Model model, RedirectAttributes flash) {
         if (result.hasErrors()) {
+            model.addAttribute("validationErrors", result.getAllErrors().stream()
+                    .map(error -> error.getDefaultMessage()).toList());
             model.addAttribute("productId", id); model.addAttribute("categories", productService.getAllCategories());
             model.addAttribute("brands", productService.getAllBrands()); return "admin/product-form";
         }

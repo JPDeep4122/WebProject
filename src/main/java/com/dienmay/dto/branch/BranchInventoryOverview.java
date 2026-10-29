@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 
 import com.dienmay.entity.branch.Branch;
 import com.dienmay.entity.branch.BranchInventory;
-import com.dienmay.entity.branch.InventoryAdjustment;
+
 
 import lombok.Builder;
 import lombok.Getter;
@@ -16,8 +16,9 @@ import lombok.Getter;
 public class BranchInventoryOverview {
     private final Page<BranchInventory> inventories;
     private final List<Branch> branches;
-    private final List<InventoryAdjustment> recentAdjustments;
+
     private final Long selectedBranchId;
     private final boolean canChooseBranch;
+    private final boolean canEditInventory;
     private final String warning;
 }

@@ -21,7 +21,7 @@
 <body class="bg-light">
 	<c:set var="principalText">${pageContext.request.userPrincipal}</c:set>
 	<c:set var="canConfirmCodHandover"
-		value="${fn:contains(principalText, 'ROLE_ADMIN') or fn:contains(principalText, 'ROLE_BRANCH_MANAGER')}" />
+		value="${pageContext.request.isUserInRole('ADMIN') or pageContext.request.isUserInRole('BRANCH_MANAGER')}" />
 	<div class="d-flex">
 		<jsp:include page="fragments/sidebar.jsp" />
 		<main class="flex-grow-1 p-4">
@@ -206,6 +206,7 @@
 										Khách hàng có thể nhận lại tiền mặt trực tiếp tại quầy chi nhánh gần nhất hoặc nhân viên chi nhánh chuyển khoản ngân hàng trả hộ cho khách.
 									</div>
 								</div>
+								<c:if test="${canConfirmCodHandover}">
 								<form method="post" action="${pageContext.request.contextPath}/admin/orders/${order.id}/refund-cancelled"
 									onsubmit="return confirm('Xác nhận đã chi trả đủ số tiền hoàn cho khách hàng?');" class="row g-3">
 									<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
@@ -227,6 +228,10 @@
 										</button>
 									</div>
 								</form>
+								</c:if>
+								<c:if test="${not canConfirmCodHandover}">
+									<div class="text-secondary">Quản lý chi nhánh/Admin xác nhận hoàn tiền cho khách hàng.</div>
+								</c:if>
 							</c:when>
 							<c:otherwise>
 								<div class="alert alert-success mb-0">
